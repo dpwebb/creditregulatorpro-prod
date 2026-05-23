@@ -97,9 +97,12 @@ function rogersFinding(): PacketConsumerDisputedItemSource & PacketInternalRefer
     issueViolationCategory: "BALANCE_CALCULATION_VIOLATION",
     issueDisputeVector: null,
     issueTechnicalDetails: rawTechnicalDetails,
+    bureauName: "TransUnion Canada",
+    consumerProvince: "NS",
     tradelineId: 2201,
     accountNumber: "reau",
     creditorName: "Rogers Communications",
+    accountType: "Wireless",
     balance: "$200",
     currentBalance: "$200",
     creditLimit: "$1,000",
@@ -114,8 +117,10 @@ function rogersFinding(): PacketConsumerDisputedItemSource & PacketInternalRefer
     lastReportedDate: new Date("2012-08-21T00:00:00.000Z"),
     collectionAgencyName: null,
     originalCreditorName: null,
+    isCollectionAccount: null,
     reportArtifactId: 7701,
     reportArtifactData,
+    reportDate: new Date("2026-01-10T00:00:00.000Z"),
     sourceText: "source report #7701 field: LasReportedDate account ending reau referenceId: PIPEDA_4_5",
   };
 }
@@ -192,7 +197,7 @@ describe("simulated packet humanization flow proof", () => {
         ...buildSimpleDisputePacketContent({
           packetType: "credit_bureau",
           reportType: "TransUnion Canada credit report",
-          reportDate: "2012-08-21T00:00:00.000Z",
+          reportDate: "2026-01-10T00:00:00.000Z",
           dateGenerated: "2026-05-21T00:00:00.000Z",
           recipient: {
             type: "credit_bureau",
@@ -254,22 +259,31 @@ describe("simulated packet humanization flow proof", () => {
       expect(consumerText).toContain("Date last reported");
       expect(consumerText).toContain("Aug 21, 2012");
       expect(consumerText).toContain("Rogers Communications");
+      expect(consumerText).toContain("continued reportability");
+      expect(consumerText).toContain("Account number not shown on report; see attached report page.");
+      expect(consumerText).toContain("Verify the date of first delinquency/default if applicable.");
+      expect(consumerText).toContain("Verify the basis for continuing to publish this item on the current report.");
+      expect(consumerText).toContain("Remove or suppress the item if it is not reportable.");
+      expect(consumerText).not.toMatch(/\billegal\b|\btime-barred\b|\bobsolete\b/i);
       expect(consumerText).not.toMatch(forbiddenConsumerTerms);
     }
 
-    expect(previewText).toContain("Account: Account identifier unavailable");
+    expect(previewText).toContain("Account: Account number not shown on report");
     expect(previewText).toContain("Information disputed: Date last reported");
     expect(previewText).toContain("Reported value: Aug 21, 2012");
     expect(previewText).toContain("Reason for dispute:");
-    expect(previewText).toContain("Requested action:");
+    expect(previewText).toContain("Factual basis:");
+    expect(previewText).toContain("Verification requested:");
+    expect(previewText).toContain("Requested remedies:");
+    expect(previewText).toContain("Evidence references:");
+    expect(previewText).toContain("The report dated Jan 10, 2026 shows Rogers Communications.");
     expect(previewText).toContain(
-      "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.",
+      "See attached TransUnion Canada credit report dated Jan 10, 2026, Rogers Communications entry, showing Date last reported: Aug 21, 2012.",
     );
-    expect(pdfText).toContain("Account: Account number not provided on report");
-    expect(pdfText).toContain("Information I am disputing: Date last reported");
-    expect(pdfText).toContain("What the report shows: Aug 21, 2012");
-    expect(pdfText).toContain("What I am requesting");
-    expect(pdfText).toContain("Please verify this information and correct or remove it if it cannot be supported.");
+    expect(pdfText).toContain("Account: Account number not shown on report");
+    expect(pdfText).toContain("Information disputed: Date last reported");
+    expect(pdfText).toContain("Reported value: Aug 21, 2012");
+    expect(pdfText).not.toContain("What I am requesting");
 
     expect(createdPacket).toMatchObject({
       packetId: 8801,
@@ -284,6 +298,18 @@ describe("simulated packet humanization flow proof", () => {
       maskedAccountNumber: "Account identifier unavailable",
       disputedField: "Date last reported",
       reportedValue: "Aug 21, 2012",
+      narrative: expect.objectContaining({
+        disputeCategory: "POSSIBLE_OBSOLETE_OR_STALE_REPORTING",
+        cautionLevel: "CAUTIOUS",
+        consumerAssertion: "I dispute the accuracy, completeness, support, and continued reportability of this item.",
+        internalReference: expect.stringContaining("finding:4201"),
+        externalReferenceDisplay: "Issue 4201",
+        verificationRequests: expect.arrayContaining([
+          "Verify the date last reported.",
+          "Verify the date of first delinquency/default if applicable.",
+          "Verify the basis for continuing to publish this item on the current report.",
+        ]),
+      }),
     });
     expect(createdPacket.packet.metadata).toMatchObject({
       selectedIssueIds: [row.issueId],

@@ -108,6 +108,63 @@ describe("simple dispute packet template", () => {
     expect(explanation.match(new RegExp(verificationSentence.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))).toHaveLength(1);
   });
 
+  it("deduplicates repeated packet narrative sentences in external reason blocks", () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion credit report",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St"],
+      },
+      disputedItems: [
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: null,
+          disputedField: "account status",
+          reportedValue: "Open",
+          expectedValue: "Closed",
+          issueType: "ACCOUNT_STATUS_INCONSISTENCY",
+          evidenceReference: "Source report page 2",
+          narrative: {
+            disputeCategory: "BALANCE_OR_STATUS_ACCURACY",
+            cautionLevel: "NORMAL",
+            issueSummary: "The report shows Sample Bank with account status: Open.",
+            factualBasis: [
+              "The report shows account status: Open.",
+              "The report shows account status: Open.",
+            ],
+            consumerAssertion: "I dispute the accuracy, completeness, support, and continued reportability of this item.",
+            verificationRequests: [
+              "Verify the account status.",
+              "Verify the account status.",
+            ],
+            requestedRemedies: [
+              "Correct any inaccurate or incomplete information.",
+              "Correct any inaccurate or incomplete information.",
+            ],
+            evidenceReferences: ["See attached report page.", "See attached report page."],
+            readinessWarnings: [],
+            readinessBlockers: [],
+            internalReference: "finding:1|evidence:raw-internal-id",
+            externalReferenceDisplay: "Issue 1",
+          },
+        },
+      ],
+    });
+
+    const letterBody = buildConsumerDisputePacketLetterText(packet);
+
+    expect(packet.disputedItems[0].narrative?.verificationRequests).toEqual(["Verify the account status."]);
+    expect(letterBody.match(/Verify the account status\./g)).toHaveLength(1);
+    expect(letterBody.match(/Correct any inaccurate or incomplete information\./g)).toHaveLength(1);
+    expect(letterBody).not.toContain("raw-internal-id");
+  });
+
   it("builds a collection agency clarification packet", () => {
     const packet = buildSimpleDisputePacketContent({
       packetType: "collection_agency",
@@ -267,7 +324,7 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Date last reported");
     expect(letterBody).toContain("Information disputed: Date last reported");
     expect(letterBody).toContain("Reported value: Aug 21, 2012");
-    expect(letterBody).toContain("Account: Account identifier unavailable");
+    expect(letterBody).toContain("Account: Account number not shown on report");
     expect(letterBody).toContain("Requested result: Verify the correct information");
     expect(letterBody).toContain("Requested action:");
     expect(letterBody).toContain("Please investigate this item");

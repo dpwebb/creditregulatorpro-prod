@@ -283,7 +283,7 @@ describe("packet create dialog routing", () => {
     expect(previewText).toContain("Credit report reviewed:");
     expect(previewText).toContain("Disputed Account");
     expect(previewText).toContain("Company reporting the account: Rogers Communications");
-    expect(previewText).toContain("Account: Account identifier unavailable");
+    expect(previewText).toContain("Account: Account number not shown on report");
     expect(previewText).toContain("Information disputed: Date last reported");
     expect(previewText).toContain("Reported value: Aug 21, 2012");
     expect(previewText).toContain("Reason for dispute:");

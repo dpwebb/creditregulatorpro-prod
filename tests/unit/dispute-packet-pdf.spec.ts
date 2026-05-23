@@ -9,6 +9,7 @@ import {
 } from "../../helpers/packetPdfContent";
 import { generateDisputePacketPDF } from "../../helpers/disputePacketPdf";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import { generatePdfWatermark } from "../../helpers/contentMarker";
 
 const originalFetch = globalThis.fetch;
 const validIdentificationImage =
@@ -73,6 +74,16 @@ describe("simple dispute packet PDF", () => {
     expect(bytes.subarray(0, 4).toString("utf8")).toBe("%PDF");
     expect(bytes.length).toBeGreaterThan(1000);
     expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps full packet hashes out of visible PDF references", () => {
+    const watermark = generatePdfWatermark("11", "22");
+    const footer = watermark.footer(1, 1) as { text: string };
+
+    expect(watermark.info.keywords).toMatch(/^ref:[a-f0-9]{64}$/);
+    expect(watermark.watermark.text).toBe("Packet 22");
+    expect(footer.text).toContain("Ref: Packet 22");
+    expect(`${watermark.watermark.text} ${footer.text}`).not.toMatch(/[a-f0-9]{64}/);
   });
 
   it("supports the service-send render path with recipient overrides", async () => {
@@ -159,12 +170,11 @@ describe("simple dispute packet PDF", () => {
     expect(text).toContain("Disputed Account");
     expect(text).toContain("Company reporting the account");
     expect(text).toContain("Account: Account ending 3333");
-    expect(text).toContain("Account: Account number not provided on report");
+    expect(text).toContain("Account: Account number not shown on report");
     expect(text).toContain("Date last reported");
-    expect(text).toContain("Information I am disputing: Date last reported");
-    expect(text).toContain("What the report shows: Aug 21, 2012");
-    expect(text).toContain("What I am requesting");
-    expect(text).toContain("What I am requesting: Please verify this information and correct or remove it if it cannot be supported.");
+    expect(text).toContain("Information disputed: Date last reported");
+    expect(text).toContain("Reported value: Aug 21, 2012");
+    expect(text).toContain("Requested result: Verify the correct information");
     expect(text).not.toMatch(/Creditor\/collector|Requested action\s+Account\s+Field\s+Reported\s+Expected/i);
     expect(text).not.toMatch(forbiddenConsumerPacketOutput);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);

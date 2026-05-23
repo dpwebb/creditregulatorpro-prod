@@ -23,6 +23,7 @@ import {
   formatPacketExpectedValue,
   formatPacketFieldLabel,
 } from "./disputePacketHumanization";
+import { buildPacketNarrative } from "./packetNarrative";
 import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 import {
   resolveEvidenceLocation,
@@ -197,7 +198,17 @@ export type PacketConsumerDisputedItemSource = Pick<
   | "originalCreditorName"
   | "reportArtifactId"
   | "sourceText"
->;
+> & Partial<Pick<
+  IssueRow,
+  | "bureauName"
+  | "consumerProvince"
+  | "accountType"
+  | "isCollectionAccount"
+  | "reportDate"
+  | "reportArtifactData"
+  | "issueUserStatus"
+  | "issueValidationStatus"
+>>;
 
 export type PacketInternalReferenceSource = Pick<
   IssueRow,
@@ -1163,6 +1174,7 @@ export function buildConsumerDisputedItemInput(
   packetType: DisputePacketType,
 ): SimpleDisputedItemInput {
   const details = parseDetails(row.issueTechnicalDetails);
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
   const fieldName = fieldFromDetails(details);
   const displayFieldName = formatPacketFieldLabel(fieldName ?? "Account information");
   const reportedValue =
@@ -1173,6 +1185,63 @@ export function buildConsumerDisputedItemInput(
     "Not known";
   const creditorName = firstKnownText([row.creditorName, row.originalCreditorName, row.collectionAgencyName]);
   const collectionName = firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]);
+  const issueType = issueTypeForRow(row);
+  const evidenceReference = evidenceReferenceForRow(row, details);
+  const pageNumber = Number(evidence?.pageNumber ?? evidence?.page ?? details.pageNumber ?? details.page);
+  const evidenceSnippet = firstKnownText([
+    evidence ? firstText(evidence, ["textSnippet", "excerpt"]) : null,
+    firstText(details, ["textSnippet", "evidenceSnippet", "excerpt"]),
+  ]);
+  const ruleRecords = internalRuleRecords(details);
+  const narrative = buildPacketNarrative({
+    packetType,
+    issueId: row.issueId,
+    tradelineId: row.tradelineId,
+    reportArtifactId: row.reportArtifactId,
+    reportType: packetType === "collection_agency"
+      ? "Collection agency account information"
+      : row.bureauName
+        ? `${row.bureauName} credit report`
+        : "credit report",
+    reportDate: row.reportDate ?? null,
+    bureauName: row.bureauName ?? null,
+    consumerProvince: row.consumerProvince ?? null,
+    accountName: packetType === "collection_agency" ? collectionName : creditorName,
+    accountNumber: row.accountNumber,
+    accountType: row.accountType ?? null,
+    accountStatus: row.status,
+    balance: row.balance,
+    currentBalance: row.currentBalance,
+    openedDate: row.openedDate,
+    closedDate: row.dateClosed,
+    dateOfFirstDelinquency: row.dateOfFirstDelinquency,
+    dateOfLastPayment: row.dateOfLastPayment,
+    lastActivityDate: row.lastActivityDate,
+    dateLastReported: row.lastReportedDate,
+    amountPastDue: row.amountPastDue,
+    isCollectionAccount: row.isCollectionAccount ?? null,
+    collectionAgencyName: row.collectionAgencyName,
+    originalCreditorName: row.originalCreditorName,
+    disputedField: displayFieldName,
+    reportedValue,
+    expectedValue,
+    issueType,
+    evidenceReference,
+    evidencePageNumber: Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : null,
+    evidenceSnippet,
+    ruleIds: collectStringValues(ruleRecords, ["ruleId", "ruleIds", "deterministicRuleId", "runtimeRuleId"]),
+    regulationIds: collectStringValues(ruleRecords, [
+      "regulationId",
+      "regulationIds",
+      "referenceId",
+      "referenceIds",
+      "legalReferenceId",
+      "legalReferenceIds",
+      "authorityId",
+      "authorityIds",
+    ]),
+    evidenceIds: evidenceIdsFromDetails(details),
+  });
 
   return {
     issueId: row.issueId,
@@ -1183,10 +1252,11 @@ export function buildConsumerDisputedItemInput(
     disputedField: displayFieldName,
     reportedValue: formatPacketDisplayValue(fieldName ?? displayFieldName, reportedValue, row.accountNumber),
     expectedValue: formatPacketExpectedValue(fieldName ?? displayFieldName, expectedValue, row.accountNumber),
-    issueType: issueTypeForRow(row),
+    issueType,
     explanation: consumerDisputeReasonForRow(row, packetType),
-    evidenceReference: evidenceReferenceForRow(row, details),
-    requestedAction: actionForIssue(issueTypeForRow(row), packetType),
+    evidenceReference,
+    requestedAction: actionForIssue(issueType, packetType),
+    narrative,
   };
 }
 

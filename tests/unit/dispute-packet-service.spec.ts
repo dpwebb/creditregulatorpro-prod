@@ -93,9 +93,12 @@ function sourceRow(): PacketConsumerDisputedItemSource & PacketInternalReference
     issueViolationCategory: "DATE_REPORTING",
     issueDisputeVector: null,
     issueTechnicalDetails: rawTechnicalDetails,
+    bureauName: "Synthetic Bureau",
+    consumerProvince: "NS",
     tradelineId: 222,
     accountNumber: "reau",
     creditorName: "Synthetic Bank",
+    accountType: "Installment",
     balance: "$200",
     currentBalance: "$200",
     creditLimit: "$1,000",
@@ -110,8 +113,10 @@ function sourceRow(): PacketConsumerDisputedItemSource & PacketInternalReference
     lastReportedDate: new Date("2012-08-21T00:00:00.000Z"),
     collectionAgencyName: null,
     originalCreditorName: null,
+    isCollectionAccount: null,
     reportArtifactId: 77,
     reportArtifactData,
+    reportDate: new Date("2026-05-11T00:00:00.000Z"),
     sourceText: "source report #77 field: lastReportedDate referenceId: PIPEDA_4_5",
   };
 }
@@ -165,9 +170,11 @@ describe("dispute packet service consumer/internal separation", () => {
 
     expect(bodyText).toContain("Company reporting the account: Synthetic Bank");
     expect(bodyText).toContain("Information disputed: Date last reported");
-    expect(bodyText).toContain("Information I am disputing: Date last reported");
-    expect(bodyText).toContain("What the report shows: Aug 21, 2012");
-    expect(bodyText).toContain("What I am requesting: Please verify this information and correct or remove it if it cannot be supported.");
+    expect(bodyText).toContain("Reported value: Aug 21, 2012");
+    expect(bodyText).toContain("The report dated May 11, 2026 shows Synthetic Bank.");
+    expect(bodyText).toContain("I dispute the accuracy, completeness, support, and continued reportability of this item.");
+    expect(bodyText).toContain("Verify the date of first delinquency/default if applicable.");
+    expect(bodyText).toContain("Remove or suppress the item if it is not reportable.");
     expect(bodyText).toContain("Aug 21, 2012");
     expect(bodyText).toContain(
       "Requested result: Verify the correct information, or remove/update the item if it cannot be supported.",
@@ -181,6 +188,13 @@ describe("dispute packet service consumer/internal separation", () => {
       disputedField: "Date last reported",
       reportedValue: "Aug 21, 2012",
       maskedAccountNumber: "Account identifier unavailable",
+      narrative: expect.objectContaining({
+        disputeCategory: "POSSIBLE_OBSOLETE_OR_STALE_REPORTING",
+        cautionLevel: "CAUTIOUS",
+        evidenceReferences: expect.arrayContaining([
+          "See attached Synthetic Bureau credit report dated May 11, 2026, Synthetic Bank entry, showing Date last reported: Aug 21, 2012.",
+        ]),
+      }),
     });
     expect(packet.metadata).toMatchObject({
       selectedIssueIds: [111],

@@ -1,5 +1,6 @@
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
 import type { EvidenceLocationSummary } from "./evidenceLocationIndex";
+import { dedupeNarrativeText } from "./packetNarrative";
 import {
   PACKET_REQUESTED_RESULT_FALLBACK,
   formatPacketAccountIdentifier,
@@ -37,6 +38,45 @@ export const ALLOWED_PACKET_REQUESTED_ACTIONS = [
 
 export type PacketRequestedAction = (typeof ALLOWED_PACKET_REQUESTED_ACTIONS)[number];
 
+export const PACKET_NARRATIVE_DISPUTE_CATEGORIES = [
+  "FIELD_ACCURACY",
+  "UNSUPPORTED_REPORTING",
+  "POSSIBLE_OBSOLETE_OR_STALE_REPORTING",
+  "MISSING_ACCOUNT_IDENTIFIER",
+  "ACCOUNT_NOT_RECOGNIZED",
+  "IDENTITY_OR_ALIAS_MISMATCH",
+  "COLLECTION_OR_DEFAULT_STATUS",
+  "BALANCE_OR_STATUS_ACCURACY",
+  "DUPLICATE_OR_CONFLICTING_ACCOUNT",
+  "GENERAL_ACCURACY",
+  "UNKNOWN",
+] as const;
+
+export type PacketNarrativeDisputeCategory = (typeof PACKET_NARRATIVE_DISPUTE_CATEGORIES)[number];
+
+export const PACKET_NARRATIVE_CAUTION_LEVELS = [
+  "NORMAL",
+  "CAUTIOUS",
+  "NEEDS_REVIEW",
+] as const;
+
+export type PacketNarrativeCautionLevel = (typeof PACKET_NARRATIVE_CAUTION_LEVELS)[number];
+
+export interface PacketNarrative {
+  disputeCategory: PacketNarrativeDisputeCategory;
+  cautionLevel: PacketNarrativeCautionLevel;
+  issueSummary: string;
+  factualBasis: string[];
+  consumerAssertion: string;
+  verificationRequests: string[];
+  requestedRemedies: string[];
+  evidenceReferences: string[];
+  readinessWarnings: string[];
+  readinessBlockers: string[];
+  internalReference?: string | null;
+  externalReferenceDisplay?: string | null;
+}
+
 export interface SimplePacketRecipient {
   type: "credit_bureau" | "collection_agency";
   name: string;
@@ -63,6 +103,7 @@ export interface SimpleDisputedItemInput {
   explanation?: string | null;
   evidenceReference?: string | null;
   requestedAction?: PacketRequestedAction | null;
+  narrative?: PacketNarrative | null;
 }
 
 export interface SimpleDisputedItem {
@@ -79,6 +120,7 @@ export interface SimpleDisputedItem {
   evidenceReference: string;
   requestedAction: PacketRequestedAction;
   needsManualReview: boolean;
+  narrative: PacketNarrative | null;
 }
 
 export interface SimpleDisputePacketContent {
@@ -192,8 +234,8 @@ function safeFieldValue(fieldName: string | null | undefined, value: unknown, ac
 
 function safeAccountDisplay(value: unknown): string {
   const raw = String(value ?? "").trim();
-  if (/^Account number not provided on report$/i.test(raw)) return "Account number not provided on report";
-  if (/^Account identifier unavailable$/i.test(raw)) return "Account identifier unavailable";
+  if (/^Account number not provided on report$/i.test(raw)) return "Account number not shown on report";
+  if (/^Account identifier unavailable$/i.test(raw)) return "Account number not shown on report";
   return maskAccountNumber(raw);
 }
 
@@ -267,6 +309,45 @@ function buildItemExplanation(item: SimpleDisputedItemInput, packetType: Dispute
   return `${explanationPrefix}${verificationRequest} If the information cannot be verified, please correct it or remove it from my credit report.`;
 }
 
+function sanitizeNarrativeList(values: unknown, accountNumber?: string | null): string[] {
+  if (!Array.isArray(values)) return [];
+  return dedupeNarrativeText(
+    values
+      .map((value) => safeLetterText(value, accountNumber))
+      .filter(Boolean),
+  );
+}
+
+function sanitizePacketNarrative(
+  narrative: PacketNarrative | null | undefined,
+  accountNumber?: string | null,
+): PacketNarrative | null {
+  if (!narrative) return null;
+  const disputeCategory = PACKET_NARRATIVE_DISPUTE_CATEGORIES.includes(narrative.disputeCategory)
+    ? narrative.disputeCategory
+    : "UNKNOWN";
+  const cautionLevel = PACKET_NARRATIVE_CAUTION_LEVELS.includes(narrative.cautionLevel)
+    ? narrative.cautionLevel
+    : "NEEDS_REVIEW";
+
+  return {
+    disputeCategory,
+    cautionLevel,
+    issueSummary: safeLetterText(narrative.issueSummary, accountNumber),
+    factualBasis: sanitizeNarrativeList(narrative.factualBasis, accountNumber),
+    consumerAssertion: safeLetterText(narrative.consumerAssertion, accountNumber),
+    verificationRequests: sanitizeNarrativeList(narrative.verificationRequests, accountNumber),
+    requestedRemedies: sanitizeNarrativeList(narrative.requestedRemedies, accountNumber),
+    evidenceReferences: sanitizeNarrativeList(narrative.evidenceReferences, accountNumber),
+    readinessWarnings: sanitizeNarrativeList(narrative.readinessWarnings, accountNumber),
+    readinessBlockers: sanitizeNarrativeList(narrative.readinessBlockers, accountNumber),
+    internalReference: narrative.internalReference ?? null,
+    externalReferenceDisplay: narrative.externalReferenceDisplay
+      ? safeLetterText(narrative.externalReferenceDisplay, accountNumber)
+      : null,
+  };
+}
+
 function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: DisputePacketType): SimpleDisputedItem {
   const rawDisputedField = hasText(item.disputedField)
     ? item.disputedField
@@ -279,6 +360,7 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
   });
   const needsManualReview = !evidenceReference || evidenceReference.toLowerCase() === "needs manual review";
   const issueType = labelizeIssueType(item.issueType);
+  const narrative = sanitizePacketNarrative(item.narrative, item.accountNumber);
 
   return {
     issueId: item.issueId ?? null,
@@ -298,6 +380,7 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
     evidenceReference: needsManualReview ? "Needs manual review" : evidenceReference,
     requestedAction: item.requestedAction ?? actionForIssue(item.issueType, packetType),
     needsManualReview,
+    narrative,
   };
 }
 
@@ -336,7 +419,46 @@ function pushNonEmpty(lines: string[], ...values: Array<string | null | undefine
   }
 }
 
-function buildItemLetterBlock(item: SimpleDisputedItem, packet: SimpleDisputePacketContent): string[] {
+function pushSection(lines: string[], title: string, values: string[]): void {
+  if (values.length === 0) return;
+  lines.push("");
+  lines.push(title);
+  lines.push(...values.map((value) => `- ${safeLetterText(value)}`));
+}
+
+function buildNarrativeLetterBlock(item: SimpleDisputedItem, packet: SimpleDisputePacketContent): string[] {
+  const narrative = item.narrative;
+  if (!narrative) return [];
+  const lines = [
+    "Reason for dispute:",
+    safeLetterText(narrative.issueSummary, item.maskedAccountNumber),
+    safeLetterText(narrative.consumerAssertion, item.maskedAccountNumber),
+  ].filter(Boolean);
+
+  pushSection(lines, "Factual basis:", narrative.factualBasis);
+  pushSection(lines, "Verification requested:", narrative.verificationRequests);
+  pushSection(lines, "Requested remedies:", narrative.requestedRemedies);
+  pushSection(lines, "Evidence references:", narrative.evidenceReferences);
+  pushSection(lines, "Readiness warnings:", narrative.readinessWarnings);
+  pushSection(lines, "Readiness blockers:", narrative.readinessBlockers);
+
+  if (lines.length === 0) {
+    return [
+      "Reason for dispute:",
+      safeLetterText(item.explanation, item.maskedAccountNumber),
+      "",
+      "Requested action:",
+      safeLetterText(packet.requestedActionSummary),
+    ];
+  }
+
+  return lines;
+}
+
+export function buildConsumerDisputePacketItemLines(
+  item: SimpleDisputedItem,
+  packet: SimpleDisputePacketContent,
+): string[] {
   const fieldLabel = safeLetterFieldLabel(item.disputedField);
   const accountDisplay = safeAccountDisplay(item.maskedAccountNumber);
   const reportedValue = formatPacketDisplayValue(fieldLabel, item.reportedValue, item.maskedAccountNumber);
@@ -344,13 +466,21 @@ function buildItemLetterBlock(item: SimpleDisputedItem, packet: SimpleDisputePac
     ? `Expected value: ${redactSensitiveText(item.correctedExpectedValue)}`
     : PACKET_REQUESTED_RESULT_FALLBACK;
 
-  return [
+  const headerLines = [
     "Disputed Account",
     `Company reporting the account: ${safeLetterText(item.creditorCollectorName)}`,
     `Account: ${accountDisplay}`,
     `Information disputed: ${fieldLabel}`,
     `Reported value: ${reportedValue}`,
     requestedResult,
+  ];
+
+  if (item.narrative) {
+    return [...headerLines, "", ...buildNarrativeLetterBlock(item, packet)];
+  }
+
+  return [
+    ...headerLines,
     "",
     "Reason for dispute:",
     safeLetterText(item.explanation, item.maskedAccountNumber),
@@ -386,7 +516,7 @@ export function buildConsumerDisputePacketLetterText(packet: SimpleDisputePacket
   lines.push("");
 
   for (const item of packet.disputedItems) {
-    lines.push(...buildItemLetterBlock(item, packet));
+    lines.push(...buildConsumerDisputePacketItemLines(item, packet));
     lines.push("");
   }
 

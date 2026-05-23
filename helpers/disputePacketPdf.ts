@@ -2,19 +2,14 @@ import type { Content, TDocumentDefinitions } from "pdfmake/interfaces";
 import { generatePdfWatermark } from "./contentMarker";
 import { generateServerPdf } from "./pdfServerUtils";
 import {
+  DISPUTE_PACKET_CONSUMER_SUBJECT,
+  buildConsumerDisputePacketItemLines,
   type SimpleDisputePacketContent,
-  type SimpleDisputedItem,
 } from "./disputePacketTemplate";
 import {
-  formatPacketAccountIdentifier,
   formatPacketDisplayDate,
-  formatPacketDisplayValue,
-  formatPacketFieldLabel,
   redactPacketSensitiveText,
 } from "./disputePacketHumanization";
-
-const PDF_ITEM_REQUEST =
-  "Please verify this information and correct or remove it if it cannot be supported.";
 
 function bulletList(items: string[]): Content {
   return {
@@ -37,47 +32,6 @@ function safePdfDate(value: unknown): string {
   return safePdfText(formatPacketDisplayDate(value));
 }
 
-function safePdfAccountIdentifier(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!raw || /not provided|unavailable/i.test(raw)) {
-    return "Account number not provided on report";
-  }
-  return formatPacketAccountIdentifier(raw);
-}
-
-function safePdfFieldLabel(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "Account information";
-  if (
-    /[_:./-]/.test(raw) ||
-    /[a-z][A-Z]/.test(raw) ||
-    /artifact|tradeline|reference|rule\s*id/i.test(raw)
-  ) {
-    return formatPacketFieldLabel(raw);
-  }
-  return safePdfText(raw);
-}
-
-function buildDisputedAccountBlock(item: SimpleDisputedItem): string[] {
-  const fieldLabel = safePdfFieldLabel(item.disputedField);
-  const accountIdentifier = safePdfAccountIdentifier(item.maskedAccountNumber);
-  const reportedValue = safePdfText(
-    formatPacketDisplayValue(fieldLabel, item.reportedValue, item.maskedAccountNumber),
-  );
-
-  return [
-    "Disputed Account",
-    `Company reporting the account: ${safePdfText(item.creditorCollectorName)}`,
-    `Account: ${accountIdentifier}`,
-    `Information I am disputing: ${fieldLabel}`,
-    `What the report shows: ${reportedValue}`,
-    `What I am requesting: ${PDF_ITEM_REQUEST}`,
-    "",
-    "Reason for dispute:",
-    safePdfText(item.explanation),
-  ];
-}
-
 export function buildDisputePacketPdfLetterText(packet: SimpleDisputePacketContent): string {
   const lines: string[] = [
     safePdfDate(packet.dateGenerated),
@@ -85,7 +39,7 @@ export function buildDisputePacketPdfLetterText(packet: SimpleDisputePacketConte
     safePdfText(packet.recipient.name),
     ...packet.recipient.address.map((line) => safePdfText(line)).filter(Boolean),
     "",
-    "Re: Request to investigate and correct credit report information",
+    `Re: ${DISPUTE_PACKET_CONSUMER_SUBJECT}`,
     "",
     "Consumer:",
     safePdfText(packet.consumer.name),
@@ -106,7 +60,7 @@ export function buildDisputePacketPdfLetterText(packet: SimpleDisputePacketConte
   );
 
   for (const item of packet.disputedItems) {
-    lines.push(...buildDisputedAccountBlock(item), "");
+    lines.push(...buildConsumerDisputePacketItemLines(item, packet).map((line) => safePdfText(line)), "");
   }
 
   lines.push("Sincerely,", "", "________________________________", safePdfText(packet.consumer.name));
