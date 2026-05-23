@@ -1,9 +1,9 @@
 # Alerting Observability Machine Proof
 
-Generated at: 2026-05-22T20:41:43.397Z
+Generated at: 2026-05-23T00:44:52.717Z
 Evidence type: ALERTING_OBSERVABILITY_MACHINE_PROOF
-Environment: machine-proof-simulation
-Commit: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+Environment: production
+Commit: `854bb4e5488244e9b75208af36406bfd16019329`
 Generator: `scripts/alerting-machine-proof.mjs`
 Command: `pnpm run alerts:machine-proof`
 Blocker ID: L10-P1-005
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: pass
 CERTIFYING:true
-Expires at: 2026-05-23T20:41:43.397Z
+Expires at: 2026-05-24T00:44:52.717Z
 
 ## Safety
 
@@ -51,4 +51,4 @@ Expires at: 2026-05-23T20:41:43.397Z
 
 - docs/production-scale/evidence/latest-alerting-machine-proof.json
 - docs/production-scale/evidence/latest-alerting-machine-proof.md
-- machine-proof-simulation:alerting
+- .local/production-proof/alerting-attestation.json

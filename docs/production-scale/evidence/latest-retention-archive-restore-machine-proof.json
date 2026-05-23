@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
   "blockerId": "retention-archive-restore",
-  "environment": "machine-proof-simulation",
-  "generatedAt": "2026-05-22T20:41:47.512Z",
-  "commitHash": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "currentCommitHash": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "currentHead": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "commit": "035b06c1271475e74d0bbd808daeb001898fe7b3",
+  "environment": "production",
+  "generatedAt": "2026-05-23T00:49:02.634Z",
+  "commitHash": "854bb4e5488244e9b75208af36406bfd16019329",
+  "currentCommitHash": "854bb4e5488244e9b75208af36406bfd16019329",
+  "currentHead": "854bb4e5488244e9b75208af36406bfd16019329",
+  "commit": "854bb4e5488244e9b75208af36406bfd16019329",
   "branch": "staging",
   "generatorScript": "scripts/retention-archive-restore-machine-proof.mjs",
   "command": "pnpm run retention:archive-restore-machine-proof",
@@ -17,9 +17,9 @@
   "humanObserved": false,
   "manualApprovalRequired": false,
   "generatedManually": false,
-  "simulatedOnly": true,
+  "simulatedOnly": false,
   "dryRunOnly": false,
-  "productionMutation": "none",
+  "productionMutation": "synthetic-canary-cleaned-up",
   "secretsPrinted": false,
   "piiPrinted": false,
   "rawReportBytesPrinted": false,
@@ -28,7 +28,7 @@
   "certifying": true,
   "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T20:41:47.512Z",
+  "expiresAt": "2026-05-24T00:49:02.634Z",
   "checks": [
     {
       "name": "safe-archive-candidate-selected",
@@ -70,8 +70,8 @@
   "failures": [],
   "sanitizedArtifacts": [
     {
-      "path": "machine-proof-simulation:retention-archive-restore",
-      "type": "simulated-runtime-input-resolution"
+      "path": ".local/production-proof/retention-attestation.json",
+      "type": "machine-attestation-input"
     },
     "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
     "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md"
@@ -79,67 +79,51 @@
   "missingRuntimeInputs": [],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "proofMode": "simulated-machine-proof-runtime-input-resolution",
-    "retentionProofKind": "safe-runtime-input-resolution",
+    "proofMode": "non-interactive-machine-attested-retention-archive-restore",
+    "retentionProofKind": "operator-sanitized-real-evidence",
     "safeArchiveCandidate": {
       "selected": true,
       "safe": true,
-      "opaqueCandidateId": "simulated-retention-candidate-0001",
-      "syntheticCanary": true,
+      "candidateId": "safe-retention-candidate-0001",
       "realConsumerPiiUsed": false
     },
     "archive": {
       "selected": true,
-      "created": true,
-      "createdOrSelected": true,
-      "archiveId": "simulated-retention-archive-0001",
+      "archiveId": "retention-archive-0001",
       "metadataVerified": true,
-      "manifestHash": "simulated-retention-manifest-0001",
-      "containsPii": false
+      "containsPii": false,
+      "manifestHash": "retention-manifest-hash-0001"
     },
     "isolatedRestoreTarget": {
       "created": true,
       "destroyed": true,
+      "targetId": "isolated-retention-restore-target",
+      "isolated": true,
       "productionTarget": false,
-      "targetId": "simulated-retention-restore-target-0001",
-      "isolated": true
+      "productionDatabaseReachable": false
     },
     "restoreVerification": {
       "integrityVerified": true,
+      "sourceHash": "archive-hash-0001",
+      "restoredHash": "archive-hash-0001",
       "restoredHashMatchesArchive": true,
-      "expectedRecordCount": 1,
-      "verifiedRecordCount": 1
+      "piiExposed": false,
+      "noPiiExposed": true
     },
     "lifecycleCleanup": {
       "verified": true,
-      "temporaryArchiveCleaned": true,
-      "canaryCleanedUp": true
+      "cleanupVerified": true,
+      "temporaryArchiveCleaned": true
     },
     "rollbackRecovery": {
       "verified": true,
       "notesRecorded": true,
-      "rollbackPlanHash": "simulated-retention-rollback-notes-0001"
+      "recoveryNotesRecorded": true,
+      "rollbackPlanHash": "retention-rollback-plan-0001"
     },
     "noPiiExposed": true,
     "syntheticCanaryCleanupSucceeded": true,
     "humanInteractionRequired": false,
-    "attestationSource": "simulated_machine_proof_fixture",
-    "runtimeInputResolution": {
-      "source": "simulated_machine_proof_fixture",
-      "family": "retentionArchiveRestore",
-      "resolvedInputs": [
-        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
-        "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
-        "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
-        "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
-      ],
-      "sideEffects": "none",
-      "productionMutation": false,
-      "productionMutationOccurred": false,
-      "productionTargetSelected": false,
-      "humanInteractionRequired": false,
-      "persistedSensitiveValues": false,
-      "rawValuesPrinted": false
-    }
+    "attestationSource": "machine-generated-json"
   }
 }

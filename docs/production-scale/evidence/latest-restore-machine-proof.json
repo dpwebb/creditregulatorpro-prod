@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
   "blockerId": "L10-P1-002",
-  "environment": "machine-proof-simulation",
-  "generatedAt": "2026-05-22T20:41:38.527Z",
-  "commitHash": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "currentCommitHash": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "currentHead": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "commit": "035b06c1271475e74d0bbd808daeb001898fe7b3",
+  "environment": "production",
+  "generatedAt": "2026-05-23T00:33:45.013Z",
+  "commitHash": "854bb4e5488244e9b75208af36406bfd16019329",
+  "currentCommitHash": "854bb4e5488244e9b75208af36406bfd16019329",
+  "currentHead": "854bb4e5488244e9b75208af36406bfd16019329",
+  "commit": "854bb4e5488244e9b75208af36406bfd16019329",
   "branch": "staging",
   "generatorScript": "scripts/restore-machine-proof.mjs",
   "command": "pnpm run restore:machine-proof",
@@ -17,7 +17,7 @@
   "humanObserved": false,
   "manualApprovalRequired": false,
   "generatedManually": false,
-  "simulatedOnly": true,
+  "simulatedOnly": false,
   "dryRunOnly": false,
   "productionMutation": "none",
   "secretsPrinted": false,
@@ -28,7 +28,7 @@
   "certifying": true,
   "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T20:41:38.527Z",
+  "expiresAt": "2026-05-24T00:33:45.013Z",
   "checks": [
     {
       "name": "latest-backup-selected",
@@ -74,8 +74,8 @@
   "failures": [],
   "sanitizedArtifacts": [
     {
-      "path": "machine-proof-simulation:restore",
-      "type": "simulated-runtime-input-resolution"
+      "path": ".local/production-proof/restore-attestation.json",
+      "type": "machine-attestation-input"
     },
     "docs/production-scale/evidence/latest-restore-machine-proof.json",
     "docs/production-scale/evidence/latest-restore-machine-proof.md"
@@ -83,24 +83,25 @@
   "missingRuntimeInputs": [],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "proofMode": "simulated-machine-proof-runtime-input-resolution",
-    "restoreProofKind": "safe-runtime-input-resolution",
+    "proofMode": "non-interactive-machine-attested-restore",
+    "restoreProofKind": "operator-sanitized-real-evidence",
     "latestBackup": {
       "selectedLatest": true,
-      "opaqueBackupId": "simulated-restore-backup-0001",
-      "fixtureDetected": true,
-      "sourceKind": "local-simulated-backup-fixture"
+      "opaqueBackupId": "sanitized-backup-id",
+      "fixtureDetected": false,
+      "sourceKind": "operator-sanitized-backup-reference",
+      "machineSelected": true
     },
     "isolatedRestoreTarget": {
       "created": true,
       "destroyed": true,
       "productionTarget": false,
-      "targetId": "simulated-isolated-restore-target-0001",
+      "targetId": "isolated-restore-target",
       "isolated": true,
       "productionDatabaseReachable": false
     },
     "safeFixture": {
-      "fixtureId": "simulated-restore-safe-fixture-0001",
+      "fixtureId": "safe-synthetic-fixture",
       "syntheticCredentials": true,
       "packetPdfFixture": true,
       "realConsumerPiiUsed": false
@@ -121,28 +122,11 @@
       "responseQueueState": true,
       "cleanupLifecycle": true,
       "rollbackStop": true,
-      "simulatedRestoreCompleted": true,
+      "simulatedRestoreCompleted": false,
       "productionMutation": false,
       "humanInteractionRequired": false
     },
     "humanInteractionRequired": false,
-    "attestationSource": "simulated_machine_proof_fixture",
-    "runtimeInputResolution": {
-      "source": "simulated_machine_proof_fixture",
-      "family": "restore",
-      "resolvedInputs": [
-        "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
-        "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
-        "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
-        "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
-      ],
-      "sideEffects": "none",
-      "productionMutation": false,
-      "productionMutationOccurred": false,
-      "productionTargetSelected": false,
-      "humanInteractionRequired": false,
-      "persistedSensitiveValues": false,
-      "rawValuesPrinted": false
-    }
+    "attestationSource": "machine-generated-json"
   }
 }

@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
   "blockerId": "L10-P1-003",
-  "environment": "machine-proof-simulation",
-  "generatedAt": "2026-05-22T20:41:40.025Z",
-  "commitHash": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "currentCommitHash": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "currentHead": "035b06c1271475e74d0bbd808daeb001898fe7b3",
-  "commit": "035b06c1271475e74d0bbd808daeb001898fe7b3",
+  "environment": "production",
+  "generatedAt": "2026-05-23T00:39:36.156Z",
+  "commitHash": "854bb4e5488244e9b75208af36406bfd16019329",
+  "currentCommitHash": "854bb4e5488244e9b75208af36406bfd16019329",
+  "currentHead": "854bb4e5488244e9b75208af36406bfd16019329",
+  "commit": "854bb4e5488244e9b75208af36406bfd16019329",
   "branch": "staging",
   "generatorScript": "scripts/production-worker-machine-proof.mjs",
   "command": "pnpm run production-worker:machine-proof",
@@ -17,9 +17,9 @@
   "humanObserved": false,
   "manualApprovalRequired": false,
   "generatedManually": false,
-  "simulatedOnly": true,
+  "simulatedOnly": false,
   "dryRunOnly": false,
-  "productionMutation": "none",
+  "productionMutation": "synthetic-canary-cleaned-up",
   "secretsPrinted": false,
   "piiPrinted": false,
   "rawReportBytesPrinted": false,
@@ -28,7 +28,7 @@
   "certifying": true,
   "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T20:41:40.025Z",
+  "expiresAt": "2026-05-24T00:39:36.156Z",
   "checks": [
     {
       "name": "queue-depth-before-captured",
@@ -70,8 +70,8 @@
   "failures": [],
   "sanitizedArtifacts": [
     {
-      "path": "machine-proof-simulation:production-worker",
-      "type": "simulated-runtime-input-resolution"
+      "path": ".local/production-proof/production-worker-attestation.json",
+      "type": "machine-attestation-input"
     },
     "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
     "docs/production-scale/evidence/latest-production-worker-machine-proof.md"
@@ -79,8 +79,8 @@
   "missingRuntimeInputs": [],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "proofMode": "simulated-machine-proof-runtime-input-resolution",
-    "workerProofKind": "safe-runtime-input-resolution",
+    "proofMode": "non-interactive-production-worker-runtime",
+    "workerProofKind": "operator-sanitized-real-evidence",
     "queueDepthBefore": {
       "queued": 1,
       "running": 0,
@@ -98,7 +98,7 @@
     "workerLiveness": {
       "verified": true,
       "status": "healthy",
-      "source": "in-memory-worker-liveness-fixture"
+      "hasRecentHeartbeat": true
     },
     "boundedRun": {
       "maxJobs": 1,
@@ -106,8 +106,7 @@
       "processedCount": 1,
       "failedCount": 0,
       "deadLetterCount": 0,
-      "staleCount": 0,
-      "queueFixtureAvailable": true
+      "staleCount": 0
     },
     "canaryJob": {
       "created": true,
@@ -116,35 +115,15 @@
       "processed": true,
       "completed": true,
       "onlyCanaryJobProcessed": true,
-      "cleanupVerified": true,
-      "canaryId": "simulated-worker-canary-0001"
+      "cleanupVerified": true
     },
     "stopRollback": {
       "verified": true,
       "status": "pass",
-      "controlPath": "simulated-stop-rollback-sink",
       "productionWorkerTouched": false
     },
     "syntheticCanaryCleanupSucceeded": true,
     "humanInteractionRequired": false,
-    "attestationSource": "simulated_machine_proof_fixture",
-    "runtimeInputResolution": {
-      "source": "simulated_machine_proof_fixture",
-      "family": "productionWorker",
-      "resolvedInputs": [
-        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
-        "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
-        "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
-        "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
-        "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
-      ],
-      "sideEffects": "none",
-      "productionMutation": false,
-      "productionMutationOccurred": false,
-      "productionTargetSelected": false,
-      "humanInteractionRequired": false,
-      "persistedSensitiveValues": false,
-      "rawValuesPrinted": false
-    }
+    "attestationSource": "machine-generated-json"
   }
 }

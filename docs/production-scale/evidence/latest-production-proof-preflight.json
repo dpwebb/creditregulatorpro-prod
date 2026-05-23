@@ -1,0 +1,381 @@
+{
+  "reportName": "production-proof-preflight",
+  "generatedAt": "2026-05-23T00:49:29.876Z",
+  "command": "pnpm run production-proof:preflight",
+  "reportPaths": {
+    "markdown": "docs/production-scale/evidence/latest-production-proof-preflight.md",
+    "json": "docs/production-scale/evidence/latest-production-proof-preflight.json"
+  },
+  "inspectionOnly": true,
+  "productionMutationOccurred": false,
+  "productionMutationStatus": "none",
+  "rawValuesPrinted": false,
+  "secretsPrinted": false,
+  "realEvidenceReady": false,
+  "readyToRunRealEvidence": false,
+  "realEvidenceStatus": "incomplete",
+  "presentRealInputs": [
+    "CRP_RAW_REPORT_DATABASE_ACCESS",
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+    "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+    "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+    "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+    "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+    "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+    "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+  ],
+  "missingRealInputs": [],
+  "simulationOnlyInputs": [],
+  "simulationOnlyFamilies": [],
+  "unsafeFamilies": [
+    "productionWorker"
+  ],
+  "readyFamilies": [
+    "rawReport",
+    "restore",
+    "alerting",
+    "retentionArchiveRestore",
+    "migration"
+  ],
+  "notReadyFamilies": [
+    "productionWorker"
+  ],
+  "proofFamilies": [
+    {
+      "key": "rawReport",
+      "label": "Raw report byte proof",
+      "readyForRealEvidence": true,
+      "reportPath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+      "realInputs": [
+        {
+          "name": "CRP_RAW_REPORT_DATABASE_ACCESS",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false,
+          "resolvedSourceName": "FLOOT_DATABASE_URL"
+        },
+        {
+          "name": "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+          "present": false,
+          "missing": true,
+          "simulationOnly": false
+        }
+      ],
+      "presentInputs": [
+        "CRP_RAW_REPORT_DATABASE_ACCESS"
+      ],
+      "missingInputs": [],
+      "simulationOnlyInputs": [],
+      "attestation": null,
+      "proofStatus": {
+        "certifying": null,
+        "status": "ready-to-attempt",
+        "simulatedOnly": false,
+        "missingRuntimeInputs": [],
+        "failures": []
+      },
+      "safetyChecks": [
+        {
+          "key": "read-only-database-source",
+          "ok": true,
+          "status": "source-present",
+          "message": "A supported database access source is present by name only."
+        }
+      ],
+      "plainEnglishStatus": "Ready to run with real evidence."
+    },
+    {
+      "key": "restore",
+      "label": "Disaster recovery restore proof",
+      "readyForRealEvidence": true,
+      "reportPath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+      "realInputs": [
+        {
+          "name": "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        }
+      ],
+      "presentInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+        "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+        "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+        "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
+      ],
+      "missingInputs": [],
+      "simulationOnlyInputs": [],
+      "attestation": {
+        "inputName": "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+        "present": true,
+        "fileExists": true,
+        "parseable": true,
+        "simulationOnly": false,
+        "sanitizedPath": ".local/production-proof/restore-attestation.json",
+        "errors": []
+      },
+      "proofStatus": {
+        "certifying": true,
+        "status": "pass",
+        "simulatedOnly": false,
+        "missingRuntimeInputs": [],
+        "failures": []
+      },
+      "safetyChecks": [
+        {
+          "key": "isolated-restore-target-not-production",
+          "ok": true,
+          "status": "safe",
+          "message": "The target is clearly marked as isolated and not production."
+        }
+      ],
+      "plainEnglishStatus": "Ready to run with real evidence."
+    },
+    {
+      "key": "productionWorker",
+      "label": "Production worker canary proof",
+      "readyForRealEvidence": false,
+      "reportPath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+      "realInputs": [
+        {
+          "name": "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        }
+      ],
+      "presentInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+        "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+        "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+        "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+        "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
+      ],
+      "missingInputs": [],
+      "simulationOnlyInputs": [],
+      "attestation": {
+        "inputName": "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+        "present": true,
+        "fileExists": true,
+        "parseable": true,
+        "simulationOnly": false,
+        "sanitizedPath": ".local/production-proof/production-worker-attestation.json",
+        "errors": []
+      },
+      "proofStatus": {
+        "certifying": true,
+        "status": "pass",
+        "simulatedOnly": false,
+        "missingRuntimeInputs": [],
+        "failures": []
+      },
+      "safetyChecks": [
+        {
+          "key": "worker-canary-non-destructive",
+          "ok": false,
+          "status": "unsafe",
+          "message": "The worker canary configuration contains a destructive or unbounded marker."
+        }
+      ],
+      "plainEnglishStatus": "Not ready to run with real evidence."
+    },
+    {
+      "key": "alerting",
+      "label": "Alerting proof",
+      "readyForRealEvidence": true,
+      "reportPath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+      "realInputs": [
+        {
+          "name": "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        }
+      ],
+      "presentInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ],
+      "missingInputs": [],
+      "simulationOnlyInputs": [],
+      "attestation": {
+        "inputName": "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+        "present": true,
+        "fileExists": true,
+        "parseable": true,
+        "simulationOnly": false,
+        "sanitizedPath": ".local/production-proof/alerting-attestation.json",
+        "errors": []
+      },
+      "proofStatus": {
+        "certifying": true,
+        "status": "pass",
+        "simulatedOnly": false,
+        "missingRuntimeInputs": [],
+        "failures": []
+      },
+      "safetyChecks": [
+        {
+          "key": "approved-alert-route-or-sink",
+          "ok": true,
+          "status": "sink",
+          "message": "Alerting is configured for a sink or no-external-delivery route."
+        }
+      ],
+      "plainEnglishStatus": "Ready to run with real evidence."
+    },
+    {
+      "key": "retentionArchiveRestore",
+      "label": "Retention archive restore proof",
+      "readyForRealEvidence": true,
+      "reportPath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+      "realInputs": [
+        {
+          "name": "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        },
+        {
+          "name": "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
+          "present": true,
+          "missing": false,
+          "simulationOnly": false
+        }
+      ],
+      "presentInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+        "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+        "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+        "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+      ],
+      "missingInputs": [],
+      "simulationOnlyInputs": [],
+      "attestation": {
+        "inputName": "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+        "present": true,
+        "fileExists": true,
+        "parseable": true,
+        "simulationOnly": false,
+        "sanitizedPath": ".local/production-proof/retention-attestation.json",
+        "errors": []
+      },
+      "proofStatus": {
+        "certifying": true,
+        "status": "pass",
+        "simulatedOnly": false,
+        "missingRuntimeInputs": [],
+        "failures": []
+      },
+      "safetyChecks": [
+        {
+          "key": "retention-isolated-target-not-production",
+          "ok": true,
+          "status": "safe",
+          "message": "The target is clearly marked as isolated and not production."
+        }
+      ],
+      "plainEnglishStatus": "Ready to run with real evidence."
+    },
+    {
+      "key": "migration",
+      "label": "Migration governance proof",
+      "readyForRealEvidence": true,
+      "reportPath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
+      "realInputs": [],
+      "presentInputs": [],
+      "missingInputs": [],
+      "simulationOnlyInputs": [],
+      "attestation": null,
+      "proofStatus": {
+        "certifying": null,
+        "status": "ready-to-attempt",
+        "simulatedOnly": false,
+        "missingRuntimeInputs": [],
+        "failures": []
+      },
+      "safetyChecks": [
+        {
+          "key": "non-mutating-governance-check",
+          "ok": true,
+          "status": "safe",
+          "message": "Migration governance proof has no extra production secret input for this preflight."
+        }
+      ],
+      "plainEnglishStatus": "Ready to run with real evidence."
+    }
+  ],
+  "productionPromotion": {
+    "safe": false,
+    "blocked": true,
+    "certificationReportPresent": true,
+    "certificationCertifying": false,
+    "promotionPackPresent": true,
+    "promotionPackCertifying": false,
+    "canPromoteProductionAtScale": false,
+    "message": "Production promotion remains blocked until certification and the promotion pack both certify true."
+  },
+  "productionPromotionSafe": false,
+  "productionPromotionBlocked": true,
+  "nextSafeHumanAction": "Add the missing real proof inputs or replace simulation-only inputs with sanitized real attestation files, then rerun pnpm run production-proof:preflight."
+}
