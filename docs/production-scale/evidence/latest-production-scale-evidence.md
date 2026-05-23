@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-22T18:52:21.631Z
+Generated at: 2026-05-23T02:39:23.351Z
 Current branch: `staging`
-Current commit hash: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Current commit hash: `fe8231ffe2500e2c7ed7d82e1f60570b4820061c`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -265,12 +265,12 @@ No read-only production command is executed by this report. Production certifica
 
 - Path: `docs/production-scale/evidence/latest-machine-proof-summary.json` (present)
 - Readable: yes
-- allMachineProofsCertifying: false
-- CERTIFYING: false
+- allMachineProofsCertifying: true
+- CERTIFYING: true
 - Human interaction required: no
 - Stale proof count: 0
 - Simulated-only proof count: 0
-- Missing runtime inputs: CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_QUEUE_ACCESS, CRP_PRODUCTION_WORKER_LIVENESS_ACCESS, CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS, CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
+- Missing runtime inputs: none
 
 ## Waived Blockers
 

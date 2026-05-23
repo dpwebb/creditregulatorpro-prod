@@ -10,3 +10,5 @@ npm-debug.log*
 pnpm-debug.log*
 .env.codex-global
 .codex-logs/
+
+.local/production-proof/

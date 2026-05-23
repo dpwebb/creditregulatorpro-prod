@@ -1,9 +1,9 @@
 # Raw Report Byte Remediation Machine Proof
 
-Generated at: 2026-05-23T01:55:56.467Z
+Generated at: 2026-05-23T02:50:20.584Z
 Evidence type: RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF
 Environment: production
-Commit: `c086dd1e846598870719cbd16be08bf2bb68050d`
+Commit: `fe8231ffe2500e2c7ed7d82e1f60570b4820061c`
 Generator: `scripts/storage-raw-report-machine-proof.mjs`
 Command: `pnpm run storage:raw-report-machine-proof`
 Blocker ID: L10-P1-004
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: pass
 CERTIFYING:true
-Expires at: 2026-05-24T01:55:56.467Z
+Expires at: 2026-05-24T02:50:20.584Z
 
 ## Safety
 
@@ -29,14 +29,14 @@ Expires at: 2026-05-24T01:55:56.467Z
 
 ## Checks
 
-- [pass] db-connectivity-reliable: Machine attestation check passed.
-- [pass] sanitized-inventory-accepted: Machine attestation check passed.
-- [pass] remediation-policy-verified: Machine attestation check passed.
-- [pass] unresolved-count-zero-or-policy-accepted: Machine attestation check passed.
-- [pass] remediated-count-recorded: Machine attestation check passed.
-- [pass] opaque-hashes-only: Machine attestation check passed.
-- [pass] no-raw-bytes-or-pii-printed: Machine attestation check passed.
-- [pass] rollback-recovery-notes-recorded: Machine attestation check passed.
+- [pass] db-connectivity-reliable: Database connectivity was reliable.
+- [pass] sanitized-inventory-accepted: Only sanitized aggregate inventory fields were emitted.
+- [pass] remediation-policy-verified: Remediation policy is satisfied.
+- [pass] unresolved-count-zero-or-policy-accepted: No unresolved raw byte records were found.
+- [pass] remediated-count-recorded: Remediated count was recorded.
+- [pass] opaque-hashes-only: Only opaque hashes/counts were emitted.
+- [pass] no-raw-bytes-or-pii-printed: No sensitive-looking raw values were detected.
+- [pass] rollback-recovery-notes-recorded: Rollback/recovery notes recorded: read-only proof, no production mutation.
 
 ## Failures
 
@@ -49,3 +49,4 @@ Expires at: 2026-05-24T01:55:56.467Z
 ## Sanitized Artifacts
 
 - docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json
+- docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md
