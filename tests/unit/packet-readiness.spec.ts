@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BusinessRuleError } from "../../helpers/endpointErrorHandler";
+import { buildPacketNarrative, PACKET_GENERIC_VERIFICATION_SENTENCE } from "../../helpers/packetNarrative";
 import {
   assertPacketReadiness,
   evaluatePacketReadinessForIssues,
   resolvePacketCreditorObligationTestId,
   type PacketReadinessIssueInput,
 } from "../../helpers/disputePacketService";
+import type { PacketNarrative } from "../../helpers/disputePacketTemplate";
 
 const user = { id: 1, role: "user" as const };
 const admin = { id: 99, role: "admin" as const };
@@ -164,6 +166,136 @@ describe("packet readiness evaluation", () => {
   it("keeps the legacy packet finding id single-issue only", () => {
     expect(resolvePacketCreditorObligationTestId([10])).toBe(10);
     expect(resolvePacketCreditorObligationTestId([10, 11])).toBeNull();
+  });
+
+  it("blocks weak generic packet narratives instead of treating them as ready", () => {
+    const weakNarrative: PacketNarrative = {
+      disputeCategory: "UNKNOWN",
+      cautionLevel: "NEEDS_REVIEW",
+      issueSummary: "",
+      factualBasis: [],
+      consumerAssertion: "",
+      verificationRequests: [PACKET_GENERIC_VERIFICATION_SENTENCE],
+      requestedRemedies: [
+        "Correct any inaccurate or incomplete information.",
+        "Remove the item if it cannot be verified.",
+        "Provide the investigation result in writing.",
+      ],
+      evidenceReferences: [],
+      readinessWarnings: [],
+      readinessBlockers: [],
+      internalReference: "finding:10|evidence:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      externalReferenceDisplay: "Issue 10",
+    };
+
+    const readiness = evaluatePacketReadinessForIssues(
+      user,
+      { packetType: "credit_bureau", selectedIssueIds: [10] },
+      [issue({ evidenceReference: "Needs manual review", packetNarrative: weakNarrative })],
+    );
+
+    expect(readiness.packetReady).toBe(false);
+    expect(readiness.reasonCodes).toContain("WEAK_PACKET_NARRATIVE");
+    expect(readiness.blockers).toContainEqual(expect.objectContaining({
+      findingId: 10,
+      code: "WEAK_PACKET_NARRATIVE",
+      disputeCategory: "UNKNOWN",
+      cautionLevel: "NEEDS_REVIEW",
+      issueSummary: null,
+      readinessBlockers: ["Packet narrative is too generic for an external dispute letter."],
+    }));
+  });
+
+  it("allows cautious old Date Last Reported narratives with a readiness warning", () => {
+    const narrative = buildPacketNarrative({
+      packetType: "credit_bureau",
+      issueId: 12,
+      tradelineId: 22,
+      reportArtifactId: 32,
+      reportType: "TransUnion Canada credit report",
+      reportDate: "2026-01-10",
+      bureauName: "TransUnion Canada",
+      accountName: "Telecom Provider",
+      accountNumber: null,
+      accountStatus: null,
+      amountPastDue: null,
+      isCollectionAccount: null,
+      disputedField: "Date last reported",
+      reportedValue: "2012-08-21",
+      issueType: "DATE_REPORTING",
+      evidenceReference: "Synthetic report page 4; field: Date last reported",
+      evidencePageNumber: 4,
+    });
+
+    const readiness = evaluatePacketReadinessForIssues(
+      user,
+      { packetType: "credit_bureau", selectedIssueIds: [12] },
+      [
+        issue({
+          issueId: 12,
+          tradelineId: 22,
+          evidenceReference: "Synthetic report page 4; field: Date last reported",
+          packetNarrative: narrative,
+        }),
+      ],
+    );
+
+    expect(readiness.packetReady).toBe(true);
+    expect(readiness.blockers).toEqual([]);
+    expect(readiness.reasonCodes).toContain("WEAK_PACKET_NARRATIVE");
+    expect(readiness.warnings).toContainEqual(expect.objectContaining({
+      findingId: 12,
+      code: "WEAK_PACKET_NARRATIVE",
+      disputeCategory: "POSSIBLE_OBSOLETE_OR_STALE_REPORTING",
+      cautionLevel: "CAUTIOUS",
+      message: "Account number is not shown on the report; verification should use the attached report entry.",
+      readinessWarnings: [
+        "Account number is not shown on the report; verification should use the attached report entry.",
+      ],
+      readinessBlockers: [],
+    }));
+  });
+
+  it("keeps normal substantive packet narratives ready", () => {
+    const narrative = buildPacketNarrative({
+      packetType: "credit_bureau",
+      issueId: 13,
+      tradelineId: 23,
+      reportArtifactId: 33,
+      reportType: "Equifax Canada credit report",
+      reportDate: "2026-03-15",
+      bureauName: "Equifax Canada",
+      accountName: "Example Bank",
+      accountNumber: "123456789012",
+      disputedField: "balance",
+      reportedValue: "$900",
+      expectedValue: "$0",
+      issueType: "BALANCE_CALCULATION",
+      evidenceReference: "Synthetic report page 2; field: balance",
+      evidencePageNumber: 2,
+    });
+
+    const readiness = evaluatePacketReadinessForIssues(
+      user,
+      { packetType: "credit_bureau", selectedIssueIds: [13] },
+      [
+        issue({
+          issueId: 13,
+          tradelineId: 23,
+          evidenceReference: "Synthetic report page 2; field: balance",
+          packetNarrative: narrative,
+        }),
+      ],
+    );
+
+    expect(readiness).toMatchObject({
+      packetReady: true,
+      blockers: [],
+      warnings: [],
+      eligibleFindingIds: [13],
+      ineligibleFindingIds: [],
+      reasonCodes: [],
+    });
   });
 });
 

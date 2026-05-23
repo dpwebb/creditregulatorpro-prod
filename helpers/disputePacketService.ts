@@ -13,6 +13,9 @@ import {
   maskAccountNumber,
   redactSensitiveText,
   type DisputePacketType,
+  type PacketNarrative,
+  type PacketNarrativeCautionLevel,
+  type PacketNarrativeDisputeCategory,
   type PacketRequestedAction,
   type SimpleDisputePacketContent,
   type SimpleDisputedItemInput,
@@ -23,7 +26,7 @@ import {
   formatPacketExpectedValue,
   formatPacketFieldLabel,
 } from "./disputePacketHumanization";
-import { buildPacketNarrative } from "./packetNarrative";
+import { buildPacketNarrative, evaluatePacketNarrativeReadiness } from "./packetNarrative";
 import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 import {
   resolveEvidenceLocation,
@@ -82,6 +85,7 @@ export const PACKET_READINESS_REASON_CODES = [
   "EXTRACTION_CONFIDENCE_NOT_READY",
   "MISSING_REQUIRED_EVIDENCE",
   "MANUAL_REVIEW_REQUIRED",
+  "WEAK_PACKET_NARRATIVE",
 ] as const;
 
 export type PacketReadinessReasonCode = typeof PACKET_READINESS_REASON_CODES[number];
@@ -90,12 +94,22 @@ export interface PacketReadinessBlocker {
   findingId?: number;
   code: PacketReadinessReasonCode;
   message: string;
+  disputeCategory?: PacketNarrativeDisputeCategory | null;
+  cautionLevel?: PacketNarrativeCautionLevel | null;
+  issueSummary?: string | null;
+  readinessWarnings?: string[];
+  readinessBlockers?: string[];
 }
 
 export interface PacketReadinessWarning {
   findingId?: number;
   code: PacketReadinessReasonCode;
   message: string;
+  disputeCategory?: PacketNarrativeDisputeCategory | null;
+  cautionLevel?: PacketNarrativeCautionLevel | null;
+  issueSummary?: string | null;
+  readinessWarnings?: string[];
+  readinessBlockers?: string[];
 }
 
 export interface PacketReadinessResult {
@@ -117,6 +131,7 @@ export interface PacketReadinessIssueInput {
   technicalDetails?: unknown;
   evidenceReference?: string | null;
   packetTypes?: DisputePacketType[];
+  packetNarrative?: PacketNarrative | null;
 }
 
 type IssueRow = {
@@ -911,8 +926,9 @@ function isNeedsManualReviewEvidence(evidenceReference: string | null | undefine
   return !evidenceReference?.trim() || evidenceReference.trim().toLowerCase() === "needs manual review";
 }
 
-function readinessIssueFromRow(row: IssueRow): PacketReadinessIssueInput {
+function readinessIssueFromRow(row: IssueRow, packetType: DisputePacketType = "credit_bureau"): PacketReadinessIssueInput {
   const details = parseDetails(row.issueTechnicalDetails);
+  const disputedItemInput = buildConsumerDisputedItemInput(row, packetType);
   return {
     issueId: row.issueId,
     userId: row.userId,
@@ -921,18 +937,43 @@ function readinessIssueFromRow(row: IssueRow): PacketReadinessIssueInput {
     userStatus: row.issueUserStatus,
     validationStatus: row.issueValidationStatus,
     technicalDetails: details,
-    evidenceReference: evidenceReferenceForRow(row, details),
+    evidenceReference: disputedItemInput.evidenceReference ?? evidenceReferenceForRow(row, details),
     packetTypes: packetTypesForRow(row),
+    packetNarrative: disputedItemInput.narrative ?? null,
   };
 }
+
+type PacketReadinessNarrativeFields = Pick<
+  PacketReadinessBlocker,
+  "disputeCategory" | "cautionLevel" | "issueSummary" | "readinessWarnings" | "readinessBlockers"
+>;
 
 function addBlocker(
   blockers: PacketReadinessBlocker[],
   code: PacketReadinessReasonCode,
   message: string,
   findingId?: number,
+  narrativeFields: PacketReadinessNarrativeFields = {},
 ): void {
-  blockers.push(findingId === undefined ? { code, message } : { findingId, code, message });
+  blockers.push(
+    findingId === undefined
+      ? { code, message, ...narrativeFields }
+      : { findingId, code, message, ...narrativeFields },
+  );
+}
+
+function addWarning(
+  warnings: PacketReadinessWarning[],
+  code: PacketReadinessReasonCode,
+  message: string,
+  findingId?: number,
+  narrativeFields: PacketReadinessNarrativeFields = {},
+): void {
+  warnings.push(
+    findingId === undefined
+      ? { code, message, ...narrativeFields }
+      : { findingId, code, message, ...narrativeFields },
+  );
 }
 
 function reasonCodesFor(
@@ -1091,6 +1132,34 @@ export function evaluatePacketReadinessForIssues(
         "This finding is marked Needs manual review.",
         issue.issueId,
       );
+    }
+
+    if (issue.packetNarrative) {
+      const narrativeReadiness = evaluatePacketNarrativeReadiness(issue.packetNarrative, {
+        evidenceExpected: true,
+      });
+      const narrativeFields: PacketReadinessNarrativeFields = {
+        disputeCategory: narrativeReadiness.disputeCategory,
+        cautionLevel: narrativeReadiness.cautionLevel,
+        issueSummary: narrativeReadiness.issueSummary,
+        readinessWarnings: narrativeReadiness.readinessWarnings,
+        readinessBlockers: narrativeReadiness.readinessBlockers,
+      };
+
+      if (narrativeReadiness.readinessBlockers.length > 0) {
+        blockedFindingIds.add(issue.issueId);
+        addBlocker(
+          blockers,
+          "WEAK_PACKET_NARRATIVE",
+          narrativeReadiness.readinessBlockers[0],
+          issue.issueId,
+          narrativeFields,
+        );
+      }
+
+      for (const warning of narrativeReadiness.readinessWarnings) {
+        addWarning(warnings, "WEAK_PACKET_NARRATIVE", warning, issue.issueId, narrativeFields);
+      }
     }
   }
 
@@ -1550,7 +1619,7 @@ export async function getDisputePacketCandidates(
       const readiness = evaluatePacketReadinessForIssues(
         user,
         { packetType, selectedIssueIds: [row.issueId] },
-        [readinessIssueFromRow(row)],
+        [readinessIssueFromRow(row, packetType)],
       );
       return readiness.packetReady;
     })
@@ -1572,7 +1641,7 @@ export async function validateDisputePacketReadiness(
   return evaluatePacketReadinessForIssues(
     user,
     { ...input, selectedIssueIds },
-    rows.map(readinessIssueFromRow),
+    rows.map((row) => readinessIssueFromRow(row, input.packetType)),
   );
 }
 
@@ -1586,7 +1655,7 @@ export async function buildDisputePacketPreview(
   const readiness = evaluatePacketReadinessForIssues(
     user,
     { ...input, selectedIssueIds: uniqueIssueIds },
-    rows.map(readinessIssueFromRow),
+    rows.map((row) => readinessIssueFromRow(row, input.packetType)),
   );
   assertPacketReadiness(readiness);
 

@@ -10,6 +10,7 @@ import {
   formatPacketDisplayDate,
   redactPacketSensitiveText,
 } from "./disputePacketHumanization";
+import { evaluatePacketNarrativeReadiness } from "./packetNarrative";
 
 function bulletList(items: string[]): Content {
   return {
@@ -30,6 +31,25 @@ function safePdfText(value: unknown): string {
 
 function safePdfDate(value: unknown): string {
   return safePdfText(formatPacketDisplayDate(value));
+}
+
+function assertPacketNarrativesReadyForPdf(packet: SimpleDisputePacketContent): void {
+  const blockedItem = packet.disputedItems
+    .map((item) => ({
+      item,
+      readiness: item.narrative ? evaluatePacketNarrativeReadiness(item.narrative) : null,
+    }))
+    .find(({ readiness }) => {
+      if (!readiness) return false;
+      return readiness.readinessBlockers.length > 0;
+    });
+
+  if (blockedItem) {
+    const blocker = blockedItem.readiness?.readinessBlockers[0] ?? "Packet narrative is not ready.";
+    throw new Error(
+      `Packet narrative for finding ${blockedItem.item.issueId ?? "unknown"} is not ready for external PDF generation: ${blocker}`,
+    );
+  }
 }
 
 export function buildDisputePacketPdfLetterText(packet: SimpleDisputePacketContent): string {
@@ -77,6 +97,7 @@ export async function generateDisputePacketPDF(
   userId?: string,
   packetId?: string,
 ): Promise<string> {
+  assertPacketNarrativesReadyForPdf(packet);
   const watermarkConfig = userId && packetId ? generatePdfWatermark(userId, packetId) : null;
   const content: Content[] = [
     { text: buildDisputePacketPdfLetterText(packet), style: "bodyText", margin: [0, 0, 0, 14] },

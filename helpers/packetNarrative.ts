@@ -19,6 +19,12 @@ const MATERIAL_OLD_DATE_YEARS = 6;
 const ADVERSE_STATUS_PATTERN =
   /\b(collection|default|charge\s*-?\s*off|charged\s*-?\s*off|write\s*-?\s*off|written\s*-?\s*off|bad debt|derogatory|delinquent|past due|late|repossession|foreclosure)\b/i;
 
+export const PACKET_GENERIC_VERIFICATION_SENTENCE =
+  "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
+
+const PACKET_GENERIC_COLLECTION_VERIFICATION_SENTENCE =
+  "I am asking you to verify whether this collection account information is accurate, complete, and supported by records showing the authority to collect or report this account.";
+
 export interface BuildPacketNarrativeInput {
   packetType: DisputePacketType;
   issueId?: number | null;
@@ -75,6 +81,13 @@ function sentenceKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+const GENERIC_REMEDY_KEYS = new Set([
+  sentenceKey("Correct any inaccurate or incomplete information."),
+  sentenceKey("Remove the item if it cannot be verified."),
+  sentenceKey("Provide the investigation result in writing."),
+  sentenceKey("Please correct or remove any information that cannot be substantiated."),
+]);
+
 export function dedupeNarrativeText(values: Array<string | null | undefined>): string[] {
   const output: string[] = [];
   const keys: string[] = [];
@@ -95,6 +108,89 @@ export function dedupeNarrativeText(values: Array<string | null | undefined>): s
   }
 
   return output;
+}
+
+export interface PacketNarrativeReadinessEvaluation {
+  disputeCategory: PacketNarrativeDisputeCategory;
+  cautionLevel: PacketNarrativeCautionLevel;
+  issueSummary: string | null;
+  readinessWarnings: string[];
+  readinessBlockers: string[];
+  weak: boolean;
+}
+
+function isEmptyOrGenericIssueSummary(value: unknown): boolean {
+  const key = sentenceKey(String(value ?? ""));
+  if (!key) return true;
+  if (key === sentenceKey(PACKET_GENERIC_VERIFICATION_SENTENCE)) return true;
+  if (key === "reporting issue" || key === "account information" || key === "information not provided on report") {
+    return true;
+  }
+  return (
+    key.includes("company listed on report") &&
+    key.includes("account information") &&
+    key.includes("information not provided on report")
+  );
+}
+
+function onlyGenericVerificationRequests(values: unknown): boolean {
+  if (!Array.isArray(values)) return true;
+  const keys = values.map((value) => sentenceKey(String(value ?? ""))).filter(Boolean);
+  if (keys.length === 0) return true;
+  const genericKeys = new Set([
+    sentenceKey(PACKET_GENERIC_VERIFICATION_SENTENCE),
+    sentenceKey(PACKET_GENERIC_COLLECTION_VERIFICATION_SENTENCE),
+    sentenceKey("Verify whether this information is accurate, complete, and supported by the records used to report this account."),
+  ]);
+  return keys.every((key) => genericKeys.has(key));
+}
+
+function emptyOrGenericRemedies(values: unknown): boolean {
+  if (!Array.isArray(values)) return true;
+  const keys = values.map((value) => sentenceKey(String(value ?? ""))).filter(Boolean);
+  if (keys.length === 0) return true;
+  return keys.every((key) => GENERIC_REMEDY_KEYS.has(key));
+}
+
+function hasMeaningfulEvidenceReference(values: unknown): boolean {
+  if (!Array.isArray(values)) return false;
+  return values.some((value) => {
+    const key = sentenceKey(String(value ?? ""));
+    return Boolean(key) && key !== "needs manual review" && !key.includes("evidence reference needs manual review");
+  });
+}
+
+export function evaluatePacketNarrativeReadiness(
+  narrative: PacketNarrative | null | undefined,
+  options: { evidenceExpected?: boolean } = {},
+): PacketNarrativeReadinessEvaluation {
+  const issueSummary = String(narrative?.issueSummary ?? "").trim() || null;
+  const readinessWarnings = dedupeNarrativeText(narrative?.readinessWarnings ?? []);
+  const readinessBlockers = dedupeNarrativeText(narrative?.readinessBlockers ?? []);
+  const factualBasis = Array.isArray(narrative?.factualBasis) ? narrative.factualBasis : [];
+  const evidenceExpected = options.evidenceExpected ?? true;
+  const missingExpectedEvidence = evidenceExpected && !hasMeaningfulEvidenceReference(narrative?.evidenceReferences);
+  const weak = Boolean(
+    narrative &&
+      narrative.disputeCategory === "UNKNOWN" &&
+      isEmptyOrGenericIssueSummary(issueSummary) &&
+      factualBasis.length === 0 &&
+      onlyGenericVerificationRequests(narrative.verificationRequests) &&
+      emptyOrGenericRemedies(narrative.requestedRemedies) &&
+      missingExpectedEvidence,
+  );
+
+  return {
+    disputeCategory: narrative?.disputeCategory ?? "UNKNOWN",
+    cautionLevel: narrative?.cautionLevel ?? "NEEDS_REVIEW",
+    issueSummary,
+    readinessWarnings,
+    readinessBlockers: dedupeNarrativeText([
+      ...readinessBlockers,
+      weak ? "Packet narrative is too generic for an external dispute letter." : null,
+    ]),
+    weak,
+  };
 }
 
 function parseDate(value: unknown): Date | null {

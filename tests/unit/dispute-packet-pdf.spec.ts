@@ -8,8 +8,9 @@ import {
   generatePacketContentPdfBase64,
 } from "../../helpers/packetPdfContent";
 import { generateDisputePacketPDF } from "../../helpers/disputePacketPdf";
-import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import { buildSimpleDisputePacketContent, type PacketNarrative } from "../../helpers/disputePacketTemplate";
 import { generatePdfWatermark } from "../../helpers/contentMarker";
+import { PACKET_GENERIC_VERIFICATION_SENTENCE } from "../../helpers/packetNarrative";
 
 const originalFetch = globalThis.fetch;
 const validIdentificationImage =
@@ -84,6 +85,56 @@ describe("simple dispute packet PDF", () => {
     expect(watermark.watermark.text).toBe("Packet 22");
     expect(footer.text).toContain("Ref: Packet 22");
     expect(`${watermark.watermark.text} ${footer.text}`).not.toMatch(/[a-f0-9]{64}/);
+  });
+
+  it("rejects explicitly weak narratives before external PDF generation", async () => {
+    const weakNarrative: PacketNarrative = {
+      disputeCategory: "UNKNOWN",
+      cautionLevel: "NEEDS_REVIEW",
+      issueSummary: "",
+      factualBasis: [],
+      consumerAssertion: "",
+      verificationRequests: [PACKET_GENERIC_VERIFICATION_SENTENCE],
+      requestedRemedies: [
+        "Correct any inaccurate or incomplete information.",
+        "Remove the item if it cannot be verified.",
+        "Provide the investigation result in writing.",
+      ],
+      evidenceReferences: [],
+      readinessWarnings: [],
+      readinessBlockers: [],
+      internalReference: "finding:1|evidence:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      externalReferenceDisplay: "Issue 1",
+    };
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "Equifax credit report",
+      recipient: {
+        type: "credit_bureau",
+        name: "Equifax Canada",
+        address: ["National Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St", "Halifax, NS B3H 0A1"],
+      },
+      disputedItems: [
+        {
+          issueId: 1,
+          tradelineId: 2,
+          creditorCollectorName: "Sample Bank",
+          accountNumber: "555544443333",
+          disputedField: "Account information",
+          reportedValue: "Information not provided on report",
+          expectedValue: "Not known",
+          issueType: null,
+          evidenceReference: "Needs manual review",
+          narrative: weakNarrative,
+        },
+      ],
+    });
+
+    await expect(generateDisputePacketPDF(packet)).rejects.toThrow(/too generic for an external dispute letter/i);
   });
 
   it("supports the service-send render path with recipient overrides", async () => {
