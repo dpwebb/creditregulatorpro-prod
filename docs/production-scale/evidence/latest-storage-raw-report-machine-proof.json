@@ -3,11 +3,11 @@
   "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
   "blockerId": "L10-P1-004",
   "environment": "production",
-  "generatedAt": "2026-05-23T02:50:20.584Z",
-  "commitHash": "fe8231ffe2500e2c7ed7d82e1f60570b4820061c",
-  "currentCommitHash": "fe8231ffe2500e2c7ed7d82e1f60570b4820061c",
-  "currentHead": "fe8231ffe2500e2c7ed7d82e1f60570b4820061c",
-  "commit": "fe8231ffe2500e2c7ed7d82e1f60570b4820061c",
+  "generatedAt": "2026-05-23T03:54:58.318Z",
+  "commitHash": "40fd438dd95a1afeee4b6d3a471b5769a44db513",
+  "currentCommitHash": "40fd438dd95a1afeee4b6d3a471b5769a44db513",
+  "currentHead": "40fd438dd95a1afeee4b6d3a471b5769a44db513",
+  "commit": "40fd438dd95a1afeee4b6d3a471b5769a44db513",
   "branch": "staging",
   "generatorScript": "scripts/storage-raw-report-machine-proof.mjs",
   "command": "pnpm run storage:raw-report-machine-proof",
@@ -28,58 +28,54 @@
   "certifying": true,
   "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-24T02:50:20.584Z",
+  "expiresAt": "2026-05-24T03:54:58.318Z",
   "checks": [
     {
       "name": "db-connectivity-reliable",
       "status": "pass",
-      "summary": "Database connectivity was reliable."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "sanitized-inventory-accepted",
       "status": "pass",
-      "summary": "Only sanitized aggregate inventory fields were emitted."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "remediation-policy-verified",
       "status": "pass",
-      "summary": "Remediation policy is satisfied."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "unresolved-count-zero-or-policy-accepted",
       "status": "pass",
-      "summary": "No unresolved raw byte records were found."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "remediated-count-recorded",
       "status": "pass",
-      "summary": "Remediated count was recorded."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "opaque-hashes-only",
       "status": "pass",
-      "summary": "Only opaque hashes/counts were emitted."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "no-raw-bytes-or-pii-printed",
       "status": "pass",
-      "summary": "No sensitive-looking raw values were detected."
+      "summary": "Machine attestation check passed."
     },
     {
       "name": "rollback-recovery-notes-recorded",
       "status": "pass",
-      "summary": "Rollback/recovery notes recorded: read-only proof, no production mutation."
+      "summary": "Machine attestation check passed."
     }
   ],
   "failures": [],
   "sanitizedArtifacts": [
     {
       "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
-      "type": "machine-proof-output"
-    },
-    {
-      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md",
-      "type": "machine-proof-output"
+      "type": "machine-attestation-input"
     }
   ],
   "missingRuntimeInputs": [],
@@ -88,12 +84,15 @@
     "blockerIdsClosedWhenCertifying": [
       "L10-P1-004"
     ],
+    "attestationPath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    "acceptedCheckSet": "default",
+    "sensitiveFindingCount": 0,
     "dbConnectivity": "reliable",
     "databaseReliable": true,
     "databaseUrlSource": "FLOOT_DATABASE_URL",
     "rawConnectionDetailsStored": false,
     "inventoryMethod": "read-only-aggregate-storage-url-scan",
-    "totalRecordsInspected": 231,
+    "totalRecordsInspected": 239,
     "unresolvedRawByteCount": 0,
     "remediatedCount": 5,
     "opaqueSampleHashes": [],
@@ -103,7 +102,7 @@
       {
         "tableName": "report_artifact",
         "available": true,
-        "totalRecords": 231,
+        "totalRecords": 239,
         "unresolvedRawByteCount": 0,
         "remediatedCount": 5
       },

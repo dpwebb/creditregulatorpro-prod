@@ -1,6 +1,6 @@
 {
   "reportName": "production-proof-preflight",
-  "generatedAt": "2026-05-23T01:10:47.787Z",
+  "generatedAt": "2026-05-23T03:39:14.576Z",
   "command": "pnpm run production-proof:preflight",
   "reportPaths": {
     "markdown": "docs/production-scale/evidence/latest-production-proof-preflight.md",
@@ -16,6 +16,7 @@
   "realEvidenceStatus": "complete enough to attempt",
   "presentRealInputs": [
     "CRP_RAW_REPORT_DATABASE_ACCESS",
+    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
     "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
     "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
     "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
@@ -60,17 +61,26 @@
         },
         {
           "name": "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
-          "present": false,
-          "missing": true,
+          "present": true,
+          "missing": false,
           "simulationOnly": false
         }
       ],
       "presentInputs": [
-        "CRP_RAW_REPORT_DATABASE_ACCESS"
+        "CRP_RAW_REPORT_DATABASE_ACCESS",
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
       ],
       "missingInputs": [],
       "simulationOnlyInputs": [],
-      "attestation": null,
+      "attestation": {
+        "inputName": "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+        "present": true,
+        "fileExists": true,
+        "parseable": true,
+        "simulationOnly": false,
+        "sanitizedPath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+        "errors": []
+      },
       "proofStatus": {
         "certifying": null,
         "status": "ready-to-attempt",
@@ -133,7 +143,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+        "sanitizedPath": ".local/production-proof/restore-attestation.json",
         "errors": []
       },
       "proofStatus": {
@@ -205,7 +215,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+        "sanitizedPath": ".local/production-proof/production-worker-attestation.json",
         "errors": []
       },
       "proofStatus": {
@@ -249,7 +259,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+        "sanitizedPath": ".local/production-proof/alerting-attestation.json",
         "errors": []
       },
       "proofStatus": {
@@ -314,7 +324,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+        "sanitizedPath": ".local/production-proof/retention-attestation.json",
         "errors": []
       },
       "proofStatus": {

@@ -1,6 +1,6 @@
 # Production Proof Preflight
 
-Generated: 2026-05-23T01:10:47.787Z
+Generated: 2026-05-23T03:39:14.576Z
 
 ## Plain English Result
 
@@ -22,6 +22,7 @@ The real evidence proof environment looks ready to attempt. This command did not
 Present input names:
 
 - CRP_RAW_REPORT_DATABASE_ACCESS
+- CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
 - CRP_RESTORE_MACHINE_ATTESTATION_JSON
 - CRP_RESTORE_MACHINE_BACKUP_SOURCE
 - CRP_RESTORE_MACHINE_ISOLATED_TARGET
