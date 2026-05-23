@@ -90,6 +90,7 @@
     "production-deployment-parity:evidence": "node scripts/production-deployment-parity-evidence.mjs",
     "staging-owner-denial-smoke:evidence": "node scripts/staging-owner-denial-smoke.mjs",
     "production:readiness": "tsx scripts/production-readiness-report.ts",
+    "beta-live:certify": "node scripts/beta-live-certification.mjs",
     "production:machine-proofs": "node scripts/production-machine-proof-orchestrator.mjs",
     "production-proof:preflight": "node scripts/production-proof-preflight.mjs",
     "production-proof:real-evidence": "node scripts/production-proof-real-evidence.mjs",

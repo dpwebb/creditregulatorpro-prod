@@ -37,6 +37,39 @@ Dashboard PASS alone is not release evidence. Dashboard `SKIP` rows remain visib
 
 The operator dashboard distinguishes `PASS`, `FAIL`, `SKIP`, `SIMULATED`, and `HUMAN_REQUIRED`. Release evidence must record exact commands and cannot promote `SIMULATED` or `HUMAN_REQUIRED` rows to production proof.
 
+## Beta-Live Certification
+
+The beta-live control plane has one final readiness decision:
+
+```bash
+pnpm run beta-live:certify
+```
+
+Expected final output:
+
+```text
+SAFE_FOR_BETA_LIVE=true
+```
+
+or:
+
+```text
+SAFE_FOR_BETA_LIVE=false
+```
+
+Authoritative artifacts:
+
+- `docs/production-scale/evidence/latest-beta-live-certification.md`
+- `docs/production-scale/evidence/latest-beta-live-certification.json`
+
+There are three layers of truth:
+
+1. Core user path: upload, parse, scan, validate readiness, generate packet, and generate PDF.
+2. Safety gates: auth/ownership, parser certainty, evidence availability, packet eligibility, and no production mutation during certification.
+3. Single beta-live certification: `SAFE_FOR_BETA_LIVE=true/false`.
+
+Existing machine proofs, production-scale certification, promotion packs, raw-report proofs, alerting proofs, and rollback simulations remain useful supporting evidence. They are not independent beta-live decision-makers. The beta-live report may warn when a supporting artifact is missing or non-certifying, but the final beta-live result is controlled only by the core user path, the required safety gates, no human interaction, and no production mutation during the certification run.
+
 ## Production Promotion Pack
 
 Run:
@@ -51,6 +84,8 @@ Outputs:
 - `docs/production-scale/evidence/latest-production-promotion-pack.json`
 
 The promotion pack consolidates the blocker registry, latest generated evidence files, required command references, skipped dashboard checks, simulated proof-only blockers, staging-only proof, human-required proof, waivers, and unresolved production/scale blockers.
+
+The promotion pack is supporting evidence for beta-live certification. It is not the authoritative beta-live decision surface. Use `pnpm run beta-live:certify` for the final beta-live result.
 
 Readiness classification is evidence-bound:
 
