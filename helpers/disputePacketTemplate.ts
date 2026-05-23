@@ -252,12 +252,13 @@ export function actionForIssue(issueType: string | null | undefined, packetType:
 }
 
 function buildItemExplanation(item: SimpleDisputedItemInput, packetType: DisputePacketType): string {
-  const neutralExplanation = sanitizeComplianceNeutralText(item.explanation) ?? null;
-  const explanationPrefix = neutralExplanation
-    ? `${safeLetterText(neutralExplanation, item.accountNumber)} `
-    : "";
   const verificationRequest =
     "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
+  const neutralExplanation = sanitizeComplianceNeutralText(item.explanation) ?? null;
+  const explanationText = neutralExplanation ? safeLetterText(neutralExplanation, item.accountNumber) : "";
+  const explanationPrefix = explanationText && explanationText !== verificationRequest
+    ? `${explanationText} `
+    : "";
 
   if (packetType === "collection_agency") {
     return `${explanationPrefix}${verificationRequest} If the information cannot be supported, please correct it or remove it from my credit report.`;

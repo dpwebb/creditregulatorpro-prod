@@ -75,6 +75,39 @@ describe("simple dispute packet template", () => {
     expect(serialized).toContain("SIN: [masked]");
   });
 
+  it("does not duplicate the default credit bureau verification sentence", () => {
+    const verificationSentence =
+      "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion credit report",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St"],
+      },
+      disputedItems: [
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: null,
+          disputedField: "lastReportedDate",
+          reportedValue: "2012-08-21T00:00:00.000Z",
+          expectedValue: "Not known",
+          issueType: "TEMPORAL_MANIPULATION",
+          explanation: verificationSentence,
+          evidenceReference: "Source report page 2",
+        },
+      ],
+    });
+
+    const explanation = packet.disputedItems[0].explanation;
+    expect(explanation.match(new RegExp(verificationSentence.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))).toHaveLength(1);
+  });
+
   it("builds a collection agency clarification packet", () => {
     const packet = buildSimpleDisputePacketContent({
       packetType: "collection_agency",
