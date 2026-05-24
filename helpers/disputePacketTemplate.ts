@@ -102,6 +102,8 @@ export interface SimpleDisputedItemInput {
   expectedValue?: string | number | Date | null;
   issueType: string | null;
   explanation?: string | null;
+  findingReason?: string | null;
+  findingRecommendedAction?: string | null;
   evidenceReference?: string | null;
   requestedAction?: PacketRequestedAction | null;
   narrative?: PacketNarrative | null;
@@ -118,6 +120,8 @@ export interface SimpleDisputedItem {
   correctedExpectedValue: string;
   issueType: string;
   explanation: string;
+  findingReason: string | null;
+  findingRecommendedAction: string | null;
   evidenceReference: string;
   requestedAction: PacketRequestedAction;
   needsManualReview: boolean;
@@ -263,6 +267,41 @@ function hasReliableExpectedValue(value: unknown): value is string {
     normalized !== "account identifier unavailable";
 }
 
+function isDefaultVerificationText(value: unknown): boolean {
+  const normalized = String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return normalized ===
+    "i am asking you to verify whether this information is accurate complete and supported by the records used to report this account" ||
+    normalized ===
+    "i am asking you to verify whether this collection account information is accurate complete and supported by records showing the authority to collect or report this account";
+}
+
+function consumerSafeFindingText(value: unknown, accountNumber?: string | null): string | null {
+  const neutral = typeof value === "string" ? sanitizeComplianceNeutralText(value) : null;
+  if (!neutral || isDefaultVerificationText(neutral)) return null;
+
+  let output = safeLetterText(neutral, accountNumber)
+    .replace(/\b[A-Z]{2,}(?:_[A-Z0-9]+)+\b/g, "the applicable reporting reference")
+    .replace(/\b(?:PIPEDA|FCRA)\b/gi, "the applicable reporting reference")
+    .replace(/\blegal action\b/gi, "reporting review")
+    .replace(/\bstatut(?:e|ory)\b/gi, "reporting rule")
+    .replace(/\bsubsection\b/gi, "supporting reference")
+    .replace(/\bsection\s+\d+[A-Za-z0-9().-]*\b/gi, "supporting reference")
+    .replace(/\b(?:report\s+)?artifact\s*#?\s*\d+\b/gi, "credit report")
+    .replace(/\bcredit\s+report\s*#\s*\d+\b/gi, "credit report")
+    .replace(/\b(?:reportArtifactId|sourceReportArtifactId|tradelineId|referenceId|fieldKey|sourceField)\s*:?\s*[A-Za-z0-9_.-]+/gi, "")
+    .replace(/\bfield\s*:\s*[^;.]+[;.]?/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .trim();
+
+  output = output.replace(/^(expected|corrected expected value)\s*:\s*not known\.?$/i, "").trim();
+  if (!output || isDefaultVerificationText(output)) return null;
+  if (/^(not known|information not provided on report|requested result: verify the correct information)/i.test(output)) {
+    return null;
+  }
+  return output;
+}
+
 export function actionForIssue(issueType: string | null | undefined, packetType: DisputePacketType): PacketRequestedAction {
   const normalized = String(issueType ?? "").toUpperCase();
 
@@ -362,6 +401,8 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
   const needsManualReview = !evidenceReference || evidenceReference.toLowerCase() === "needs manual review";
   const issueType = labelizeIssueType(item.issueType);
   const narrative = sanitizePacketNarrative(item.narrative, item.accountNumber);
+  const findingReason = consumerSafeFindingText(item.findingReason ?? item.explanation, item.accountNumber);
+  const findingRecommendedAction = consumerSafeFindingText(item.findingRecommendedAction, item.accountNumber);
 
   return {
     issueId: item.issueId ?? null,
@@ -378,6 +419,8 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
     correctedExpectedValue: formatPacketExpectedValue(rawDisputedField, item.expectedValue, item.accountNumber),
     issueType,
     explanation: buildItemExplanation(item, packetType),
+    findingReason,
+    findingRecommendedAction,
     evidenceReference: needsManualReview ? "Needs manual review" : evidenceReference,
     requestedAction: item.requestedAction ?? actionForIssue(item.issueType, packetType),
     needsManualReview,
@@ -468,6 +511,102 @@ function narrativeFactValue(item: SimpleDisputedItem, terms: string[]): string |
     if (hasDisplayValue(value)) return value;
   }
   return null;
+}
+
+function consumerIssueLabel(item: SimpleDisputedItem): string {
+  const issueType = safeLetterText(item.issueType, item.maskedAccountNumber)
+    .replace(/\bStatute Of Limitations\b/gi, "Reporting period")
+    .replace(/\bStatute\b/gi, "Reporting")
+    .replace(/\bViolation\b/gi, "issue")
+    .replace(/\s+/g, " ")
+    .trim();
+  return issueType || "Reporting issue";
+}
+
+function requestedActionSentenceForItem(item: SimpleDisputedItem): string {
+  switch (item.requestedAction) {
+    case "correct balance":
+      return "Please investigate the reported balance and correct it, or remove the item if it cannot be verified.";
+    case "correct account status":
+      return "Please investigate the account status and correct it, or remove the item if it cannot be verified.";
+    case "correct date":
+      return "Please investigate the reported date information and correct it, or remove the item if it cannot be verified.";
+    case "update stale information":
+      return "Please investigate whether this item should continue to appear on the current report, and update or remove it if it cannot be verified.";
+    case "correct duplicate account":
+      return "Please investigate whether this account is duplicated and correct or remove any duplicate reporting.";
+    case "correct personal information":
+      return "Please investigate whether this information belongs on my credit file and correct or remove it if it cannot be verified.";
+    case "remove unsupported information":
+      return "Please remove this information if the records supporting it cannot be verified.";
+    case "clarify collection authority/details":
+      return "Please verify the collection authority and account details, and correct or remove any information that cannot be supported.";
+    case "correct inaccurate information":
+      return "Please investigate and correct any inaccurate or incomplete information.";
+    case "verify and provide basis":
+    default:
+      return "Please investigate this item, provide the basis for any information that remains, and correct or remove it if it cannot be verified.";
+  }
+}
+
+interface CreditBureauReasonBlock {
+  reasonTitle: string;
+  explanation: string;
+  requestedAction: string;
+  evidenceSentence: string | null;
+}
+
+function evidenceSentenceForReasonBlock(item: SimpleDisputedItem): string | null {
+  const evidenceReference = consumerSafeFindingText(item.evidenceReference, item.maskedAccountNumber);
+  if (evidenceReference && evidenceReference.toLowerCase() !== "needs manual review") {
+    return evidenceReference;
+  }
+
+  const narrativeEvidence = item.narrative?.evidenceReferences
+    .map((value) => consumerSafeFindingText(value, item.maskedAccountNumber))
+    .find((value): value is string => Boolean(value));
+  if (narrativeEvidence) return narrativeEvidence;
+
+  const fieldLabel = safeLetterFieldLabel(item.disputedField);
+  const reportedValue = safeLetterText(
+    formatPacketDisplayValue(fieldLabel, item.reportedValue, item.maskedAccountNumber),
+    item.maskedAccountNumber,
+  );
+  if (hasDisplayValue(reportedValue)) {
+    return `The report shows ${fieldLabel}: ${reportedValue}.`;
+  }
+
+  return null;
+}
+
+function buildCreditBureauReasonBlock(item: SimpleDisputedItem): CreditBureauReasonBlock {
+  const accountName = safeLetterText(item.creditorCollectorName, item.maskedAccountNumber) || "Company listed on report";
+  const issueLabel = consumerIssueLabel(item);
+
+  return {
+    reasonTitle: `${accountName}: ${issueLabel}`,
+    explanation: plainDisputeLetterReasonFor({
+      issueType: item.issueType,
+      requestedAction: item.requestedAction,
+      disputedField: item.disputedField,
+      narrative: item.narrative,
+    }),
+    requestedAction: item.findingRecommendedAction ?? requestedActionSentenceForItem(item),
+    evidenceSentence: evidenceSentenceForReasonBlock(item),
+  };
+}
+
+function pushCreditBureauReasonBlock(lines: string[], item: SimpleDisputedItem): void {
+  const block = buildCreditBureauReasonBlock(item);
+  lines.push("");
+  lines.push("Why I am disputing this item:");
+  lines.push(`Account reviewed: ${safeLetterText(block.reasonTitle, item.maskedAccountNumber)}`);
+  lines.push(`Specific dispute reason: ${safeLetterText(item.findingReason ?? block.reasonTitle, item.maskedAccountNumber)}`);
+  lines.push(`Plain-language explanation: ${safeLetterText(block.explanation, item.maskedAccountNumber)}`);
+  lines.push(`Requested bureau action: ${safeLetterText(block.requestedAction, item.maskedAccountNumber)}`);
+  if (block.evidenceSentence) {
+    lines.push(`Evidence or mismatch reference: ${safeLetterText(block.evidenceSentence, item.maskedAccountNumber)}`);
+  }
 }
 
 function reportedBalanceForPlainLetter(item: SimpleDisputedItem): string | null {
@@ -578,15 +717,7 @@ function buildCreditBureauDisputePacketItemLines(item: SimpleDisputedItem): stri
   if (balance) lines.push(`Reported Balance: ${balance}`);
   if (reportedDate) lines.push(`Date Reported / Last Activity: ${reportedDate}`);
 
-  lines.push(
-    "",
-    plainDisputeLetterReasonFor({
-      issueType: item.issueType,
-      requestedAction: item.requestedAction,
-      disputedField: item.disputedField,
-      narrative: item.narrative,
-    }),
-  );
+  pushCreditBureauReasonBlock(lines, item);
 
   return lines;
 }

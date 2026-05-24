@@ -1238,11 +1238,23 @@ function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit
 }
 
 function consumerDisputeReasonForRow(row: PacketConsumerDisputedItemSource, packetType: DisputePacketType): string {
-  void row;
+  const findingReason = sanitizeComplianceNeutralText(row.issueUserExplanation);
+  if (findingReason) return redactSensitiveText(findingReason, row.accountNumber);
+
+  const recommendedAction = sanitizeComplianceNeutralText(row.issueRecommendedAction);
+  if (recommendedAction) return redactSensitiveText(recommendedAction, row.accountNumber);
+
+  const accountName =
+    packetType === "collection_agency"
+      ? firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]) ?? "this collection account"
+      : firstKnownText([row.creditorName, row.originalCreditorName, row.collectionAgencyName]) ?? "this account";
+  const issueLabel = labelizeIssueType(issueTypeForRow(row)).toLowerCase();
+
   if (packetType === "collection_agency") {
-    return "I am asking you to verify whether this collection account information is accurate, complete, and supported by records showing the authority to collect or report this account.";
+    return `I dispute the ${issueLabel} for ${redactSensitiveText(accountName, row.accountNumber)} and am asking you to verify whether this collection account information is accurate, complete, and supported by records showing the authority to collect or report this account.`;
   }
-  return "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
+
+  return `I dispute the ${issueLabel} for ${redactSensitiveText(accountName, row.accountNumber)} and am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.`;
 }
 
 export function buildConsumerDisputedItemInput(
@@ -1263,6 +1275,7 @@ export function buildConsumerDisputedItemInput(
   const collectionName = firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]);
   const issueType = issueTypeForRow(row);
   const evidenceReference = evidenceReferenceForRow(row, details);
+  const findingReason = consumerDisputeReasonForRow(row, packetType);
   const pageNumber = Number(evidence?.pageNumber ?? evidence?.page ?? details.pageNumber ?? details.page);
   const evidenceSnippet = firstKnownText([
     evidence ? firstText(evidence, ["textSnippet", "excerpt"]) : null,
@@ -1329,7 +1342,9 @@ export function buildConsumerDisputedItemInput(
     reportedValue: formatPacketDisplayValue(fieldName ?? displayFieldName, reportedValue, row.accountNumber),
     expectedValue: formatPacketExpectedValue(fieldName ?? displayFieldName, expectedValue, row.accountNumber),
     issueType,
-    explanation: consumerDisputeReasonForRow(row, packetType),
+    explanation: findingReason,
+    findingReason,
+    findingRecommendedAction: row.issueRecommendedAction,
     evidenceReference,
     requestedAction: actionForIssue(issueType, packetType),
     narrative,

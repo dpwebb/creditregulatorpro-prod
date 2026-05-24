@@ -132,6 +132,45 @@ function readyState(): PacketReadinessResult {
   };
 }
 
+function countOccurrences(text: string, value: string): number {
+  return text.split(value).length - 1;
+}
+
+function packetFromRows(rows: Array<PacketConsumerDisputedItemSource & PacketInternalReferenceSource>) {
+  return buildSimpleDisputePacketContent({
+    packetType: "credit_bureau",
+    reportType: "Synthetic Bureau credit report",
+    reportDate: new Date("2026-05-11T00:00:00.000Z"),
+    recipient: {
+      type: "credit_bureau",
+      name: "Synthetic Bureau",
+      address: ["200 Bureau Test Street", "Toronto, ON M5J 2N8"],
+    },
+    consumer: {
+      name: "Packet Consumer",
+      address: ["100 Consumer Avenue", "Halifax, NS B3J 0A1"],
+    },
+    disputedItems: rows.map((row) => buildConsumerDisputedItemInput(row, "credit_bureau")),
+    reportArtifactIds: rows.map((row) => row.reportArtifactId),
+    generatedByUserId: owner.id,
+  });
+}
+
+function findingRow(
+  overrides: Partial<PacketConsumerDisputedItemSource & PacketInternalReferenceSource>,
+): PacketConsumerDisputedItemSource & PacketInternalReferenceSource {
+  return {
+    ...sourceRow(),
+    ...overrides,
+    issueTechnicalDetails: {
+      ...rawTechnicalDetails,
+      ...(typeof overrides.issueTechnicalDetails === "object" && overrides.issueTechnicalDetails
+        ? overrides.issueTechnicalDetails as Record<string, unknown>
+        : {}),
+    },
+  };
+}
+
 describe("dispute packet service consumer/internal separation", () => {
   it("keeps raw IDs in metadata and evidence while body-facing text stays humanized", () => {
     const row = sourceRow();
@@ -244,6 +283,86 @@ describe("dispute packet service consumer/internal separation", () => {
         ruleId: "BALANCE_CALCULATION_VIOLATION",
       }),
     ]);
+  });
+
+  it("keeps distinct finding reasons, actions, and evidence visible in final bureau letters", () => {
+    const balanceRow = findingRow({
+      issueId: 201,
+      issueUserExplanation: "The balance shown for Synthetic Bank does not match the payment records I have.",
+      issueRecommendedAction: "Please correct the balance to match the verified records or remove the unsupported balance.",
+      issueViolationCategory: "BALANCE_CALCULATION_VIOLATION",
+      issueTechnicalDetails: {
+        fieldName: "currentBalance",
+        canonicalField: "currentBalance",
+        reportedValue: "$900",
+        expectedValue: "$0",
+        evidenceLink: {
+          fieldName: "currentBalance",
+          pageNumber: 5,
+          textSnippet: "Synthetic Bank current balance $900",
+        },
+      },
+      balance: "$900",
+      currentBalance: "$900",
+    });
+    const statusRow = findingRow({
+      issueId: 202,
+      issueUserExplanation: "The account is reported as open even though the account records show it was closed.",
+      issueRecommendedAction: "Please update the account status to closed or remove the unsupported status reporting.",
+      issueViolationCategory: "ACCOUNT_STATUS_INCONSISTENCY",
+      issueTechnicalDetails: {
+        fieldName: "accountStatus",
+        canonicalField: "accountStatus",
+        reportedValue: "Open",
+        expectedValue: "Closed",
+        evidenceLink: {
+          fieldName: "accountStatus",
+          pageNumber: 6,
+          textSnippet: "Synthetic Bank account status Open",
+        },
+      },
+      status: "Open",
+      dateClosed: new Date("2024-02-01T00:00:00.000Z"),
+    });
+
+    const letter = buildConsumerDisputePacketLetterText(packetFromRows([balanceRow, statusRow]));
+
+    expect(countOccurrences(letter, "Why I am disputing this item:")).toBe(2);
+    expect(letter).toContain("Specific dispute reason: The balance shown for Synthetic Bank does not match the payment records I have.");
+    expect(letter).toContain("Requested bureau action: Please correct the balance to match the verified records or remove the unsupported balance.");
+    expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Balance reported on page 5.");
+    expect(letter).toContain("Specific dispute reason: The account is reported as open even though the account records show it was closed.");
+    expect(letter).toContain("Requested bureau action: Please update the account status to closed or remove the unsupported status reporting.");
+    expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Status on page 6.");
+    expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
+  });
+
+  it("uses a safe account-and-issue fallback for unknown finding types", () => {
+    const unknownRow = findingRow({
+      issueId: 203,
+      issueUserExplanation: null,
+      issueRecommendedAction: null,
+      issueViolationCategory: null,
+      issueDisputeVector: "SYNTHETIC_UNKNOWN_FINDING",
+      creditorName: "Mystery Lender",
+      issueTechnicalDetails: {
+        fieldName: "account information",
+        reportedValue: "Information under review",
+        evidenceLink: {
+          fieldName: "account information",
+          pageNumber: 3,
+        },
+      },
+    });
+
+    const letter = buildConsumerDisputePacketLetterText(packetFromRows([unknownRow]));
+
+    expect(letter).toContain("Account reviewed: Mystery Lender: Synthetic Unknown Finding");
+    expect(letter).toContain("Specific dispute reason: I dispute the synthetic unknown finding for Mystery Lender");
+    expect(letter).toContain("Plain-language explanation: The account number is not shown on my report, so I am asking the bureau to verify the account before it continues to be reported.");
+    expect(letter).toContain("Requested bureau action: Please investigate this item, provide the basis for any information that remains, and correct or remove it if it cannot be verified.");
+    expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Information on page 3.");
+    expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
   it("keeps readiness and ownership checks tied to the selected finding", () => {
