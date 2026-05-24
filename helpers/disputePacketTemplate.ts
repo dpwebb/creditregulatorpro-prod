@@ -3,6 +3,11 @@ import type { EvidenceLocationSummary } from "./evidenceLocationIndex";
 import { plainDisputeLetterReasonFor } from "./disputeLetterReason";
 import { dedupeNarrativeText } from "./packetNarrative";
 import {
+  canonicalDisputeIntentFor,
+  disputeIntentArchetypeFor,
+  type CanonicalDisputeIntent,
+} from "./disputeIntent";
+import {
   PACKET_REQUESTED_RESULT_FALLBACK,
   formatPacketAccountIdentifier,
   formatPacketConsumerEvidenceReference,
@@ -65,6 +70,7 @@ export const PACKET_NARRATIVE_CAUTION_LEVELS = [
 export type PacketNarrativeCautionLevel = (typeof PACKET_NARRATIVE_CAUTION_LEVELS)[number];
 
 export interface PacketNarrative {
+  disputeIntent?: CanonicalDisputeIntent;
   disputeCategory: PacketNarrativeDisputeCategory;
   cautionLevel: PacketNarrativeCautionLevel;
   issueSummary: string;
@@ -198,6 +204,10 @@ function hasText(value: unknown): value is string {
   return value.trim().length > 0;
 }
 
+function sentenceKey(value: unknown): string {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function isPlaceholder(value: unknown): boolean {
   if (value == null) return true;
   return PLACEHOLDER_VALUES.has(String(value).trim().toLowerCase());
@@ -209,6 +219,10 @@ export function formatPacketDate(value: Date | string | null | undefined): strin
 
 export function labelizeIssueType(value: string | null | undefined): string {
   if (!hasText(value)) return "Reporting issue";
+  const intent = canonicalDisputeIntentFor({ issueType: value });
+  if (intent !== "GENERAL_ACCURACY_REVIEW") {
+    return disputeIntentArchetypeFor(intent).label;
+  }
   const normalized = value
     .trim()
     .replace(/_/g, " ")
@@ -387,6 +401,20 @@ export function actionForIssue(
   packetType: DisputePacketType,
   context: PacketActionIssueContext = {},
 ): PacketRequestedAction {
+  const intent = canonicalDisputeIntentFor({
+    issueType,
+    violationCategory: context.violationCategory,
+    disputeVector: context.disputeVector,
+    disputedField: context.disputedField,
+    packetType,
+  });
+  if (intent !== "GENERAL_ACCURACY_REVIEW") {
+    const requestedAction = disputeIntentArchetypeFor(intent).requestedAction;
+    return packetType === "collection_agency"
+      ? "clarify collection authority/details"
+      : requestedAction as PacketRequestedAction;
+  }
+
   const issueText = normalizedActionText(issueType, context.violationCategory, context.disputeVector);
   const fieldText = normalizedActionText(context.disputedField);
   const combinedText = normalizedActionText(issueText, fieldText);
@@ -486,6 +514,7 @@ function sanitizePacketNarrative(
     : "NEEDS_REVIEW";
 
   return {
+    disputeIntent: narrative.disputeIntent,
     disputeCategory,
     cautionLevel,
     issueSummary: safeLetterText(narrative.issueSummary, accountNumber),
@@ -635,6 +664,10 @@ function narrativeFactValue(item: SimpleDisputedItem, terms: string[]): string |
 }
 
 function consumerIssueLabel(item: SimpleDisputedItem): string {
+  if (item.narrative?.disputeIntent) {
+    return disputeIntentArchetypeFor(item.narrative.disputeIntent).label;
+  }
+
   const issueType = safeLetterText(item.issueType, item.maskedAccountNumber)
     .replace(/\bStatute Of Limitations\b/gi, "Reporting period")
     .replace(/\bStatute\b/gi, "Reporting")
@@ -645,6 +678,10 @@ function consumerIssueLabel(item: SimpleDisputedItem): string {
 }
 
 function requestedActionSentenceForItem(item: SimpleDisputedItem): string {
+  if (item.narrative?.disputeIntent) {
+    return disputeIntentArchetypeFor(item.narrative.disputeIntent).bureauActionSentence;
+  }
+
   switch (item.requestedAction) {
     case "correct balance":
       return "Please investigate the reported balance and correct it, or remove the item if it cannot be verified.";
@@ -704,6 +741,14 @@ function evidenceSentenceForReasonBlock(item: SimpleDisputedItem): string | null
 }
 
 function fallbackSpecificReasonForItem(item: SimpleDisputedItem, accountName: string, explanation: string): string {
+  const intent = item.narrative?.disputeIntent ?? canonicalDisputeIntentFor({
+    issueType: item.issueType,
+    disputedField: item.disputedField,
+    disputeCategory: item.narrative?.disputeCategory,
+  });
+  const archetype = disputeIntentArchetypeFor(intent);
+  if (intent !== "GENERAL_ACCURACY_REVIEW") return archetype.consumerNarrative;
+
   const fieldLabel = safeLetterFieldLabel(item.disputedField);
   const explanationText = safeLetterText(explanation, item.maskedAccountNumber);
 
@@ -717,17 +762,25 @@ function fallbackSpecificReasonForItem(item: SimpleDisputedItem, accountName: st
 function buildCreditBureauReasonBlock(item: SimpleDisputedItem): CreditBureauReasonBlock {
   const accountName = safeLetterText(item.creditorCollectorName, item.maskedAccountNumber) || "Company listed on report";
   const issueLabel = consumerIssueLabel(item);
-  const explanation = plainDisputeLetterReasonFor({
+  const intent = item.narrative?.disputeIntent ?? canonicalDisputeIntentFor({
     issueType: item.issueType,
-    requestedAction: item.requestedAction,
     disputedField: item.disputedField,
-    narrative: item.narrative,
+    disputeCategory: item.narrative?.disputeCategory,
   });
+  const archetype = disputeIntentArchetypeFor(intent);
+  const explanation = intent === "GENERAL_ACCURACY_REVIEW"
+    ? plainDisputeLetterReasonFor({
+        issueType: item.issueType,
+        requestedAction: item.requestedAction,
+        disputedField: item.disputedField,
+        narrative: item.narrative,
+      })
+    : archetype.consumerNarrative;
 
   return {
     reasonTitle: `${accountName}: ${issueLabel}`,
-    specificReason: item.findingReason ?? fallbackSpecificReasonForItem(item, accountName, explanation),
-    explanation,
+    specificReason: fallbackSpecificReasonForItem(item, accountName, explanation),
+    explanation: explanation === archetype.consumerNarrative ? "" : explanation,
     requestedAction: item.findingRecommendedAction ?? requestedActionSentenceForItem(item),
     evidenceSentence: evidenceSentenceForReasonBlock(item),
   };
@@ -739,7 +792,10 @@ function pushCreditBureauReasonBlock(lines: string[], item: SimpleDisputedItem):
   lines.push("Why I am disputing this item:");
   lines.push(`Account reviewed: ${safeLetterText(block.reasonTitle, item.maskedAccountNumber)}`);
   lines.push(`Specific dispute reason: ${safeLetterText(block.specificReason, item.maskedAccountNumber)}`);
-  lines.push(`Plain-language explanation: ${safeLetterText(block.explanation, item.maskedAccountNumber)}`);
+  const explanation = safeLetterText(block.explanation, item.maskedAccountNumber);
+  if (explanation && sentenceKey(explanation) !== sentenceKey(block.specificReason)) {
+    lines.push(`Plain-language explanation: ${explanation}`);
+  }
   lines.push(`Requested bureau action: ${safeLetterText(block.requestedAction, item.maskedAccountNumber)}`);
   if (block.evidenceSentence) {
     lines.push(`Evidence or mismatch reference: ${safeLetterText(block.evidenceSentence, item.maskedAccountNumber)}`);

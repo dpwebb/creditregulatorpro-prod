@@ -27,6 +27,7 @@ import {
   formatPacketFieldLabel,
 } from "./disputePacketHumanization";
 import { buildPacketNarrative, evaluatePacketNarrativeReadiness } from "./packetNarrative";
+import { canonicalDisputeIntentFor, disputeIntentArchetypeFor } from "./disputeIntent";
 import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 import {
   resolveEvidenceLocation,
@@ -356,9 +357,9 @@ function issueTypeForRow(
   details: Record<string, unknown> = parseDetails(row.issueTechnicalDetails),
 ): string {
   return firstKnownText([
-    consumerIssueIntentFromDetails(details),
     row.issueDisputeVector,
     row.issueViolationCategory,
+    consumerIssueIntentFromDetails(details),
   ]) ?? "reporting_issue";
 }
 
@@ -1262,24 +1263,21 @@ function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit
   };
 }
 
-function consumerDisputeReasonForRow(row: PacketConsumerDisputedItemSource, packetType: DisputePacketType): string {
-  const findingReason = sanitizeComplianceNeutralText(row.issueUserExplanation);
-  if (findingReason) return redactSensitiveText(findingReason, row.accountNumber);
+function consumerDisputeReasonForRow(
+  row: PacketConsumerDisputedItemSource,
+  packetType: DisputePacketType,
+  details: Record<string, unknown>,
+): string {
+  const intent = canonicalDisputeIntentFor({
+    issueType: issueTypeForRow(row, details),
+    violationCategory: row.issueViolationCategory,
+    disputeVector: row.issueDisputeVector,
+    disputedField: fieldFromDetails(details),
+    packetType,
+    isCollectionAccount: row.isCollectionAccount,
+  });
 
-  const recommendedAction = sanitizeComplianceNeutralText(row.issueRecommendedAction);
-  if (recommendedAction) return redactSensitiveText(recommendedAction, row.accountNumber);
-
-  const accountName =
-    packetType === "collection_agency"
-      ? firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]) ?? "this collection account"
-      : firstKnownText([row.creditorName, row.originalCreditorName, row.collectionAgencyName]) ?? "this account";
-  const issueLabel = labelizeIssueType(issueTypeForRow(row, parseDetails(row.issueTechnicalDetails))).toLowerCase();
-
-  if (packetType === "collection_agency") {
-    return `I dispute the ${issueLabel} for ${redactSensitiveText(accountName, row.accountNumber)} and am asking you to verify whether this collection account information is accurate, complete, and supported by records showing the authority to collect or report this account.`;
-  }
-
-  return `I dispute the ${issueLabel} for ${redactSensitiveText(accountName, row.accountNumber)} and am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.`;
+  return redactSensitiveText(disputeIntentArchetypeFor(intent).consumerNarrative, row.accountNumber);
 }
 
 export function buildConsumerDisputedItemInput(
@@ -1300,7 +1298,7 @@ export function buildConsumerDisputedItemInput(
   const collectionName = firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]);
   const issueType = issueTypeForRow(row, details);
   const evidenceReference = evidenceReferenceForRow(row, details);
-  const findingReason = consumerDisputeReasonForRow(row, packetType);
+  const findingReason = consumerDisputeReasonForRow(row, packetType, details);
   const pageNumber = Number(evidence?.pageNumber ?? evidence?.page ?? details.pageNumber ?? details.page);
   const evidenceSnippet = firstKnownText([
     evidence ? firstText(evidence, ["textSnippet", "excerpt"]) : null,

@@ -212,14 +212,13 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(bodyText).toContain("Account Number: Account number not shown on report");
     expect(bodyText).toContain("Reported Balance: $200");
     expect(bodyText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(bodyText).toContain("Specific dispute reason: I dispute the Date last reported information for Synthetic Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
-    expect(bodyText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+    expect(bodyText).toContain("Specific dispute reason: This account appears to remain on my credit file beyond the appropriate reporting period.");
     expect(bodyText).toContain("Please investigate this item and update my credit file accordingly.");
     expect(bodyText).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 4.");
     expect(bodyText).toContain("Aug 21, 2012");
     expect(bodyText).not.toContain("Specific dispute reason: Raw reference");
     expect(packet.disputedItems[0].narrative?.factualBasis).toContain("The report dated May 11, 2026 shows Synthetic Bank.");
-    expect(packet.disputedItems[0].narrative?.consumerAssertion).toContain("continued reportability");
+    expect(packet.disputedItems[0].narrative?.consumerAssertion).toContain("appropriate reporting period");
     expect(packet.disputedItems[0].narrative?.verificationRequests).toContain("Verify the date of first delinquency/default if applicable.");
     expect(packet.disputedItems[0].narrative?.requestedRemedies).toContain("Remove or suppress the item if it is not reportable.");
     expect(bodyText).not.toContain("Requested result: Verify the correct information");
@@ -331,10 +330,10 @@ describe("dispute packet service consumer/internal separation", () => {
     const letter = buildConsumerDisputePacketLetterText(packetFromRows([balanceRow, statusRow]));
 
     expect(countOccurrences(letter, "Why I am disputing this item:")).toBe(2);
-    expect(letter).toContain("Specific dispute reason: The balance shown for Synthetic Bank does not match the payment records I have.");
+    expect(letter).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
     expect(letter).toContain("Requested bureau action: Please correct the balance to match the verified records or remove the unsupported balance.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Balance reported on page 5.");
-    expect(letter).toContain("Specific dispute reason: The account is reported as open even though the account records show it was closed.");
+    expect(letter).toContain("Specific dispute reason: The account status being reported does not appear to match the account records.");
     expect(letter).toContain("Requested bureau action: Please update the account status to closed or remove the unsupported status reporting.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Status on page 6.");
     expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
@@ -360,10 +359,9 @@ describe("dispute packet service consumer/internal separation", () => {
 
     const letter = buildConsumerDisputePacketLetterText(packetFromRows([unknownRow]));
 
-    expect(letter).toContain("Account reviewed: Mystery Lender: Synthetic Unknown Finding");
-    expect(letter).toContain("Specific dispute reason: I dispute the synthetic unknown finding for Mystery Lender");
-    expect(letter).toContain("Plain-language explanation: The account number is not shown on my report, so I am asking the bureau to verify the account before it continues to be reported.");
-    expect(letter).toContain("Requested bureau action: Please investigate this item, provide the basis for any information that remains, and correct or remove it if it cannot be verified.");
+    expect(letter).toContain("Account reviewed: Mystery Lender: Missing account identifier");
+    expect(letter).toContain("Specific dispute reason: The account number is not shown on my report, so I am asking the bureau to verify the account before it continues to be reported.");
+    expect(letter).toContain("Requested bureau action: Please verify the account identifier and supporting records, and correct or remove the item if it cannot be verified.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Information on page 3.");
     expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
   });
@@ -433,7 +431,7 @@ describe("dispute packet service consumer/internal separation", () => {
 
     expect(paymentPacket.disputedItems[0].requestedAction).toBe("correct payment history");
     expect(paymentPacket.disputedItems[0].findingRecommendedAction).toBeNull();
-    expect(paymentLetter).toContain("Specific dispute reason: I dispute the Payment History information for Synthetic Bank. The payment history being reported appears inaccurate and does not reflect my actual payment record.");
+    expect(paymentLetter).toContain("Specific dispute reason: The payment history being reported does not appear to match my records.");
     expect(paymentLetter).toContain("Requested bureau action: Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.");
     expect(paymentLetter).toContain("Evidence or mismatch reference: Relevant report section for Payment History on page 8.");
     expect(paymentLetter).not.toContain("reported balance");

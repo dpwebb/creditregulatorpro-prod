@@ -285,7 +285,7 @@ describe("packet create dialog routing", () => {
     expect(previewText).toContain("Creditor/Reporter: Rogers Communications");
     expect(previewText).toContain("Account Number: Account number not shown on report");
     expect(previewText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(previewText).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
+    expect(previewText).toContain("The balance being reported does not appear accurate based on my records.");
     expect(previewText).toContain("Evidence summary");
     expect(previewText).toContain("Attachment checklist");
     expect(previewText).not.toContain("Rogers Communications: LasReportedDate - verify and provide basis");

@@ -148,7 +148,7 @@ describe("packet evidence location metadata", () => {
     expect(body).toContain("Creditor/Reporter: Sample Bank");
     expect(body).toContain("Account Number: Account number not shown on report");
     expect(body).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(body).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
+    expect(body).toContain("The balance being reported does not appear accurate based on my records.");
     expect(body).not.toMatch(/tradeline|artifact|source report #|field:|PIPEDA_|2012-08-21T|lastReportedDate|Account ending reau|Expected:\s*Not known/i);
     expect(packet.metadata.selectedIssueIds).toEqual([111]);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);

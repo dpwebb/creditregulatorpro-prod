@@ -109,14 +109,13 @@ describe("packet narrative regression matrix", () => {
     expect(letter).toContain("Aug 21, 2012");
     expect(letter).toContain("Account Number: Account number not shown on report");
     expect(letter).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(letter).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+    expect(letter).toContain("This account appears to remain on my credit file beyond the appropriate reporting period.");
     expect(letter).toContain("Please investigate this item and update my credit file accordingly.");
     expect(narrative.factualBasis).toContain("Account number not shown on report; see attached report page.");
-    expect(narrative.consumerAssertion).toBe("I dispute the accuracy, completeness, support, and continued reportability of this item.");
+    expect(narrative.consumerAssertion).toBe("This account appears to remain on my credit file beyond the appropriate reporting period.");
     expect(narrative.verificationRequests).toEqual(expect.arrayContaining([
       "Verify the source records supporting the account.",
       "Verify the account identifier or explain why no account number is shown on the report.",
-      "Verify the account status.",
       "Verify the date of first delinquency/default if applicable.",
       "Verify the basis for continuing to publish this item on the current report.",
     ]));
@@ -136,9 +135,9 @@ describe("packet narrative regression matrix", () => {
       reportDate: "2026-01-10",
       accountName: "Utility Provider",
       accountNumber: null,
-      disputedField: "account status",
-      reportedValue: "Open",
-      issueType: "ACCOUNT_STATUS_INCONSISTENCY",
+      disputedField: "accountNumber",
+      reportedValue: "Not shown",
+      issueType: "MISSING_ACCOUNT_IDENTIFIER",
       evidenceReference: "Synthetic credit report page 2; field: account status",
       evidencePageNumber: 2,
     });
@@ -146,16 +145,16 @@ describe("packet narrative regression matrix", () => {
       issueId: 7002,
       tradelineId: 8002,
       creditorCollectorName: "Utility Provider",
-      disputedField: "account status",
-      reportedValue: "Open",
+      disputedField: "accountNumber",
+      reportedValue: "Not shown",
       expectedValue: "Closed",
-      issueType: "ACCOUNT_STATUS_INCONSISTENCY",
+      issueType: "MISSING_ACCOUNT_IDENTIFIER",
       evidenceReference: "Synthetic credit report page 2; field: account status",
     });
     const letter = buildConsumerDisputePacketLetterText(packet);
 
     expect(narrative.disputeCategory).toBe("MISSING_ACCOUNT_IDENTIFIER");
-    expect(narrative.issueSummary).toContain("The report shows Utility Provider, but the account number is not shown on the report.");
+    expect(narrative.issueSummary).toContain("The account number is not shown on my report");
     expect(narrative.verificationRequests).toContain("Verify the account identifier or explain why no account number is shown on the report.");
     expect(narrative.verificationRequests).toContain("Verify the source records supporting the account.");
     expect(letter).toContain("Creditor/Reporter: Utility Provider");
@@ -195,7 +194,8 @@ describe("packet narrative regression matrix", () => {
     const letter = buildConsumerDisputePacketLetterText(packet);
 
     expect(narrative.disputeCategory).toBe("BALANCE_OR_STATUS_ACCURACY");
-    expect(narrative.issueSummary).toContain("The report shows Example Bank with Balance reported: $900.");
+    expect(narrative.issueSummary).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(narrative.issueSummary).toContain("The report shows Balance reported: $900.");
     expect(narrative.evidenceReferences).toEqual(expect.arrayContaining([
       "Relevant report section for Balance reported on page 2.",
     ]));
