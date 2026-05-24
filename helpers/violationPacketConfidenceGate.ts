@@ -11,6 +11,12 @@ export type ViolationPacketGateBlockerCode =
   | "parser_uncertain"
   | "violation_needs_review";
 
+export type ViolationEvidenceQualityStatus =
+  | "strong"
+  | "partial"
+  | "missing"
+  | "parser_uncertain";
+
 export interface ParserConfidenceGate {
   deterministic: true;
   ruleId: "parser-confidence-packet-gate-v1";
@@ -29,6 +35,19 @@ export interface ViolationPacketConfidenceGate {
   packetReady: boolean;
   blockerCode: ViolationPacketGateBlockerCode | null;
   confidenceScore: number | null;
+  message: string;
+}
+
+export interface ViolationEvidenceQuality {
+  deterministic: true;
+  ruleId: "violation-evidence-quality-v1";
+  status: ViolationEvidenceQualityStatus;
+  hasMeaningfulEvidence: boolean;
+  hasEvidenceLocation: boolean;
+  hasEvidenceId: boolean;
+  hasSourceLocator: boolean;
+  hasTextSnippet: boolean;
+  reasonCodes: string[];
   message: string;
 }
 
@@ -206,7 +225,153 @@ function readStoredParserGate(technicalDetails: unknown): ParserConfidenceGate |
     message:
       typeof rawGate.message === "string" && rawGate.message.trim()
         ? rawGate.message
-        : "Parser confidence metadata is attached to this compliance finding.",
+      : "Parser confidence metadata is attached to this compliance finding.",
+  });
+}
+
+function textValue(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "bigint") return value.toString();
+  return null;
+}
+
+function hasTextValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasTextValue);
+  return Boolean(textValue(value));
+}
+
+function positiveIntegerValue(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function evidenceRecordsFromDetails(details: Record<string, unknown>): Record<string, unknown>[] {
+  const deterministicRule = isRecord(details.deterministicRule)
+    ? details.deterministicRule
+    : null;
+  return [
+    details,
+    isRecord(details.evidenceLink) ? details.evidenceLink : null,
+    deterministicRule && isRecord(deterministicRule.evidence)
+      ? deterministicRule.evidence
+      : null,
+  ].filter((record): record is Record<string, unknown> => Boolean(record));
+}
+
+function hasEvidenceLocation(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasEvidenceLocation);
+  if (!isRecord(value)) return false;
+  if (Object.keys(value).length === 0) return false;
+  return true;
+}
+
+function createEvidenceQuality(input: Omit<ViolationEvidenceQuality, "deterministic" | "ruleId">): ViolationEvidenceQuality {
+  return {
+    deterministic: true,
+    ruleId: "violation-evidence-quality-v1",
+    ...input,
+  };
+}
+
+export function classifyViolationEvidenceQuality(input: {
+  technicalDetails?: unknown;
+  validationStatus?: string | null;
+}): ViolationEvidenceQuality {
+  const storedGate = readStoredParserGate(input.technicalDetails);
+  const validationStatus = input.validationStatus?.toUpperCase() ?? null;
+  if (
+    storedGate?.status === "parser_uncertain" ||
+    validationStatus === "PARSER_UNCERTAIN" ||
+    validationStatus === "NEEDS_PARSER_REVIEW"
+  ) {
+    return createEvidenceQuality({
+      status: "parser_uncertain",
+      hasMeaningfulEvidence: false,
+      hasEvidenceLocation: false,
+      hasEvidenceId: false,
+      hasSourceLocator: false,
+      hasTextSnippet: false,
+      reasonCodes: ["PARSER_UNCERTAIN"],
+      message: "Evidence quality cannot be confirmed until parser review is complete.",
+    });
+  }
+
+  const details = isRecord(input.technicalDetails) ? input.technicalDetails : {};
+  const records = evidenceRecordsFromDetails(details);
+  const hasEvidenceId = records.some((record) =>
+    Boolean(
+      hasTextValue(record.evidenceId) ||
+      hasTextValue(record.evidenceIds) ||
+      hasTextValue(record.canonicalEvidenceId),
+    ),
+  );
+  const hasEvidenceLocationValue = records.some((record) =>
+    hasEvidenceLocation(record.evidenceLocation) ||
+    hasEvidenceLocation(record.evidenceLocations),
+  );
+  const hasTextSnippet = records.some((record) =>
+    Boolean(
+      textValue(record.textSnippet) ||
+      textValue(record.evidenceSnippet) ||
+      textValue(record.excerpt),
+    ),
+  );
+  const hasSourceLocator = records.some((record) =>
+    Boolean(
+      textValue(record.fieldName) ||
+      textValue(record.field) ||
+      textValue(record.canonicalField) ||
+      textValue(record.fieldKey) ||
+      textValue(record.sourceField) ||
+      hasTextValue(record.sourceFields) ||
+      textValue(record.disputedField) ||
+      positiveIntegerValue(record.reportArtifactId) ||
+      positiveIntegerValue(record.sourceReportArtifactId) ||
+      positiveIntegerValue(record.pageNumber) ||
+      positiveIntegerValue(record.page),
+    ),
+  );
+  const hasMeaningfulEvidence =
+    hasEvidenceLocationValue ||
+    hasEvidenceId ||
+    (hasTextSnippet && hasSourceLocator);
+
+  if (hasMeaningfulEvidence) {
+    return createEvidenceQuality({
+      status: "strong",
+      hasMeaningfulEvidence: true,
+      hasEvidenceLocation: hasEvidenceLocationValue,
+      hasEvidenceId,
+      hasSourceLocator,
+      hasTextSnippet,
+      reasonCodes: [],
+      message: "Meaningful source-report evidence is linked to this finding.",
+    });
+  }
+
+  if (hasSourceLocator || hasTextSnippet) {
+    return createEvidenceQuality({
+      status: "partial",
+      hasMeaningfulEvidence: false,
+      hasEvidenceLocation: hasEvidenceLocationValue,
+      hasEvidenceId,
+      hasSourceLocator,
+      hasTextSnippet,
+      reasonCodes: ["PARTIAL_EVIDENCE_METADATA", "MANUAL_REVIEW_REQUIRED"],
+      message: "This finding has partial evidence metadata and needs review before packet creation.",
+    });
+  }
+
+  return createEvidenceQuality({
+    status: "missing",
+    hasMeaningfulEvidence: false,
+    hasEvidenceLocation: false,
+    hasEvidenceId: false,
+    hasSourceLocator: false,
+    hasTextSnippet: false,
+    reasonCodes: ["MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED"],
+    message: "Required source-report evidence is missing for this finding.",
   });
 }
 
@@ -214,6 +379,7 @@ export function evaluateViolationPacketConfidenceGate(input: {
   technicalDetails?: unknown;
   validationStatus?: string | null;
   userStatus?: string | null;
+  autoGenerated?: boolean | null;
 }): ViolationPacketConfidenceGate {
   const storedGate = readStoredParserGate(input.technicalDetails);
   const validationStatus = input.validationStatus?.toUpperCase() ?? null;
@@ -253,6 +419,26 @@ export function evaluateViolationPacketConfidenceGate(input: {
       message:
         storedGate?.message ||
         "Review and verify this finding before it can be used in the dispute process.",
+    };
+  }
+
+  const evidenceQuality = classifyViolationEvidenceQuality({
+    technicalDetails: input.technicalDetails,
+    validationStatus: input.validationStatus,
+  });
+
+  if (
+    input.autoGenerated === true &&
+    evidenceQuality.status !== "strong"
+  ) {
+    return {
+      deterministic: true,
+      ruleId: "violation-packet-confidence-gate-v1",
+      status: "needs_user_review",
+      packetReady: false,
+      blockerCode: "violation_needs_review",
+      confidenceScore: storedGate?.confidenceScore ?? null,
+      message: evidenceQuality.message,
     };
   }
 

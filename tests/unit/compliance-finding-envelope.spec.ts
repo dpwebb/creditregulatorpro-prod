@@ -62,6 +62,7 @@ describe("compliance finding envelope adapter", () => {
       sourceFields: ["currentBalance"],
     });
     expect(envelope.evidenceQuality).toMatchObject({
+      status: "strong",
       hasEvidence: true,
       needsManualReview: false,
     });
@@ -75,14 +76,13 @@ describe("compliance finding envelope adapter", () => {
       confidenceScore: 72,
       userExplanation: "The account support information appears incomplete.",
       recommendedAction: "Ask the reporting party to verify the account support.",
-      technicalDetails: {
-        fieldName: "originalCreditorName",
-      },
+      technicalDetails: {},
     });
 
     expect(envelope.evidence.hasEvidenceLink).toBe(false);
     expect(envelope.evidence.evidenceIds).toEqual([]);
     expect(envelope.evidenceQuality).toMatchObject({
+      status: "missing",
       hasEvidence: false,
       needsManualReview: true,
       reasonCodes: ["MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED"],
