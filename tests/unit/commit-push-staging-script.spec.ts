@@ -3,8 +3,17 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = () => readFileSync(join(process.cwd(), "scripts", "commit-push-staging.mjs"), "utf8");
+const packageJson = () => JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
 
 describe("staging commit-push script", () => {
+  it("exposes fast default and full local gate package commands", () => {
+    const scripts = packageJson().scripts;
+
+    expect(scripts["commit-push"]).toBe("node scripts/commit-push-staging.mjs");
+    expect(scripts["commit-push:quick"]).toBe("node scripts/commit-push-staging.mjs --local-gate fast");
+    expect(scripts["commit-push:full"]).toBe("node scripts/commit-push-staging.mjs --local-gate full");
+  });
+
   it("does not report completion until origin/staging and GitHub Actions are verified", () => {
     const script = source();
 
@@ -28,17 +37,34 @@ describe("staging commit-push script", () => {
     expect(script).toContain("waiting for any GitHub Actions run to appear");
   });
 
-  it("runs the required check gate once before committing", () => {
+  it("defaults to a fast local gate before committing and keeps the full gate explicit", () => {
     const script = source();
 
-    expect(script).toContain("Running quality gate (pnpm check)...");
+    expect(script).toContain('let localGate = "fast";');
+    expect(script).toContain("Running fast local quality gate (typecheck + golden path)...");
+    expect(script).toContain('runPnpmScript("typecheck")');
+    expect(script).toContain('runPnpmScript("test:golden-path")');
+    expect(script).toContain("Running full local quality gate (pnpm check)...");
     expect(script).toContain('runPnpmScript("check")');
-    expect(script).not.toContain('runPnpmScript("typecheck")');
+    expect(script).toContain('arg === "--local-gate"');
+    expect(script).toContain('arg === "--full-check"');
 
-    const checkIndex = script.indexOf('runPnpmScript("check")');
+    const dryRunIndex = script.indexOf("if (dryRun) {");
+    const gateIndex = script.indexOf("runLocalGate();");
     const commitIndex = script.indexOf('runGit(["commit", "-m", message]');
-    expect(checkIndex).toBeGreaterThan(-1);
-    expect(checkIndex).toBeLessThan(commitIndex);
+    expect(dryRunIndex).toBeGreaterThan(-1);
+    expect(gateIndex).toBeGreaterThan(-1);
+    expect(dryRunIndex).toBeLessThan(gateIndex);
+    expect(gateIndex).toBeLessThan(commitIndex);
+  });
+
+  it("keeps the no-local-check path explicit while still requiring GitHub verification", () => {
+    const script = source();
+
+    expect(script).toContain('arg === "--skip-checks"');
+    expect(script).toContain('localGate = "none"');
+    expect(script).toContain("Skipping local checks (--local-gate none). GitHub Actions verification remains required.");
+    expect(script).toContain("verifyGithubActionsCompleted(pushedHead)");
   });
 
   it("keeps post-push local database refresh opt-in", () => {

@@ -6,7 +6,7 @@ const DEFAULT_ACTION_POLL_SECONDS = 15;
 const args = process.argv.slice(2);
 
 let message = "";
-let skipChecks = false;
+let localGate = "fast";
 let dryRun = false;
 let refreshLocalAfterPush = false;
 let actionTimeoutSeconds = DEFAULT_ACTION_TIMEOUT_SECONDS;
@@ -40,6 +40,14 @@ function parsePositiveInteger(value, flagName) {
     fail(`${flagName} requires a positive integer`);
   }
   return parsed;
+}
+
+function parseLocalGate(value, flagName) {
+  const gate = String(value ?? "").trim().toLowerCase();
+  if (!["fast", "full", "none"].includes(gate)) {
+    fail(`${flagName} must be one of: fast, full, none`);
+  }
+  return gate;
 }
 
 function parseGithubRepoFromOrigin(originUrl) {
@@ -152,11 +160,49 @@ function runPnpmScript(scriptName, scriptArgs = []) {
   run("pnpm", ["run", scriptName, ...scriptArgs], { stdio: "inherit" });
 }
 
+function runLocalGate() {
+  if (localGate === "full") {
+    console.log("Running full local quality gate (pnpm check)...");
+    runPnpmScript("check");
+    return;
+  }
+
+  if (localGate === "fast") {
+    console.log("Running fast local quality gate (typecheck + golden path)...");
+    runPnpmScript("typecheck");
+    runPnpmScript("test:golden-path");
+    return;
+  }
+
+  console.log("Skipping local checks (--local-gate none). GitHub Actions verification remains required.");
+}
+
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
 
   if (arg === "--skip-checks") {
-    skipChecks = true;
+    localGate = "none";
+    continue;
+  }
+
+  if (arg === "--full-check") {
+    localGate = "full";
+    continue;
+  }
+
+  if (arg === "--fast-check") {
+    localGate = "fast";
+    continue;
+  }
+
+  if (arg === "--local-gate") {
+    localGate = parseLocalGate(args[i + 1], arg);
+    i += 1;
+    continue;
+  }
+
+  if (arg.startsWith("--local-gate=")) {
+    localGate = parseLocalGate(arg.slice("--local-gate=".length), "--local-gate");
     continue;
   }
 
@@ -216,9 +262,11 @@ for (let i = 0; i < args.length; i += 1) {
 
   if (arg === "--help" || arg === "-h") {
     console.log([
-      "Usage: node scripts/commit-push-staging.mjs [--message <text>] [--skip-checks] [--refresh-local-after-push] [--skip-local-refresh] [--dry-run]",
+      "Usage: node scripts/commit-push-staging.mjs [--message <text>] [--local-gate fast|full|none] [--refresh-local-after-push] [--skip-local-refresh] [--dry-run]",
       "",
-      "By default the script runs pnpm check, verifies origin/staging, waits for GitHub Actions, and skips localhost database refresh.",
+      "By default the script runs a fast local gate (typecheck + golden path), verifies origin/staging, waits for GitHub Actions, and skips localhost database refresh.",
+      "Use --local-gate full when the full pnpm check must run locally before pushing.",
+      "Use --local-gate none only when you intentionally want GitHub Actions to be the first full quality gate.",
       "Use --refresh-local-after-push when local data must be refreshed from staging after the push is verified.",
     ].join("\n"));
     process.exit(0);
@@ -244,13 +292,6 @@ if (!status) {
   process.exit(0);
 }
 
-if (!skipChecks) {
-  console.log("Running quality gate (pnpm check)...");
-  runPnpmScript("check");
-} else {
-  console.log("Skipping checks (--skip-checks).");
-}
-
 runGit(["add", "-A"], { stdio: "inherit" });
 
 const stagedFilesRaw = runGit(["diff", "--cached", "--name-only"]);
@@ -273,10 +314,13 @@ if (dryRun) {
   console.log(`- Commit message: ${message}`);
   console.log(`- Files staged: ${stagedFiles.length}`);
   console.log("- Push target: origin/staging");
+  console.log(`- Local gate: ${localGate}`);
   console.log(`- Refresh localhost from staging after push: ${refreshLocalAfterPush ? "yes" : "no"}`);
   console.log("- Wait for GitHub Actions: yes");
   process.exit(0);
 }
+
+runLocalGate();
 
 console.log(`Committing ${stagedFiles.length} file(s)...`);
 runGit(["commit", "-m", message], { stdio: "inherit" });
