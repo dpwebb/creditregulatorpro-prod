@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueuedProcessingOutputType } from "../../endpoints/ingest/report_POST.schema";
@@ -60,7 +60,7 @@ vi.mock("sonner", () => ({
   },
 }));
 
-import UploadPage from "../../pages/upload";
+import UploadPage, { nextStatusCheckCountdownSeconds } from "../../pages/upload";
 
 class ImmediateFileReader {
   result: string | ArrayBuffer | null = "data:application/pdf;base64,JVBERi0xLjQK";
@@ -141,15 +141,68 @@ async function uploadQueuedReport() {
   expect((await screen.findAllByText("Waiting for analysis to start")).length).toBeGreaterThan(0);
 }
 
+async function uploadQueuedReportWithAct() {
+  mocks.uploadReportMutate.mockImplementationOnce((_input, options) => {
+    options?.onSuccess?.(queuedOutput());
+  });
+
+  renderUploadPage();
+  const file = new File(["%PDF-1.4 synthetic"], "Transunion David Webb Consumer Disclosure.pdf", {
+    type: "application/pdf",
+  });
+
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText(/Choose Your File/i), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Upload My Report" }));
+  });
+
+  expect(mocks.uploadReportMutate).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByText("Waiting for analysis to start").length).toBeGreaterThan(0);
+}
+
 beforeEach(() => {
   vi.stubGlobal("FileReader", ImmediateFileReader);
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("upload processing resume flow", () => {
+  it("caps the visible next-check countdown at the configured interval", () => {
+    expect(nextStatusCheckCountdownSeconds({
+      nextStatusCheckAt: 9_000,
+      statusClockNow: 0,
+      intervalMs: 8_000,
+    })).toBe(8);
+  });
+
+  it("counts down to the scheduled queued-status refresh instead of resetting during the waiting card", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-21T16:31:00.000Z"));
+    mocks.getIngestProcessingStatus.mockResolvedValue(statusOutput());
+    mocks.postProcess.mockResolvedValue(queuedOutput());
+
+    await uploadQueuedReportWithAct();
+    expect(screen.getByText("Next check in: 8 seconds")).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(7_000);
+    });
+    expect(screen.getByText("Next check in: 1 second")).toBeInTheDocument();
+    expect(mocks.getIngestProcessingStatus).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(mocks.getIngestProcessingStatus).toHaveBeenCalledWith({ artifactId: 701 });
+    expect(mocks.postProcess).toHaveBeenCalledWith({ artifactId: 701 });
+  });
+
   it("refreshes status and resumes queued processing when Check now sees resumable work", async () => {
     mocks.getIngestProcessingStatus.mockResolvedValueOnce(statusOutput());
     mocks.postProcess.mockResolvedValueOnce(queuedOutput({

@@ -1120,13 +1120,22 @@ export async function peekNextIngestProcessingJob(sourceFilter?: string | null):
     select *
     from public.ingest_processing_job
     where (
-        status in ('queued', 'failed')
-        and run_after <= now()
-        and attempt_count < max_attempts
+        (
+          status in ('queued', 'failed')
+          and run_after <= now()
+          and attempt_count < max_attempts
+        )
+        or (
+          status = 'running'
+          and locked_until is not null
+          and locked_until <= now()
+          and attempt_count < max_attempts
+        )
       )
       and (${source}::text is null or source = ${source})
     order by
-      run_after asc,
+      case when status = 'running' then 0 else 1 end asc,
+      coalesce(locked_until, run_after) asc,
       created_at asc,
       id asc
     limit 1
@@ -1149,13 +1158,22 @@ export async function claimNextIngestProcessingJob(input: {
       select *
       from public.ingest_processing_job
       where (
-          status in ('queued', 'failed')
-          and run_after <= now()
-          and attempt_count < max_attempts
+          (
+            status in ('queued', 'failed')
+            and run_after <= now()
+            and attempt_count < max_attempts
+          )
+          or (
+            status = 'running'
+            and locked_until is not null
+            and locked_until <= now()
+            and attempt_count < max_attempts
+          )
         )
         and (${source}::text is null or source = ${source})
       order by
-        run_after asc,
+        case when status = 'running' then 0 else 1 end asc,
+        coalesce(locked_until, run_after) asc,
         created_at asc,
         id asc
       for update skip locked
@@ -1175,7 +1193,14 @@ export async function claimNextIngestProcessingJob(input: {
         locked_at = now(),
         locked_until = now() + make_interval(secs => ${leaseSeconds})
       where id = ${candidate.id}
-        and status in ('queued', 'failed')
+        and (
+          status in ('queued', 'failed')
+          or (
+            status = 'running'
+            and locked_until is not null
+            and locked_until <= now()
+          )
+        )
         and attempt_count < max_attempts
         and (${source}::text is null or source = ${source})
       returning *
@@ -1191,7 +1216,7 @@ export async function claimNextIngestProcessingJob(input: {
       workerId,
       actorUserId: claimed.actorUserId,
       details: {
-        staleReclaim: false,
+        staleReclaim: candidate.status === "running",
         leaseSeconds,
         rawReportBytesLogged: false,
         extractedReportTextLogged: false,
@@ -1216,8 +1241,17 @@ export async function claimIngestProcessingJobById(input: {
       select *
       from public.ingest_processing_job
       where id = ${jobId}
-        and status in ('queued', 'failed')
-        and run_after <= now()
+        and (
+          (
+            status in ('queued', 'failed')
+            and run_after <= now()
+          )
+          or (
+            status = 'running'
+            and locked_until is not null
+            and locked_until <= now()
+          )
+        )
         and attempt_count < max_attempts
       for update skip locked
       limit 1
@@ -1236,7 +1270,14 @@ export async function claimIngestProcessingJobById(input: {
         locked_at = now(),
         locked_until = now() + make_interval(secs => ${leaseSeconds})
       where id = ${candidate.id}
-        and status in ('queued', 'failed')
+        and (
+          status in ('queued', 'failed')
+          or (
+            status = 'running'
+            and locked_until is not null
+            and locked_until <= now()
+          )
+        )
         and attempt_count < max_attempts
       returning *
     `.execute(trx);
@@ -1252,6 +1293,7 @@ export async function claimIngestProcessingJobById(input: {
       actorUserId: claimed.actorUserId,
       details: {
         requestBoundImmediateProcessing: true,
+        staleReclaim: candidate.status === "running",
         leaseSeconds,
         rawReportBytesLogged: false,
         extractedReportTextLogged: false,

@@ -47,7 +47,7 @@ export async function handle(request: Request) {
       "reportArtifact.expiresAt",
       "reportArtifact.validationRulesApplied",
       "reportArtifact.processingStatus",
-      sql<string | null>`"reportArtifact"."data" ->> 'fileName'`.as("fileName"),
+      sql<string | null>`"report_artifact"."data" ->> 'fileName'`.as("fileName"),
       "tradeline.accountNumber as tradelineAccountNumber",
       "tradeline.accountType as tradelineAccountType",
       // Subquery: count tradelines linked to this artifact via report_artifact_id
@@ -79,9 +79,12 @@ export async function handle(request: Request) {
     }
 
     const rawArtifacts = await dataQuery.execute();
+    const visibleArtifacts = user.role === "admin"
+      ? rawArtifacts
+      : rawArtifacts.filter((row) => Number((row as { userId?: unknown }).userId) === user.id);
 
     // linkedAccountCount comes back as a string from pg COUNT aggregate; coerce to number
-    const artifacts = rawArtifacts.map((row) => {
+    const artifacts = visibleArtifacts.map((row) => {
       const {
         storageUrl: _storageUrl,
         data: _data,

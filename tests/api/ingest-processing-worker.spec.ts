@@ -10,6 +10,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { PipelineParams } from "../../helpers/ingestCorePipeline";
 import { ensureIngestProcessingQueueSchema } from "../../helpers/ingestProcessingQueueSchema";
 import {
+  claimNextIngestProcessingJob,
   enqueueIngestProcessingJob,
   listIngestProcessingJobEvents,
 } from "../../helpers/ingestProcessingQueueService";
@@ -273,6 +274,48 @@ describeIfLocalDb("ingest processing worker", () => {
       "compliance_scan_started",
       "succeeded",
     ]);
+    assertNoSensitiveLeak([result, events]);
+  });
+
+  it("drains an expired running job through the worker claim path", async () => {
+    const source = trackSource(marker());
+    const { jobId, artifactId } = await createQueueSubject(source);
+    const firstClaim = await claimNextIngestProcessingJob({
+      workerId: `${source}-original-worker`,
+      leaseSeconds: 60,
+      source,
+    });
+    expect(firstClaim?.id).toBe(jobId);
+
+    await sql`
+      update public.ingest_processing_job
+      set locked_until = now() - interval '1 minute'
+      where id = ${jobId}
+    `.execute(db);
+
+    const result = await processNextIngestProcessingJob({ workerId: `${source}-recovery-worker`, dryRun: false, source }, {
+      executePipeline: successfulPipeline(),
+    });
+
+    expect(result.status).toBe("succeeded");
+    expect(result.job?.id).toBe(jobId);
+    expect(result.job?.attemptCount).toBe(2);
+    expect(result.job?.resultSummary).toMatchObject({
+      artifactId,
+      deterministicPipelineCalledByWorker: true,
+      rawReportBytesLogged: false,
+      extractedReportTextLogged: false,
+    });
+    const events = await listIngestProcessingJobEvents(jobId);
+    expect(events.map((event) => event.eventType)).toEqual([
+      "queued",
+      "claimed",
+      "claimed",
+      "ocr_parsing_started",
+      "compliance_scan_started",
+      "succeeded",
+    ]);
+    expect(events[2]?.details).toMatchObject({ staleReclaim: true });
     assertNoSensitiveLeak([result, events]);
   });
 

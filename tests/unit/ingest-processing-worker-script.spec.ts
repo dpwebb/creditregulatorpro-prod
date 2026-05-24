@@ -74,13 +74,39 @@ describe("ingest processing worker script", () => {
     expect(detectIngestWorkerProductionEnvironment({ CRP_ENV: "production" })).toMatchObject({
       productionLike: true,
     });
+    expect(detectIngestWorkerProductionEnvironment({ NODE_ENV: "production" })).toMatchObject({
+      productionLike: true,
+    });
     expect(detectIngestWorkerProductionEnvironment({ DATABASE_URL: "postgres://db/creditregulatorpro-prod" })).toMatchObject({
       productionLike: true,
+    });
+    expect(detectIngestWorkerProductionEnvironment({ CRP_ENV: "staging", NODE_ENV: "production" })).toEqual({
+      productionLike: false,
+      reasons: [],
     });
     expect(detectIngestWorkerProductionEnvironment({ CRP_ENV: "staging" })).toEqual({
       productionLike: false,
       reasons: [],
     });
+  });
+
+  it("allows explicitly staging bounded apply under the production Node runtime mode", () => {
+    const apply = parseIngestWorkerArgs([
+      "--apply",
+      "--max-jobs",
+      "5",
+      "--worker-id",
+      "creditregulatorpro-staging-ingest-worker",
+      "--source",
+      PRODUCTION_INGEST_WORKER_SOURCE,
+      "--concurrency",
+      "1",
+    ]);
+
+    expect(() => validateIngestWorkerRuntimeSafety(apply, {
+      CRP_ENV: "staging",
+      NODE_ENV: "production",
+    })).not.toThrow();
   });
 
   it("allows production-like dry-run but refuses production apply without every explicit guard", () => {

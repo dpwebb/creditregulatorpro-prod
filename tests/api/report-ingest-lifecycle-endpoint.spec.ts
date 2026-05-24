@@ -1114,6 +1114,8 @@ describe("report ingest lifecycle endpoints", () => {
     const endpointSource = readFileSync(resolve("endpoints/report-artifact/list_GET.ts"), "utf8");
     expect(endpointSource).not.toContain('"reportArtifact.storageUrl"');
     expect(endpointSource).not.toContain('"reportArtifact.data"');
+    expect(endpointSource).not.toContain('"reportArtifact"."data"');
+    expect(endpointSource).toContain('"report_artifact"."data"');
     expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
     expect(whereValues("reportArtifact.processingStatus")).toEqual([]);
     expect(limitValuesFor("reportArtifact")).toContain(10);
@@ -1155,6 +1157,35 @@ describe("report ingest lifecycle endpoints", () => {
     expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
     expect(whereValues("reportArtifact.processingStatus")).toEqual([]);
     responseTextIsPrivacySafe(body);
+  });
+
+  it("returns an empty report-artifact list for a new user with no artifacts", async () => {
+    queueResults(
+      { firstOrThrow: { total: "0" } },
+      { execute: [] },
+    );
+
+    const response = await listReportArtifacts(getRequest("/_api/report-artifact/list?limit=10"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ total: 0, artifacts: [] });
+    expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
+    expect(limitValuesFor("reportArtifact")).toContain(10);
+  });
+
+  it("does not return report artifacts that do not belong to the current user", async () => {
+    queueResults(
+      { firstOrThrow: { total: "0" } },
+      { execute: [artifactRow({ id: 799, userId: 99, fileName: "other-user-report.pdf" })] },
+    );
+
+    const response = await listReportArtifacts(getRequest("/_api/report-artifact/list?limit=10"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ total: 0, artifacts: [] });
+    expect(JSON.stringify(body)).not.toContain("other-user-report.pdf");
+    expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
   });
 
   it("rejects excessive report-artifact list limits before running list queries", async () => {

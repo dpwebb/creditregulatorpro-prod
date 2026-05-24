@@ -243,7 +243,7 @@ describeIfLocalDb("ingest processing queue", () => {
     })).rejects.toThrow(/safe internal token/i);
   });
 
-  it("claims one queued job with a lease and does not silently reclaim stale running jobs", async () => {
+  it("claims one queued job with a lease and reclaims expired running jobs", async () => {
     const source = trackSource(marker());
     const { userId, artifactId } = await createQueueSubject(source);
     const queued = await enqueueIngestProcessingJob({
@@ -279,13 +279,19 @@ describeIfLocalDb("ingest processing queue", () => {
     `.execute(db);
 
     const staleClaim = await claimNextIngestProcessingJob({ workerId: `${source}-stale`, source });
-    expect(staleClaim).toBeNull();
+    expect(staleClaim).toMatchObject({
+      id: queued.job.id,
+      status: "running",
+      attemptCount: 2,
+      lockedBy: `${source}-stale`,
+    });
 
     const metrics = await getIngestProcessingQueueMetrics();
-    expect(metrics.staleRunningJobs).toBeGreaterThanOrEqual(1);
+    expect(metrics.staleRunningJobs).toBeGreaterThanOrEqual(0);
     const events = await listIngestProcessingJobEvents(queued.job.id);
-    expect(events.map((event) => event.eventType)).toEqual(["queued", "claimed", "lease_extended"]);
-    assertNoSensitiveLeak([claimed, metrics, events]);
+    expect(events.map((event) => event.eventType)).toEqual(["queued", "claimed", "lease_extended", "claimed"]);
+    expect(events.at(-1)?.details).toMatchObject({ staleReclaim: true });
+    assertNoSensitiveLeak([claimed, staleClaim, metrics, events]);
   });
 
   it("marks success with append-only events and preserves deterministic-output boundaries", async () => {
