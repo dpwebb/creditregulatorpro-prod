@@ -254,35 +254,27 @@ describe("simulated packet humanization flow proof", () => {
     expect(Number(retrievalResponse.headers.get("Content-Length"))).toBeGreaterThan(1000);
 
     for (const consumerText of [previewText, pdfLetterText, pdfText]) {
-      expect(consumerText).toContain("Disputed Account");
-      expect(consumerText).toContain("Company reporting the account");
+      expect(consumerText).toContain("Subject: Dispute of Credit Report Information");
+      expect(consumerText).toContain("Creditor/Reporter: Rogers Communications");
+      expect(consumerText).toContain("Account Number: Account number not shown on report");
       expect(consumerText).toContain("Date last reported");
       expect(consumerText).toContain("Aug 21, 2012");
       expect(consumerText).toContain("Rogers Communications");
-      expect(consumerText).toContain("continued reportability");
-      expect(consumerText).toContain("Account number not shown on report; see attached report page.");
-      expect(consumerText).toContain("Verify the date of first delinquency/default if applicable.");
-      expect(consumerText).toContain("Verify the basis for continuing to publish this item on the current report.");
-      expect(consumerText).toContain("Remove or suppress the item if it is not reportable.");
+      expect(consumerText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+      expect(consumerText).toContain("Please investigate this item and update my credit file accordingly.");
       expect(consumerText).not.toMatch(/\billegal\b|\btime-barred\b|\bobsolete\b/i);
       expect(consumerText).not.toMatch(forbiddenConsumerTerms);
     }
 
-    expect(previewText).toContain("Account: Account number not shown on report");
-    expect(previewText).toContain("Information disputed: Date last reported");
-    expect(previewText).toContain("Reported value: Aug 21, 2012");
-    expect(previewText).toContain("Reason for dispute:");
-    expect(previewText).toContain("Factual basis:");
-    expect(previewText).toContain("Verification requested:");
-    expect(previewText).toContain("Requested remedies:");
-    expect(previewText).toContain("Evidence references:");
-    expect(previewText).toContain("The report dated Jan 10, 2026 shows Rogers Communications.");
-    expect(previewText).toContain(
-      "See attached TransUnion Canada credit report dated Jan 10, 2026, Rogers Communications entry, showing Date last reported: Aug 21, 2012.",
-    );
-    expect(pdfText).toContain("Account: Account number not shown on report");
-    expect(pdfText).toContain("Information disputed: Date last reported");
-    expect(pdfText).toContain("Reported value: Aug 21, 2012");
+    expect(previewText).toContain("Account Number: Account number not shown on report");
+    expect(previewText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(previewText).not.toContain("Reason for dispute:");
+    expect(previewText).not.toContain("Factual basis:");
+    expect(previewText).not.toContain("Verification requested:");
+    expect(previewText).not.toContain("Requested remedies:");
+    expect(previewText).not.toContain("Evidence references:");
+    expect(pdfText).toContain("Account Number: Account number not shown on report");
+    expect(pdfText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
     expect(pdfText).not.toContain("What I am requesting");
 
     expect(createdPacket).toMatchObject({
@@ -308,6 +300,15 @@ describe("simulated packet humanization flow proof", () => {
           "Verify the date last reported.",
           "Verify the date of first delinquency/default if applicable.",
           "Verify the basis for continuing to publish this item on the current report.",
+        ]),
+        factualBasis: expect.arrayContaining([
+          "Account number not shown on report; see attached report page.",
+        ]),
+        requestedRemedies: expect.arrayContaining([
+          "Remove or suppress the item if it is not reportable.",
+        ]),
+        evidenceReferences: expect.arrayContaining([
+          "See attached TransUnion Canada credit report dated Jan 10, 2026, Rogers Communications entry, showing Date last reported: Aug 21, 2012.",
         ]),
       }),
     });

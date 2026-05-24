@@ -2,14 +2,10 @@ import type { Content, TDocumentDefinitions } from "pdfmake/interfaces";
 import { generatePdfWatermark } from "./contentMarker";
 import { generateServerPdf } from "./pdfServerUtils";
 import {
-  DISPUTE_PACKET_CONSUMER_SUBJECT,
-  buildConsumerDisputePacketItemLines,
+  buildConsumerDisputePacketLetterText,
   type SimpleDisputePacketContent,
 } from "./disputePacketTemplate";
-import {
-  formatPacketDisplayDate,
-  redactPacketSensitiveText,
-} from "./disputePacketHumanization";
+import { redactPacketSensitiveText } from "./disputePacketHumanization";
 import { evaluatePacketNarrativeReadiness } from "./packetNarrative";
 
 function bulletList(items: string[]): Content {
@@ -27,10 +23,6 @@ function safePdfText(value: unknown): string {
     .replace(/\bartifact\b/gi, "credit report")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function safePdfDate(value: unknown): string {
-  return safePdfText(formatPacketDisplayDate(value));
 }
 
 function assertPacketNarrativesReadyForPdf(packet: SimpleDisputePacketContent): void {
@@ -53,39 +45,7 @@ function assertPacketNarrativesReadyForPdf(packet: SimpleDisputePacketContent): 
 }
 
 export function buildDisputePacketPdfLetterText(packet: SimpleDisputePacketContent): string {
-  const lines: string[] = [
-    safePdfDate(packet.dateGenerated),
-    "",
-    safePdfText(packet.recipient.name),
-    ...packet.recipient.address.map((line) => safePdfText(line)).filter(Boolean),
-    "",
-    `Re: ${DISPUTE_PACKET_CONSUMER_SUBJECT}`,
-    "",
-    "Consumer:",
-    safePdfText(packet.consumer.name),
-    ...packet.consumer.address.map((line) => safePdfText(line)).filter(Boolean),
-  ];
-
-  if (packet.consumer.phone) lines.push(`Phone: ${safePdfText(packet.consumer.phone)}`);
-  if (packet.consumer.email) lines.push(`Email: ${safePdfText(packet.consumer.email)}`);
-
-  lines.push(
-    "",
-    "Credit report reviewed:",
-    safePdfText(packet.reportType),
-    `Report date: ${packet.reportDate ? safePdfDate(packet.reportDate) : "Information not provided on report"}`,
-    "",
-    safePdfText(packet.openingParagraph) || "I am writing to dispute the following information on my credit report.",
-    "",
-  );
-
-  for (const item of packet.disputedItems) {
-    lines.push(...buildConsumerDisputePacketItemLines(item, packet).map((line) => safePdfText(line)), "");
-  }
-
-  lines.push("Sincerely,", "", "________________________________", safePdfText(packet.consumer.name));
-
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return buildConsumerDisputePacketLetterText(packet);
 }
 
 function safePdfAttachmentList(items: string[]): string[] {

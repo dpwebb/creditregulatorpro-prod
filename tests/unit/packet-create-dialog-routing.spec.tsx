@@ -279,16 +279,13 @@ describe("packet create dialog routing", () => {
     const previewText = preview.textContent ?? "";
 
     expect(previewText).toContain("TransUnion Canada");
-    expect(previewText).toContain("Consumer:");
-    expect(previewText).toContain("Credit report reviewed:");
-    expect(previewText).toContain("Disputed Account");
-    expect(previewText).toContain("Company reporting the account: Rogers Communications");
-    expect(previewText).toContain("Account: Account number not shown on report");
-    expect(previewText).toContain("Information disputed: Date last reported");
-    expect(previewText).toContain("Reported value: Aug 21, 2012");
-    expect(previewText).toContain("Reason for dispute:");
-    expect(previewText).toContain("Requested action:");
-    expect(previewText).toContain("Requested result: Verify the correct information");
+    expect(previewText).toContain("Subject: Dispute of Credit Report Information");
+    expect(previewText).toContain("To Whom It May Concern,");
+    expect(previewText).toContain("credit report dated Aug 21, 2012");
+    expect(previewText).toContain("Creditor/Reporter: Rogers Communications");
+    expect(previewText).toContain("Account Number: Account number not shown on report");
+    expect(previewText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(previewText).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(previewText).toContain("Evidence summary");
     expect(previewText).toContain("Attachment checklist");
     expect(previewText).not.toContain("Rogers Communications: LasReportedDate - verify and provide basis");

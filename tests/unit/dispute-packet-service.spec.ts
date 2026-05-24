@@ -168,17 +168,19 @@ describe("dispute packet service consumer/internal separation", () => {
 
     const bodyText = `${buildConsumerDisputePacketLetterText(packet)}\n${buildDisputePacketPdfLetterText(packet)}`;
 
-    expect(bodyText).toContain("Company reporting the account: Synthetic Bank");
-    expect(bodyText).toContain("Information disputed: Date last reported");
-    expect(bodyText).toContain("Reported value: Aug 21, 2012");
-    expect(bodyText).toContain("The report dated May 11, 2026 shows Synthetic Bank.");
-    expect(bodyText).toContain("I dispute the accuracy, completeness, support, and continued reportability of this item.");
-    expect(bodyText).toContain("Verify the date of first delinquency/default if applicable.");
-    expect(bodyText).toContain("Remove or suppress the item if it is not reportable.");
+    expect(bodyText).toContain("Subject: Dispute of Credit Report Information");
+    expect(bodyText).toContain("Creditor/Reporter: Synthetic Bank");
+    expect(bodyText).toContain("Account Number: Account number not shown on report");
+    expect(bodyText).toContain("Reported Balance: $200");
+    expect(bodyText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(bodyText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+    expect(bodyText).toContain("Please investigate this item and update my credit file accordingly.");
     expect(bodyText).toContain("Aug 21, 2012");
-    expect(bodyText).toContain(
-      "Requested result: Verify the correct information, or remove/update the item if it cannot be supported.",
-    );
+    expect(packet.disputedItems[0].narrative?.factualBasis).toContain("The report dated May 11, 2026 shows Synthetic Bank.");
+    expect(packet.disputedItems[0].narrative?.consumerAssertion).toContain("continued reportability");
+    expect(packet.disputedItems[0].narrative?.verificationRequests).toContain("Verify the date of first delinquency/default if applicable.");
+    expect(packet.disputedItems[0].narrative?.requestedRemedies).toContain("Remove or suppress the item if it is not reportable.");
+    expect(bodyText).not.toContain("Requested result: Verify the correct information");
     expect(bodyText).not.toContain("Expected: Not known");
     expect(bodyText).not.toMatch(forbiddenConsumerPacketOutput);
 

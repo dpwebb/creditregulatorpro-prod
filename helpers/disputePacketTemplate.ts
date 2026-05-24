@@ -1,5 +1,6 @@
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
 import type { EvidenceLocationSummary } from "./evidenceLocationIndex";
+import { plainDisputeLetterReasonFor } from "./disputeLetterReason";
 import { dedupeNarrativeText } from "./packetNarrative";
 import {
   PACKET_REQUESTED_RESULT_FALLBACK,
@@ -426,6 +427,79 @@ function pushSection(lines: string[], title: string, values: string[]): void {
   lines.push(...values.map((value) => `- ${safeLetterText(value)}`));
 }
 
+function hasDisplayValue(value: unknown): boolean {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return Boolean(normalized) &&
+    !PLACEHOLDER_VALUES.has(normalized) &&
+    normalized !== "information not provided on report" &&
+    normalized !== PACKET_REQUESTED_RESULT_FALLBACK.toLowerCase();
+}
+
+function normalizedReadableText(value: unknown): string {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function isBalanceDisplayField(value: unknown): boolean {
+  const normalized = normalizedReadableText(value);
+  return normalized.includes("balance") || normalized.includes("amount owing") || normalized.includes("amount due");
+}
+
+function isDateOrActivityDisplayField(value: unknown): boolean {
+  const normalized = normalizedReadableText(value);
+  return (
+    normalized.includes("date") ||
+    normalized.includes("last reported") ||
+    normalized.includes("activity") ||
+    normalized.includes("last payment") ||
+    normalized.includes("opened") ||
+    normalized.includes("closed") ||
+    normalized.includes("delinquency")
+  );
+}
+
+function narrativeFactValue(item: SimpleDisputedItem, terms: string[]): string | null {
+  const facts = item.narrative?.factualBasis ?? [];
+  for (const fact of facts) {
+    const match = fact.match(/^The report shows\s+([^:]+):\s*(.+)\.$/i);
+    if (!match) continue;
+    const label = normalizedReadableText(match[1]);
+    if (!terms.some((term) => label.includes(term))) continue;
+    const value = safeLetterText(match[2], item.maskedAccountNumber);
+    if (hasDisplayValue(value)) return value;
+  }
+  return null;
+}
+
+function reportedBalanceForPlainLetter(item: SimpleDisputedItem): string | null {
+  const reportedValue = safeLetterText(
+    formatPacketDisplayValue(item.disputedField, item.reportedValue, item.maskedAccountNumber),
+    item.maskedAccountNumber,
+  );
+  if (isBalanceDisplayField(item.disputedField) && hasDisplayValue(reportedValue)) return reportedValue;
+  return narrativeFactValue(item, ["balance", "amount owing", "amount due"]);
+}
+
+function reportedDateForPlainLetter(item: SimpleDisputedItem): string | null {
+  const fieldLabel = safeLetterFieldLabel(item.disputedField);
+  const reportedValue = safeLetterText(
+    formatPacketDisplayValue(fieldLabel, item.reportedValue, item.maskedAccountNumber),
+    item.maskedAccountNumber,
+  );
+  if (isDateOrActivityDisplayField(fieldLabel) && hasDisplayValue(reportedValue)) {
+    return `${fieldLabel}: ${reportedValue}`;
+  }
+  const narrativeDate = narrativeFactValue(item, [
+    "date last reported",
+    "date reported",
+    "last activity",
+    "opened date",
+    "closed date",
+    "date of first delinquency",
+    "date of last payment",
+  ]);
+  return narrativeDate;
+}
+
 function buildNarrativeLetterBlock(item: SimpleDisputedItem, packet: SimpleDisputePacketContent): string[] {
   const narrative = item.narrative;
   if (!narrative) return [];
@@ -490,7 +564,77 @@ export function buildConsumerDisputePacketItemLines(
   ];
 }
 
+function buildCreditBureauDisputePacketItemLines(item: SimpleDisputedItem): string[] {
+  const accountDisplay = safeAccountDisplay(item.maskedAccountNumber);
+  const balance = reportedBalanceForPlainLetter(item);
+  const reportedDate = reportedDateForPlainLetter(item);
+  const lines = [
+    "The account in question is:",
+    "",
+    `Creditor/Reporter: ${safeLetterText(item.creditorCollectorName)}`,
+    `Account Number: ${accountDisplay}`,
+  ];
+
+  if (balance) lines.push(`Reported Balance: ${balance}`);
+  if (reportedDate) lines.push(`Date Reported / Last Activity: ${reportedDate}`);
+
+  lines.push(
+    "",
+    plainDisputeLetterReasonFor({
+      issueType: item.issueType,
+      requestedAction: item.requestedAction,
+      disputedField: item.disputedField,
+      narrative: item.narrative,
+    }),
+  );
+
+  return lines;
+}
+
+function buildCreditBureauDisputePacketLetterText(packet: SimpleDisputePacketContent): string {
+  const reportDatePhrase = packet.reportDate ? ` dated ${safeLetterText(packet.reportDate)}` : "";
+  const lines: string[] = [];
+
+  pushNonEmpty(lines, packet.consumer.name, ...packet.consumer.address);
+  if (packet.consumer.phone) lines.push(`Phone: ${safeLetterText(packet.consumer.phone)}`);
+  if (packet.consumer.email) lines.push(`Email: ${safeLetterText(packet.consumer.email)}`);
+
+  lines.push("");
+  pushNonEmpty(lines, packet.dateGenerated);
+  lines.push("");
+  pushNonEmpty(lines, packet.recipient.name, ...packet.recipient.address);
+  lines.push("");
+  lines.push("Subject: Dispute of Credit Report Information");
+  lines.push("");
+  lines.push("To Whom It May Concern,");
+  lines.push("");
+  lines.push(
+    `I am writing to dispute information appearing on my credit report${reportDatePhrase}. I am asking that this item be reviewed and corrected or removed if it cannot be verified as accurate.`,
+  );
+  lines.push("");
+
+  for (const item of packet.disputedItems) {
+    lines.push(...buildCreditBureauDisputePacketItemLines(item));
+    lines.push("");
+  }
+
+  lines.push(
+    "Please investigate this item and update my credit file accordingly. If the information cannot be verified as accurate and complete, I request that it be corrected or removed from my credit report.",
+    "",
+    "Please send me written confirmation of the results of your investigation and provide an updated copy of my credit report if a correction is made.",
+    "",
+    "Sincerely,",
+  );
+  pushNonEmpty(lines, packet.consumer.name);
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export function buildConsumerDisputePacketLetterText(packet: SimpleDisputePacketContent): string {
+  if (packet.packetType === "credit_bureau") {
+    return buildCreditBureauDisputePacketLetterText(packet);
+  }
+
   const lines: string[] = [];
 
   pushNonEmpty(lines, packet.dateGenerated);

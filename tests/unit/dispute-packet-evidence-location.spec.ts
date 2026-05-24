@@ -145,10 +145,10 @@ describe("packet evidence location metadata", () => {
     );
     const body = buildConsumerDisputePacketLetterText(packet);
 
-    expect(body).toContain("Company reporting the account: Sample Bank");
-    expect(body).toContain("Account: Account number not shown on report");
-    expect(body).toContain("Information disputed: Date last reported");
-    expect(body).toContain("Reported value: Aug 21, 2012");
+    expect(body).toContain("Creditor/Reporter: Sample Bank");
+    expect(body).toContain("Account Number: Account number not shown on report");
+    expect(body).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(body).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(body).not.toMatch(/tradeline|artifact|source report #|field:|PIPEDA_|2012-08-21T|lastReportedDate|Account ending reau|Expected:\s*Not known/i);
     expect(packet.metadata.selectedIssueIds).toEqual([111]);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);

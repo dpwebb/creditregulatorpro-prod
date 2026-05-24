@@ -58,17 +58,20 @@ describe("simple dispute packet template", () => {
     );
     expect(packet.disputedItems[0].explanation).not.toMatch(/company identified|source report|artifact|field:/i);
     expect(packet.disputedItems[0].explanation).not.toMatch(/contact the furnisher/i);
-    expect(letterBody).toContain("Re: Request to investigate and correct credit report information");
-    expect(letterBody).toContain("Disputed Account");
-    expect(letterBody).toContain("Company reporting the account: Sample Bank");
-    expect(letterBody).toContain("Account: Account ending 9012");
-    expect(letterBody).toContain("Information disputed: Balance reported");
-    expect(letterBody).toContain("Reported value: $900");
-    expect(letterBody).toContain("Expected value: $0");
-    expect(letterBody).toContain("Reason for dispute:");
-    expect(letterBody).toContain("Requested action:");
-    expect(letterBody).toContain("Please investigate this item with the company that supplied the information");
+    expect(letterBody).toContain("Subject: Dispute of Credit Report Information");
+    expect(letterBody).toContain("To Whom It May Concern,");
+    expect(letterBody).toContain("credit report dated Apr 15, 2026");
+    expect(letterBody).toContain("The account in question is:");
+    expect(letterBody).toContain("Creditor/Reporter: Sample Bank");
+    expect(letterBody).toContain("Account Number: Account ending 9012");
+    expect(letterBody).toContain("Reported Balance: $900");
+    expect(letterBody).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(letterBody).toContain("Please investigate this item and update my credit file accordingly.");
     expect(letterBody).toContain("Sincerely,");
+    expect(letterBody).not.toContain("Re: Request to investigate and correct credit report information");
+    expect(letterBody).not.toContain("Disputed Account");
+    expect(letterBody).not.toContain("Requested action:");
+    expect(letterBody).not.toContain("Date Reported / Last Activity: Balance reported: $900");
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
     expect(serialized).not.toContain("123456789012");
     expect(serialized).not.toContain("123 456 789");
@@ -108,7 +111,7 @@ describe("simple dispute packet template", () => {
     expect(explanation.match(new RegExp(verificationSentence.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))).toHaveLength(1);
   });
 
-  it("deduplicates repeated packet narrative sentences in external reason blocks", () => {
+  it("deduplicates repeated packet narrative sentences while the external bureau letter stays plain", () => {
     const packet = buildSimpleDisputePacketContent({
       packetType: "credit_bureau",
       reportType: "TransUnion credit report",
@@ -160,8 +163,10 @@ describe("simple dispute packet template", () => {
     const letterBody = buildConsumerDisputePacketLetterText(packet);
 
     expect(packet.disputedItems[0].narrative?.verificationRequests).toEqual(["Verify the account status."]);
-    expect(letterBody.match(/Verify the account status\./g)).toHaveLength(1);
-    expect(letterBody.match(/Correct any inaccurate or incomplete information\./g)).toHaveLength(1);
+    expect(letterBody).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
+    expect(letterBody.match(/Verify the account status\./g) ?? []).toHaveLength(0);
+    expect(letterBody.match(/Correct any inaccurate or incomplete information\./g) ?? []).toHaveLength(0);
+    expect(letterBody).not.toContain("Reason for dispute:");
     expect(letterBody).not.toContain("raw-internal-id");
   });
 
@@ -317,17 +322,17 @@ describe("simple dispute packet template", () => {
       ],
     );
 
-    expect(letterBody).toContain("TransUnion credit report");
-    expect(letterBody).toContain("Report date: Aug 21, 2012");
-    expect(letterBody).toContain("Disputed Account");
-    expect(letterBody).toContain("Company reporting the account: Sample Bank");
+    expect(letterBody).toContain("Subject: Dispute of Credit Report Information");
+    expect(letterBody).toContain("credit report dated Aug 21, 2012");
+    expect(letterBody).toContain("Creditor/Reporter: Sample Bank");
     expect(letterBody).toContain("Date last reported");
-    expect(letterBody).toContain("Information disputed: Date last reported");
-    expect(letterBody).toContain("Reported value: Aug 21, 2012");
-    expect(letterBody).toContain("Account: Account number not shown on report");
-    expect(letterBody).toContain("Requested result: Verify the correct information");
-    expect(letterBody).toContain("Requested action:");
+    expect(letterBody).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(letterBody).toContain("Account Number: Account number not shown on report");
+    expect(letterBody).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(letterBody).toContain("Please investigate this item");
+    expect(letterBody).not.toContain("TransUnion report artifact");
+    expect(letterBody).not.toContain("Requested result: Verify the correct information");
+    expect(letterBody).not.toContain("Requested action:");
     expect(letterBody).not.toMatch(/account ending reau/i);
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);

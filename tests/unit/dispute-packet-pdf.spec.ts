@@ -218,14 +218,18 @@ describe("simple dispute packet PDF", () => {
 
     const text = await extractPdfText(await generateDisputePacketPDF(packet));
 
-    expect(text).toContain("Disputed Account");
-    expect(text).toContain("Company reporting the account");
-    expect(text).toContain("Account: Account ending 3333");
-    expect(text).toContain("Account: Account number not shown on report");
+    expect(text).toContain("Subject: Dispute of Credit Report Information");
+    expect(text).toContain("Creditor/Reporter: Sample Bank");
+    expect(text).toContain("Creditor/Reporter: Sample Collector");
+    expect(text).toContain("Account Number: Account ending 3333");
+    expect(text).toContain("Account Number: Account number not shown on report");
     expect(text).toContain("Date last reported");
-    expect(text).toContain("Information disputed: Date last reported");
-    expect(text).toContain("Reported value: Aug 21, 2012");
-    expect(text).toContain("Requested result: Verify the correct information");
+    expect(text).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(text).toContain("Reported Balance: $400");
+    expect(text).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
+    expect(text).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(text).not.toContain("Disputed Account");
+    expect(text).not.toContain("Requested result: Verify the correct information");
     expect(text).not.toMatch(/Creditor\/collector|Requested action\s+Account\s+Field\s+Reported\s+Expected/i);
     expect(text).not.toMatch(forbiddenConsumerPacketOutput);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);

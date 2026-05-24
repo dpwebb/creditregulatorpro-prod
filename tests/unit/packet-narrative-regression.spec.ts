@@ -103,18 +103,23 @@ describe("packet narrative regression matrix", () => {
       cautionLevel: "CAUTIOUS",
       internalReference: expect.stringContaining(FULL_INTERNAL_HASH),
     });
-    expect(letter).toContain("Report date: Jan 10, 2026");
+    expect(letter).toContain("credit report dated Jan 10, 2026");
     expect(letter).toContain("Telecom Provider");
     expect(letter).toMatch(/Date last reported/i);
     expect(letter).toContain("Aug 21, 2012");
-    expect(letter).toContain("Account: Account number not shown on report");
-    expect(letter).toContain("Account number not shown on report; see attached report page.");
-    expect(letter).toContain("I dispute the accuracy, completeness, support, and continued reportability of this item.");
-    expect(letter).toContain("Verify the source records supporting the account.");
-    expect(letter).toContain("Verify the account identifier or explain why no account number is shown on the report.");
-    expect(letter).toContain("Verify the account status.");
-    expect(letter).toContain("Verify the date of first delinquency/default if applicable.");
-    expect(letter).toContain("Verify the basis for continuing to publish this item on the current report.");
+    expect(letter).toContain("Account Number: Account number not shown on report");
+    expect(letter).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(letter).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+    expect(letter).toContain("Please investigate this item and update my credit file accordingly.");
+    expect(narrative.factualBasis).toContain("Account number not shown on report; see attached report page.");
+    expect(narrative.consumerAssertion).toBe("I dispute the accuracy, completeness, support, and continued reportability of this item.");
+    expect(narrative.verificationRequests).toEqual(expect.arrayContaining([
+      "Verify the source records supporting the account.",
+      "Verify the account identifier or explain why no account number is shown on the report.",
+      "Verify the account status.",
+      "Verify the date of first delinquency/default if applicable.",
+      "Verify the basis for continuing to publish this item on the current report.",
+    ]));
     expect(letter).not.toMatch(/\billegal\b|\bobsolete\b|\btime-barred\b|exceeded the maximum allowed reporting period/i);
     expect(countOccurrences(letter, GENERIC_REASON)).toBeLessThanOrEqual(1);
     expect(letter).not.toMatch(/\b[a-f0-9]{64}\b/i);
@@ -150,10 +155,12 @@ describe("packet narrative regression matrix", () => {
     const letter = buildConsumerDisputePacketLetterText(packet);
 
     expect(narrative.disputeCategory).toBe("MISSING_ACCOUNT_IDENTIFIER");
-    expect(letter).toContain("The report shows Utility Provider, but the account number is not shown on the report.");
-    expect(letter).toContain("Account: Account number not shown on report");
-    expect(letter).toContain("Verify the account identifier or explain why no account number is shown on the report.");
-    expect(letter).toContain("Verify the source records supporting the account.");
+    expect(narrative.issueSummary).toContain("The report shows Utility Provider, but the account number is not shown on the report.");
+    expect(narrative.verificationRequests).toContain("Verify the account identifier or explain why no account number is shown on the report.");
+    expect(narrative.verificationRequests).toContain("Verify the source records supporting the account.");
+    expect(letter).toContain("Creditor/Reporter: Utility Provider");
+    expect(letter).toContain("Account Number: Account number not shown on report");
+    expect(letter).toContain("The account number is not shown on my report, so I am asking the bureau to verify the account before it continues to be reported.");
     expect(letter).not.toMatch(/consumer failed to provide|consumer did not provide|you failed to provide/i);
   });
 
@@ -188,11 +195,14 @@ describe("packet narrative regression matrix", () => {
     const letter = buildConsumerDisputePacketLetterText(packet);
 
     expect(narrative.disputeCategory).toBe("BALANCE_OR_STATUS_ACCURACY");
-    expect(letter).toContain("The report shows Example Bank with Balance reported: $900.");
-    expect(letter).toContain("Factual basis:");
-    expect(letter).toContain("Evidence references:");
-    expect(letter).toContain("Relevant report section for Balance reported on page 2.");
-    expect(letter).toContain("Verify the balance reported.");
+    expect(narrative.issueSummary).toContain("The report shows Example Bank with Balance reported: $900.");
+    expect(narrative.evidenceReferences).toEqual(expect.arrayContaining([
+      "Relevant report section for Balance reported on page 2.",
+    ]));
+    expect(narrative.verificationRequests).toContain("Verify the balance reported.");
+    expect(letter).toContain("Creditor/Reporter: Example Bank");
+    expect(letter).toContain("Reported Balance: $900");
+    expect(letter).toContain("The balance being reported does not appear accurate based on my records.");
     expect(letter).not.toBe(GENERIC_REASON);
     expect(countOccurrences(letter, GENERIC_REASON)).toBe(0);
   });
@@ -259,8 +269,9 @@ describe("packet narrative regression matrix", () => {
       "MISSING_REQUIRED_EVIDENCE",
       "MANUAL_REVIEW_REQUIRED",
     ]));
-    expect(letter).toContain("Readiness warnings:");
-    expect(letter).toContain("Evidence reference needs manual review before sending.");
+    expect(letter).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
+    expect(letter).not.toContain("Readiness warnings:");
+    expect(narrative.readinessWarnings).toContain("Evidence reference needs manual review before sending.");
     expect(countOccurrences(letter, GENERIC_REASON)).toBe(0);
   });
 
