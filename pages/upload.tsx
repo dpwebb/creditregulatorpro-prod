@@ -104,6 +104,15 @@ function isPendingOutcome(outcome: ProcessingOutcome | null | undefined): boolea
   );
 }
 
+export function shouldAttemptProcessingResume(
+  status: Pick<IngestProcessingStatusOutput, "artifactId" | "status" | "canCheckStatus"> | null | undefined,
+): status is Pick<IngestProcessingStatusOutput, "artifactId" | "status" | "canCheckStatus"> {
+  return Boolean(
+    status?.canCheckStatus &&
+    (status.status === "queued_waiting_for_worker" || status.status === "stale"),
+  );
+}
+
 function formatClockTime(timestamp: number | null | undefined): string {
   if (!timestamp) return "Not checked yet";
   return new Intl.DateTimeFormat(undefined, {
@@ -746,6 +755,56 @@ export default function UploadPage() {
     });
   }, [displayedProgress, markProcessingFailure, markProcessingSuccess]);
 
+  const resumeProcessingAfterStatusRefresh = useCallback(async (
+    status: IngestProcessingStatusOutput | null,
+  ): Promise<IngestUploadStatus | "resume_failed" | null> => {
+    if (!shouldAttemptProcessingResume(status)) {
+      return null;
+    }
+
+    setIsCheckingProcessingStatus(true);
+    try {
+      const result = await postProcess({ artifactId: status.artifactId });
+      if (isQueuedProcessingOutput(result)) {
+        const uploadStatus = uploadStatusFromQueuedOutput(result);
+        applyQueuedProcessingUpdate(result);
+        return uploadStatus;
+      }
+
+      markProcessingSuccess(result.storageUrl);
+      return "completed";
+    } catch (resumeError) {
+      console.error("Failed to resume queued upload processing:", resumeError);
+      const checkedAt = Date.now();
+      const nextType = status.status === "queued_waiting_for_worker" ? "queued_waiting_for_worker" : "stale";
+      const message =
+        nextType === "queued_waiting_for_worker"
+          ? "Your report is still waiting for analysis to begin. The latest restart check did not complete, but we will keep checking."
+          : "The latest processing restart check did not complete. Your report is still saved, and we will keep checking.";
+
+      setLastStatusCheckedAt(checkedAt);
+      setStatusClockNow(checkedAt);
+      setQueuedProcessing(null);
+      activeProcessingStartedAtRef.current = null;
+      setNextStatusCheckAt(checkedAt + STATUS_AUTO_REFRESH_INTERVAL_MS);
+      setProcessingOutcome({
+        type: nextType,
+        artifactId: status.artifactId,
+        message,
+        nextAction: nextType === "queued_waiting_for_worker" ? "wait_for_worker" : "check_status",
+        diagnosticCode: "INGEST_PROCESS_RESUME_FAILED",
+      });
+      setUploadProgress({
+        stage: nextType === "queued_waiting_for_worker" ? "queued" : "status_check",
+        percent: nextType === "queued_waiting_for_worker" ? 12 : Math.min(displayedProgress, 99),
+        message,
+      });
+      return "resume_failed";
+    } finally {
+      setIsCheckingProcessingStatus(false);
+    }
+  }, [applyQueuedProcessingUpdate, displayedProgress, markProcessingSuccess]);
+
   useEffect(() => {
     if (!isProcessingActive || !uploadProgress) {
       setDisplayedProgress(uploadProgress?.percent ?? 0);
@@ -851,7 +910,8 @@ export default function UploadPage() {
 
     const timeoutId = window.setTimeout(() => {
       setManualStatusMessage(null);
-      void refreshProcessingStatus(targetArtifactId);
+      void refreshProcessingStatus(targetArtifactId)
+        .then((status) => resumeProcessingAfterStatusRefresh(status));
     }, STATUS_AUTO_REFRESH_INTERVAL_MS);
 
     return () => window.clearTimeout(timeoutId);
@@ -859,6 +919,7 @@ export default function UploadPage() {
     isCheckingProcessingStatus,
     processingOutcome,
     refreshProcessingStatus,
+    resumeProcessingAfterStatusRefresh,
     uploadedArtifactId,
   ]);
 
@@ -907,24 +968,30 @@ export default function UploadPage() {
       : processingOutcome?.artifactId ?? uploadedArtifactId;
     setManualStatusMessage("Checking now...");
     const status = await refreshProcessingStatus(targetArtifactId);
-    if (status?.status === "completed") {
+    const resumedStatus = await resumeProcessingAfterStatusRefresh(status);
+    const effectiveStatus = resumedStatus ?? status?.status;
+    if (effectiveStatus === "completed") {
       setManualStatusMessage(null);
       return;
     }
-    if (status?.status === "processing") {
+    if (effectiveStatus === "processing") {
       setManualStatusMessage("Checked just now - analysis is running.");
       return;
     }
-    if (status?.status === "stale" || status?.status === "stalled_no_worker_heartbeat") {
+    if (effectiveStatus === "resume_failed") {
+      setManualStatusMessage("Checked just now - processing is still queued, and we will keep checking.");
+      return;
+    }
+    if (effectiveStatus === "stale" || effectiveStatus === "stalled_no_worker_heartbeat") {
       setManualStatusMessage("Checked just now - processing is delayed, but your report is saved.");
       return;
     }
-    if (status?.status === "queued_waiting_for_worker") {
+    if (effectiveStatus === "queued_waiting_for_worker") {
       setManualStatusMessage("Checked just now - still waiting for analysis to start.");
       return;
     }
     setManualStatusMessage("Checked just now - we will keep checking for updates.");
-  }, [processingOutcome, refreshProcessingStatus, uploadedArtifactId]);
+  }, [processingOutcome, refreshProcessingStatus, resumeProcessingAfterStatusRefresh, uploadedArtifactId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
