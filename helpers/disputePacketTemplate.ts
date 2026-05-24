@@ -31,6 +31,7 @@ export const ALLOWED_PACKET_REQUESTED_ACTIONS = [
   "update stale information",
   "correct duplicate account",
   "correct balance",
+  "correct payment history",
   "correct account status",
   "correct date",
   "correct personal information",
@@ -344,31 +345,85 @@ function consumerSafeFindingText(
   return output;
 }
 
-export function actionForIssue(issueType: string | null | undefined, packetType: DisputePacketType): PacketRequestedAction {
-  const normalized = String(issueType ?? "").toUpperCase();
+export interface PacketActionIssueContext {
+  disputedField?: string | null;
+  violationCategory?: string | null;
+  disputeVector?: string | null;
+}
+
+function normalizedActionText(...values: Array<string | null | undefined>): string {
+  return values
+    .filter(hasText)
+    .join(" ")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+}
+
+function actionTextHasAny(value: string, terms: string[]): boolean {
+  return terms.some((term) => value.includes(term));
+}
+
+export function actionForIssue(
+  issueType: string | null | undefined,
+  packetType: DisputePacketType,
+  context: PacketActionIssueContext = {},
+): PacketRequestedAction {
+  const issueText = normalizedActionText(issueType, context.violationCategory, context.disputeVector);
+  const fieldText = normalizedActionText(context.disputedField);
+  const combinedText = normalizedActionText(issueText, fieldText);
 
   if (packetType === "collection_agency") {
     return "clarify collection authority/details";
   }
-  if (normalized.includes("BALANCE") || normalized.includes("PAYMENT")) {
+  if (
+    actionTextHasAny(combinedText, [
+      "PAYMENT HISTORY",
+      "PAYMENT STATUS",
+      "PAYMENT RECORD",
+      "LATE PAYMENT",
+      "LATE PAYMENTS",
+      "DELINQUENT PAYMENT",
+    ]) ||
+    /\bPAYMENT\b/.test(issueText)
+  ) {
+    return "correct payment history";
+  }
+  if (
+    actionTextHasAny(issueText, ["BALANCE", "AMOUNT PAST DUE", "PAST DUE", "AMOUNT DUE", "CREDIT LIMIT"]) ||
+    actionTextHasAny(fieldText, ["BALANCE", "AMOUNT PAST DUE", "PAST DUE", "AMOUNT DUE", "CREDIT LIMIT"])
+  ) {
     return "correct balance";
   }
-  if (normalized.includes("DUPLICATE") || normalized.includes("MULTIPLE_COLLECTOR")) {
+  if (actionTextHasAny(issueText, ["DUPLICATE", "MULTIPLE COLLECTOR"])) {
     return "correct duplicate account";
   }
-  if (normalized.includes("STATUS") || normalized.includes("MOP")) {
-    return "correct account status";
-  }
-  if (normalized.includes("DATE") || normalized.includes("REAGING") || normalized.includes("TEMPORAL")) {
+  if (
+    actionTextHasAny(combinedText, [
+      "DATE",
+      "REAGING",
+      "RE AGING",
+      "TEMPORAL",
+      "LAST REPORTED",
+      "DATE OPENED",
+      "OPENED DATE",
+      "DATE CLOSED",
+      "CLOSED DATE",
+      "REPORTING PERIOD",
+    ])
+  ) {
     return "correct date";
   }
-  if (normalized.includes("STALE")) {
+  if (actionTextHasAny(combinedText, ["STATUS", "OPEN", "CLOSED", "MOP"])) {
+    return "correct account status";
+  }
+  if (actionTextHasAny(issueText, ["STALE", "REPORTING PERIOD", "OBSOLETE"])) {
     return "update stale information";
   }
-  if (normalized.includes("MIXED_FILE") || normalized.includes("PERSONAL_INFO") || normalized.includes("IDENTITY")) {
+  if (actionTextHasAny(issueText, ["MIXED FILE", "PERSONAL INFO", "PERSONAL INFORMATION", "IDENTITY"])) {
     return "correct personal information";
   }
-  if (normalized.includes("UNSUPPORTED") || normalized.includes("UNVERIFIABLE") || normalized.includes("DOCUMENTATION")) {
+  if (actionTextHasAny(issueText, ["UNSUPPORTED", "UNVERIFIABLE", "DOCUMENTATION"])) {
     return "remove unsupported information";
   }
 
@@ -468,7 +523,9 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
     findingReason,
     findingRecommendedAction,
     evidenceReference: needsManualReview ? "Needs manual review" : evidenceReference,
-    requestedAction: item.requestedAction ?? actionForIssue(item.issueType, packetType),
+    requestedAction: item.requestedAction ?? actionForIssue(item.issueType, packetType, {
+      disputedField,
+    }),
     needsManualReview,
     narrative,
   };
@@ -573,6 +630,8 @@ function requestedActionSentenceForItem(item: SimpleDisputedItem): string {
   switch (item.requestedAction) {
     case "correct balance":
       return "Please investigate the reported balance and correct it, or remove the item if it cannot be verified.";
+    case "correct payment history":
+      return "Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.";
     case "correct account status":
       return "Please investigate the account status and correct it, or remove the item if it cannot be verified.";
     case "correct date":

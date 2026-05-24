@@ -60,7 +60,7 @@ const rawTechnicalDetails = {
 };
 
 const forbiddenConsumerPacketOutput =
-  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_|BALANCE_CALCULATION_VIOLATION|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 const reportArtifactData = {
   evidenceLocationIndex: {
@@ -366,6 +366,80 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(letter).toContain("Requested bureau action: Please investigate this item, provide the basis for any information that remains, and correct or remove it if it cannot be verified.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Information on page 3.");
     expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
+  });
+
+  it("uses field-aware requested action fallbacks when raw scanner actions are rejected", () => {
+    const paymentHistoryRow = findingRow({
+      issueId: 204,
+      issueUserExplanation: "Raw reference PIPEDA_4_5 from source report #77 field: paymentHistory.",
+      issueRecommendedAction: "rule id PAYMENT_HISTORY_REVIEW metadata expected: Not known",
+      issueViolationCategory: "PAYMENT_HISTORY_MANIPULATION",
+      issueTechnicalDetails: {
+        fieldName: "paymentHistory",
+        canonicalField: "paymentHistory",
+        reportedValue: "30 days late",
+        expectedValue: "Paid as agreed",
+        deterministicRule: {
+          ruleId: "PAYMENT_HISTORY_REVIEW",
+        },
+        evidenceLink: {
+          fieldName: "paymentHistory",
+          pageNumber: 8,
+          textSnippet: "Synthetic Bank payment history shows 30 days late",
+        },
+      },
+    });
+    const balanceRow = findingRow({
+      issueId: 205,
+      issueUserExplanation: "The balance shown for Synthetic Bank does not match my payment records.",
+      issueRecommendedAction: "rule id BALANCE_CALCULATION_VIOLATION metadata expected: Not known",
+      issueViolationCategory: "BALANCE_CALCULATION_VIOLATION",
+      issueTechnicalDetails: {
+        fieldName: "currentBalance",
+        canonicalField: "currentBalance",
+        reportedValue: "$900",
+        expectedValue: "$0",
+        evidenceLink: {
+          fieldName: "currentBalance",
+          pageNumber: 5,
+          textSnippet: "Synthetic Bank current balance $900",
+        },
+      },
+      balance: "$900",
+      currentBalance: "$900",
+    });
+    const safeActionRow = findingRow({
+      issueId: 206,
+      issueUserExplanation: "The payment history shown for Synthetic Bank does not match my payment records.",
+      issueRecommendedAction: "Please correct the payment history to match verified payment records or remove the unsupported late-payment reporting.",
+      issueViolationCategory: "PAYMENT_HISTORY_MANIPULATION",
+      issueTechnicalDetails: {
+        fieldName: "paymentHistory",
+        canonicalField: "paymentHistory",
+        reportedValue: "30 days late",
+        expectedValue: "Paid as agreed",
+        evidenceLink: {
+          fieldName: "paymentHistory",
+          pageNumber: 8,
+          textSnippet: "Synthetic Bank payment history shows 30 days late",
+        },
+      },
+    });
+
+    const paymentPacket = packetFromRows([paymentHistoryRow]);
+    const paymentLetter = buildConsumerDisputePacketLetterText(paymentPacket);
+    const balanceLetter = buildConsumerDisputePacketLetterText(packetFromRows([balanceRow]));
+    const safeActionLetter = buildConsumerDisputePacketLetterText(packetFromRows([safeActionRow]));
+
+    expect(paymentPacket.disputedItems[0].requestedAction).toBe("correct payment history");
+    expect(paymentPacket.disputedItems[0].findingRecommendedAction).toBeNull();
+    expect(paymentLetter).toContain("Specific dispute reason: I dispute the Payment History information for Synthetic Bank. The payment history being reported appears inaccurate and does not reflect my actual payment record.");
+    expect(paymentLetter).toContain("Requested bureau action: Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.");
+    expect(paymentLetter).toContain("Evidence or mismatch reference: Relevant report section for Payment History on page 8.");
+    expect(paymentLetter).not.toContain("reported balance");
+    expect(paymentLetter).not.toMatch(forbiddenConsumerPacketOutput);
+    expect(balanceLetter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
+    expect(safeActionLetter).toContain("Requested bureau action: Please correct the payment history to match verified payment records or remove the unsupported late-payment reporting.");
   });
 
   it("keeps readiness and ownership checks tied to the selected finding", () => {

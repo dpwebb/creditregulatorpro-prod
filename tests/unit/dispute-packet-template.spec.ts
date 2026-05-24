@@ -8,7 +8,7 @@ import {
 import { evaluatePacketReadinessForIssues } from "../../helpers/disputePacketService";
 
 const forbiddenConsumerPacketOutput =
-  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 describe("simple dispute packet template", () => {
   it("builds a neutral credit bureau packet without direct furnisher instructions", () => {
@@ -114,6 +114,74 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Specific dispute reason: I dispute the Date last reported information for Sample Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
     expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 2.");
     expect(letterBody).not.toContain("Specific dispute reason: Raw reference");
+    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
+  });
+
+  it("renders field-aware requested action fallbacks", () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion credit report",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St"],
+      },
+      disputedItems: [
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: null,
+          disputedField: "paymentHistory",
+          reportedValue: "30 days late",
+          expectedValue: "Paid as agreed",
+          issueType: "PAYMENT_HISTORY_MANIPULATION",
+          findingRecommendedAction: "rule id PAYMENT_HISTORY_REVIEW metadata expected: Not known",
+          evidenceReference: "Source report page 8",
+        },
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: null,
+          disputedField: "currentBalance",
+          reportedValue: "$900",
+          expectedValue: "$0",
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          evidenceReference: "Source report page 5",
+        },
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: null,
+          disputedField: "accountStatus",
+          reportedValue: "Open",
+          expectedValue: "Closed",
+          issueType: "ACCOUNT_STATUS_INCONSISTENCY",
+          evidenceReference: "Source report page 6",
+        },
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: null,
+          disputedField: "lastReportedDate",
+          reportedValue: "2026-04-10T00:00:00.000Z",
+          expectedValue: "Not known",
+          issueType: "TEMPORAL_MANIPULATION",
+          evidenceReference: "Source report page 7",
+        },
+      ],
+    });
+
+    const letterBody = buildConsumerDisputePacketLetterText(packet);
+
+    expect(packet.disputedItems[0].requestedAction).toBe("correct payment history");
+    expect(packet.disputedItems[0].findingRecommendedAction).toBeNull();
+    expect(packet.disputedItems[1].requestedAction).toBe("correct balance");
+    expect(packet.disputedItems[2].requestedAction).toBe("correct account status");
+    expect(packet.disputedItems[3].requestedAction).toBe("correct date");
+    expect(letterBody).toContain("Requested bureau action: Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.");
+    expect(letterBody).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
+    expect(letterBody).toContain("Requested bureau action: Please investigate the account status and correct it, or remove the item if it cannot be verified.");
+    expect(letterBody).toContain("Requested bureau action: Please investigate the reported date information and correct it, or remove the item if it cannot be verified.");
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
