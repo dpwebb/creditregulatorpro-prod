@@ -190,9 +190,15 @@ export function extractAccountNumber(text: string): string | null {
 /**
  * Checks if an account is a collection account.
  */
+function sourceTextWithoutLegendDefinitions(text: string): string {
+  return text.replace(/\bLegend\s*:[\s\S]*$/i, " ");
+}
+
 export function extractIsCollectionAccount(text: string): boolean {
+  const accountText = sourceTextWithoutLegendDefinitions(text);
+
   // Check for collection-related keywords in status
-  if (/Status[\s:]+.*Collection/i.test(text)) {
+  if (/Status[\s:]+.*Collection/i.test(accountText)) {
     return true;
   }
 
@@ -210,13 +216,13 @@ export function extractIsCollectionAccount(text: string): boolean {
   ];
 
   for (const pattern of collectionIndicators) {
-    if (pattern.test(text)) {
+    if (pattern.test(accountText)) {
       return true;
     }
   }
 
   // Check if creditor name contains collection-related terms
-  const creditorMatch = text.match(/(?:Creditor|Lender|Institution)[\s:]+([^\n]+)/i);
+  const creditorMatch = accountText.match(/(?:Creditor|Lender|Institution)[\s:]+([^\n]+)/i);
   if (creditorMatch) {
     const creditorText = creditorMatch[1].toLowerCase();
     const collectionTerms = [
@@ -230,7 +236,7 @@ export function extractIsCollectionAccount(text: string): boolean {
       if (creditorText.includes(term)) {
         // Require STATUS/TYPE confirmation
         const confirmingStatusRegex = /\b(?:collection|charge[ -]?off|written off|bad debt|placed for collection|09|delinquent|past due|in arrears)\b/i;
-        if (confirmingStatusRegex.test(text)) {
+        if (confirmingStatusRegex.test(accountText)) {
           return true;
         }
       }
@@ -245,13 +251,15 @@ export function extractIsCollectionAccount(text: string): boolean {
  * collection agency, even when the agency name itself is not reported.
  */
 export function extractCollectionTurnoverSignal(text: string): boolean {
+  const accountText = sourceTextWithoutLegendDefinitions(text);
+
   return (
-    /(?:^|[^A-Z])TC\s*[-\/]\s*/i.test(text) ||
-    /\bTC\s*-\s*Third\s+party\s+collection\/account\s+turned\s+over\s+to\s+collection\s+agency\b/i.test(text) ||
-    /\b(?:sent|turned\s+over|assigned|placed)\s+(?:to|for)\s+collection(?:s|\s+agency)?\b/i.test(text) ||
-    /\bacct\.?\s+assigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(text) ||
-    /\bassigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(text) ||
-    /\bthird[\s-]party\s+collection\b/i.test(text)
+    /(?:^|[^A-Z])TC\s*[-\/]\s*/i.test(accountText) ||
+    /\bTC\s*-\s*Third\s+party\s+collection\/account\s+turned\s+over\s+to\s+collection\s+agency\b/i.test(accountText) ||
+    /\b(?:sent|turned\s+over|assigned|placed)\s+(?:to|for)\s+collection(?:s|\s+agency)?\b/i.test(accountText) ||
+    /\bacct\.?\s+assigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(accountText) ||
+    /\bassigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(accountText) ||
+    /\bthird[\s-]party\s+collection\b/i.test(accountText)
   );
 }
 

@@ -4,9 +4,14 @@ import type { DetectedViolation } from "./complianceDetectorTypes";
 import { isEffectivelyCollectionAccount } from "./complianceDetectorTypes";
 import { regulationRegistry } from "./regulationRegistry";
 
+function sourceTextWithoutLegendDefinitions(sourceText: string): string {
+  return sourceText.replace(/\bLEGEND\s*:[\s\S]*$/i, " ");
+}
+
 function hasNarrativeCode(sourceText: string, code: string): boolean {
+  const accountNarrativeText = sourceTextWithoutLegendDefinitions(sourceText);
   const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(?:^|[^A-Z0-9])${escaped}(?:[^A-Z0-9]|$)`).test(sourceText);
+  return new RegExp(`(?:^|[^A-Z0-9])${escaped}(?:[^A-Z0-9]|$)`).test(accountNarrativeText);
 }
 
 function hasReportedTermsInSource(sourceText: string): boolean {
@@ -32,21 +37,22 @@ export async function detectMetro2FieldViolations(
   const isCollection = isEffectivelyCollectionAccount(tradeline);
   const sourceTextRaw = String((tradeline as any).sourceText || "");
   const sourceText = sourceTextRaw.toUpperCase();
+  const accountNarrativeText = sourceTextWithoutLegendDefinitions(sourceText);
   const hasWriteOffNarrative =
     hasNarrativeCode(sourceText, "WO") ||
-    sourceText.includes("BAD DEBT WRITE-OFF") ||
-    sourceText.includes("WRITE-OFF");
+    accountNarrativeText.includes("BAD DEBT WRITE-OFF") ||
+    accountNarrativeText.includes("WRITE-OFF");
   const hasCollectionTurnoverNarrative =
     hasNarrativeCode(sourceText, "TC") ||
-    sourceText.includes("THIRD PARTY COLLECTION") ||
-    sourceText.includes("TURNED OVER TO COLLECTION");
+    accountNarrativeText.includes("THIRD PARTY COLLECTION") ||
+    accountNarrativeText.includes("TURNED OVER TO COLLECTION");
   const hasClosedAtConsumerNarrative =
     hasNarrativeCode(sourceText, "CZ") ||
-    sourceText.includes("CLOSED AT CONSUMER");
+    accountNarrativeText.includes("CLOSED AT CONSUMER");
   const hasCancelledDerogatoryNarrative =
     hasNarrativeCode(sourceText, "CG") ||
-    sourceText.includes("CANCELLED BY CREDIT GRANTOR WITH DEROGATORY") ||
-    sourceText.includes("CANCELED BY CREDIT GRANTOR WITH DEROGATORY");
+    accountNarrativeText.includes("CANCELLED BY CREDIT GRANTOR WITH DEROGATORY") ||
+    accountNarrativeText.includes("CANCELED BY CREDIT GRANTOR WITH DEROGATORY");
   const sourceLooksNonDerogatoryOnly =
     hasNarrativeCode(sourceText, "AC") &&
     !hasWriteOffNarrative &&

@@ -191,6 +191,7 @@ Jan 202620200020000
     expect(tradelines[0].balance).toBe(6120);
     expect(tradelines[0].creditLimit).toBe(5000);
     expect(tradelines[0].lastPaymentDate?.toISOString().slice(0, 10)).toBe("2027-01-14");
+    expect(tradelines.map((tradeline) => tradeline.isCollectionAccount)).toEqual([false, false]);
   });
 
   it("keeps Equifax collection assignment separate from opened date", () => {

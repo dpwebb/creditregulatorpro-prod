@@ -20,6 +20,10 @@ export interface TradelineForCollectionCheck {
   notes?: string | null;
 }
 
+function sourceTextWithoutLegendDefinitions(sourceText: string): string {
+  return sourceText.replace(/\bLEGEND\s*:[\s\S]*$/i, " ");
+}
+
 export function isEffectivelyCollectionAccount(tradeline: TradelineForCollectionCheck): boolean {
   if (tradeline.isCollectionAccount) {
     return true;
@@ -42,7 +46,9 @@ export function isEffectivelyCollectionAccount(tradeline: TradelineForCollection
     return true;
   }
 
-  const sourceEvidence = `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase();
+  const sourceEvidence = sourceTextWithoutLegendDefinitions(
+    `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase(),
+  );
   if (
     /(?:^|[^A-Z0-9])TC(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||
     sourceEvidence.includes("THIRD PARTY COLLECTION") ||
