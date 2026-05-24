@@ -8,7 +8,7 @@ import {
 import { evaluatePacketReadinessForIssues } from "../../helpers/disputePacketService";
 
 const forbiddenConsumerPacketOutput =
-  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 describe("simple dispute packet template", () => {
   it("builds a neutral credit bureau packet without direct furnisher instructions", () => {
@@ -37,6 +37,7 @@ describe("simple dispute packet template", () => {
           expectedValue: "$0",
           issueType: "BALANCE_CALCULATION_VIOLATION",
           explanation: "The balance may be inaccurate. SIN 123 456 789 should not appear.",
+          findingReason: "The balance shown for Sample Bank does not match my payment records.",
           evidenceReference: "Source report #7; field: balance; page 2",
         },
       ],
@@ -65,6 +66,7 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Creditor/Reporter: Sample Bank");
     expect(letterBody).toContain("Account Number: Account ending 9012");
     expect(letterBody).toContain("Reported Balance: $900");
+    expect(letterBody).toContain("Specific dispute reason: The balance shown for Sample Bank does not match my payment records.");
     expect(letterBody).toContain("The balance being reported does not appear accurate based on my records.");
     expect(letterBody).toContain("Please investigate this item and update my credit file accordingly.");
     expect(letterBody).toContain("Sincerely,");
@@ -76,6 +78,43 @@ describe("simple dispute packet template", () => {
     expect(serialized).not.toContain("123456789012");
     expect(serialized).not.toContain("123 456 789");
     expect(serialized).toContain("SIN: [masked]");
+  });
+
+  it("rejects raw scanner references as consumer-facing dispute reasons", () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion credit report",
+      reportDate: "2026-04-15",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St"],
+      },
+      disputedItems: [
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: "123456789012",
+          disputedField: "lastReportedDate",
+          reportedValue: "2012-08-21T00:00:00.000Z",
+          expectedValue: "Not known",
+          issueType: "TEMPORAL_MANIPULATION",
+          findingReason: "Raw reference PIPEDA_4_5 from source report #77 field: lastReportedDate.",
+          findingRecommendedAction: "rule id BALANCE_CALCULATION_VIOLATION metadata expected: Not known",
+          evidenceReference: "Source report page 2",
+        },
+      ],
+    });
+
+    const letterBody = buildConsumerDisputePacketLetterText(packet);
+
+    expect(letterBody).toContain("Specific dispute reason: I dispute the Date last reported information for Sample Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+    expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 2.");
+    expect(letterBody).not.toContain("Specific dispute reason: Raw reference");
+    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
   it("does not duplicate the default credit bureau verification sentence", () => {

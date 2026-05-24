@@ -60,7 +60,7 @@ const rawTechnicalDetails = {
 };
 
 const forbiddenConsumerPacketOutput =
-  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_|BALANCE_CALCULATION_VIOLATION|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 const reportArtifactData = {
   evidenceLocationIndex: {
@@ -212,9 +212,12 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(bodyText).toContain("Account Number: Account number not shown on report");
     expect(bodyText).toContain("Reported Balance: $200");
     expect(bodyText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
+    expect(bodyText).toContain("Specific dispute reason: I dispute the Date last reported information for Synthetic Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
     expect(bodyText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
     expect(bodyText).toContain("Please investigate this item and update my credit file accordingly.");
+    expect(bodyText).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 4.");
     expect(bodyText).toContain("Aug 21, 2012");
+    expect(bodyText).not.toContain("Specific dispute reason: Raw reference");
     expect(packet.disputedItems[0].narrative?.factualBasis).toContain("The report dated May 11, 2026 shows Synthetic Bank.");
     expect(packet.disputedItems[0].narrative?.consumerAssertion).toContain("continued reportability");
     expect(packet.disputedItems[0].narrative?.verificationRequests).toContain("Verify the date of first delinquency/default if applicable.");

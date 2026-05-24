@@ -275,9 +275,50 @@ function isDefaultVerificationText(value: unknown): boolean {
     "i am asking you to verify whether this collection account information is accurate complete and supported by records showing the authority to collect or report this account";
 }
 
-function consumerSafeFindingText(value: unknown, accountNumber?: string | null): string | null {
+interface ConsumerSafeFindingTextOptions {
+  rejectLowValueReason?: boolean;
+}
+
+function isLowValueReasonText(value: unknown): boolean {
+  const raw = String(value ?? "").trim();
+  if (!raw) return true;
+
+  if (
+    /\braw\s+reference\b/i.test(raw) ||
+    /\bfield\s*:/i.test(raw) ||
+    /\brule\s*id\b/i.test(raw) ||
+    /\bmetadata\b/i.test(raw) ||
+    /\b(?:reportArtifactId|sourceReportArtifactId|tradelineId|referenceId|fieldKey|sourceField)\b/i.test(raw)
+  ) {
+    return true;
+  }
+
+  const normalized = raw.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const fillerOnly = normalized
+    .replace(/\b(?:raw|the|from|source|credit|report|item|applicable|reporting|requirements?|reference|supporting|rule|code|regulation)\b/g, "")
+    .trim();
+
+  if (!fillerOnly && /(?:reference|requirements?|rule|code|regulation)/i.test(raw)) {
+    return true;
+  }
+
+  if (/^[A-Z]{2,}(?:_[A-Z0-9]+)+$/.test(raw.replace(/\s+/g, ""))) {
+    return true;
+  }
+
+  return /\bsource\s+report\b/i.test(raw) &&
+    (raw.length <= 160 || /\b(?:page|field)\b|#\s*\d+/i.test(raw)) &&
+    !/\b(?:does not|doesn't|incorrect|inaccurate|mismatch|not match|reported as|shown as|records show|appears)\b/i.test(raw);
+}
+
+function consumerSafeFindingText(
+  value: unknown,
+  accountNumber?: string | null,
+  options: ConsumerSafeFindingTextOptions = {},
+): string | null {
   const neutral = typeof value === "string" ? sanitizeComplianceNeutralText(value) : null;
   if (!neutral || isDefaultVerificationText(neutral)) return null;
+  if (options.rejectLowValueReason && isLowValueReasonText(neutral)) return null;
 
   let output = safeLetterText(neutral, accountNumber)
     .replace(/\b[A-Z]{2,}(?:_[A-Z0-9]+)+\b/g, "the applicable reporting reference")
@@ -299,6 +340,7 @@ function consumerSafeFindingText(value: unknown, accountNumber?: string | null):
   if (/^(not known|information not provided on report|requested result: verify the correct information)/i.test(output)) {
     return null;
   }
+  if (options.rejectLowValueReason && isLowValueReasonText(output)) return null;
   return output;
 }
 
@@ -401,8 +443,12 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
   const needsManualReview = !evidenceReference || evidenceReference.toLowerCase() === "needs manual review";
   const issueType = labelizeIssueType(item.issueType);
   const narrative = sanitizePacketNarrative(item.narrative, item.accountNumber);
-  const findingReason = consumerSafeFindingText(item.findingReason ?? item.explanation, item.accountNumber);
-  const findingRecommendedAction = consumerSafeFindingText(item.findingRecommendedAction, item.accountNumber);
+  const findingReason = consumerSafeFindingText(item.findingReason ?? item.explanation, item.accountNumber, {
+    rejectLowValueReason: true,
+  });
+  const findingRecommendedAction = consumerSafeFindingText(item.findingRecommendedAction, item.accountNumber, {
+    rejectLowValueReason: true,
+  });
 
   return {
     issueId: item.issueId ?? null,
@@ -551,6 +597,7 @@ function requestedActionSentenceForItem(item: SimpleDisputedItem): string {
 
 interface CreditBureauReasonBlock {
   reasonTitle: string;
+  specificReason: string;
   explanation: string;
   requestedAction: string;
   evidenceSentence: string | null;
@@ -579,18 +626,31 @@ function evidenceSentenceForReasonBlock(item: SimpleDisputedItem): string | null
   return null;
 }
 
+function fallbackSpecificReasonForItem(item: SimpleDisputedItem, accountName: string, explanation: string): string {
+  const fieldLabel = safeLetterFieldLabel(item.disputedField);
+  const explanationText = safeLetterText(explanation, item.maskedAccountNumber);
+
+  if (!/^account information$/i.test(fieldLabel)) {
+    return `I dispute the ${fieldLabel} information for ${accountName}. ${explanationText}`.trim();
+  }
+
+  return `I dispute the ${consumerIssueLabel(item).toLowerCase()} for ${accountName}. ${explanationText}`.trim();
+}
+
 function buildCreditBureauReasonBlock(item: SimpleDisputedItem): CreditBureauReasonBlock {
   const accountName = safeLetterText(item.creditorCollectorName, item.maskedAccountNumber) || "Company listed on report";
   const issueLabel = consumerIssueLabel(item);
+  const explanation = plainDisputeLetterReasonFor({
+    issueType: item.issueType,
+    requestedAction: item.requestedAction,
+    disputedField: item.disputedField,
+    narrative: item.narrative,
+  });
 
   return {
     reasonTitle: `${accountName}: ${issueLabel}`,
-    explanation: plainDisputeLetterReasonFor({
-      issueType: item.issueType,
-      requestedAction: item.requestedAction,
-      disputedField: item.disputedField,
-      narrative: item.narrative,
-    }),
+    specificReason: item.findingReason ?? fallbackSpecificReasonForItem(item, accountName, explanation),
+    explanation,
     requestedAction: item.findingRecommendedAction ?? requestedActionSentenceForItem(item),
     evidenceSentence: evidenceSentenceForReasonBlock(item),
   };
@@ -601,7 +661,7 @@ function pushCreditBureauReasonBlock(lines: string[], item: SimpleDisputedItem):
   lines.push("");
   lines.push("Why I am disputing this item:");
   lines.push(`Account reviewed: ${safeLetterText(block.reasonTitle, item.maskedAccountNumber)}`);
-  lines.push(`Specific dispute reason: ${safeLetterText(item.findingReason ?? block.reasonTitle, item.maskedAccountNumber)}`);
+  lines.push(`Specific dispute reason: ${safeLetterText(block.specificReason, item.maskedAccountNumber)}`);
   lines.push(`Plain-language explanation: ${safeLetterText(block.explanation, item.maskedAccountNumber)}`);
   lines.push(`Requested bureau action: ${safeLetterText(block.requestedAction, item.maskedAccountNumber)}`);
   if (block.evidenceSentence) {
