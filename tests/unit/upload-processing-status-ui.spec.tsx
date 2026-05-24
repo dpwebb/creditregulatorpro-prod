@@ -81,6 +81,7 @@ describe("credit file upload processing status UI", () => {
 
     expect(screen.getByText("Reading report text")).toBeInTheDocument();
     expect(screen.getByText("Analysis is running. This usually takes a few moments.")).toBeInTheDocument();
+    expect(screen.queryByText("This may take a few moments.")).not.toBeInTheDocument();
     expect(screen.getByText("Checking for updates...")).toBeInTheDocument();
   });
 

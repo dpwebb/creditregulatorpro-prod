@@ -191,8 +191,8 @@ const getProcessingStatusDetail = (stage: string) => {
 };
 
 const getProcessingStatusNote = (stage: string) => {
-  if (stage === "queued" || stage === "running" || stage === "retry_scheduled" || stage === "failed") {
-    return stage === "queued" ? "You can leave this page. Results will appear in your account when ready." : "This may take a few moments.";
+  if (stage === "queued") {
+    return "You can leave this page. Results will appear in your account when ready.";
   }
   return null;
 };
