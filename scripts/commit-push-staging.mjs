@@ -8,7 +8,7 @@ const args = process.argv.slice(2);
 let message = "";
 let skipChecks = false;
 let dryRun = false;
-let refreshLocalAfterPush = true;
+let refreshLocalAfterPush = false;
 let actionTimeoutSeconds = DEFAULT_ACTION_TIMEOUT_SECONDS;
 let actionPollSeconds = DEFAULT_ACTION_POLL_SECONDS;
 
@@ -170,6 +170,11 @@ for (let i = 0; i < args.length; i += 1) {
     continue;
   }
 
+  if (arg === "--refresh-local-after-push") {
+    refreshLocalAfterPush = true;
+    continue;
+  }
+
   if (arg === "--action-timeout-seconds") {
     actionTimeoutSeconds = parsePositiveInteger(args[i + 1], arg);
     i += 1;
@@ -211,9 +216,10 @@ for (let i = 0; i < args.length; i += 1) {
 
   if (arg === "--help" || arg === "-h") {
     console.log([
-      "Usage: node scripts/commit-push-staging.mjs [--message <text>] [--skip-checks] [--skip-local-refresh] [--dry-run]",
+      "Usage: node scripts/commit-push-staging.mjs [--message <text>] [--skip-checks] [--refresh-local-after-push] [--skip-local-refresh] [--dry-run]",
       "",
-      "By default the script verifies origin/staging and waits for GitHub Actions to complete for the pushed commit before printing commit-push completed.",
+      "By default the script runs pnpm check, verifies origin/staging, waits for GitHub Actions, and skips localhost database refresh.",
+      "Use --refresh-local-after-push when local data must be refreshed from staging after the push is verified.",
     ].join("\n"));
     process.exit(0);
   }
@@ -239,9 +245,7 @@ if (!status) {
 }
 
 if (!skipChecks) {
-  console.log("Running typecheck...");
-  runPnpmScript("typecheck");
-  console.log("Running build check...");
+  console.log("Running quality gate (pnpm check)...");
   runPnpmScript("check");
 } else {
   console.log("Skipping checks (--skip-checks).");
@@ -288,7 +292,7 @@ if (refreshLocalAfterPush) {
   console.log("Refreshing localhost database from staging...");
   runPnpmScript("refresh:local-from-staging", ["--", "--confirm"]);
 } else {
-  console.log("Skipping localhost database refresh (--skip-local-refresh).");
+  console.log("Skipping localhost database refresh (default; use --refresh-local-after-push to enable).");
 }
 
 console.log("COMPLETE: commit-push completed after GitHub Actions verification.");

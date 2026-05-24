@@ -27,4 +27,31 @@ describe("staging commit-push script", () => {
     expect(script).toContain("timed out after");
     expect(script).toContain("waiting for any GitHub Actions run to appear");
   });
+
+  it("runs the required check gate once before committing", () => {
+    const script = source();
+
+    expect(script).toContain("Running quality gate (pnpm check)...");
+    expect(script).toContain('runPnpmScript("check")');
+    expect(script).not.toContain('runPnpmScript("typecheck")');
+
+    const checkIndex = script.indexOf('runPnpmScript("check")');
+    const commitIndex = script.indexOf('runGit(["commit", "-m", message]');
+    expect(checkIndex).toBeGreaterThan(-1);
+    expect(checkIndex).toBeLessThan(commitIndex);
+  });
+
+  it("keeps post-push local database refresh opt-in", () => {
+    const script = source();
+
+    expect(script).toContain("let refreshLocalAfterPush = false;");
+    expect(script).toContain('arg === "--refresh-local-after-push"');
+    expect(script).toContain('arg === "--skip-local-refresh"');
+    expect(script).toContain('runPnpmScript("refresh:local-from-staging", ["--", "--confirm"])');
+
+    const actionsIndex = script.indexOf("verifyGithubActionsCompleted(pushedHead)");
+    const refreshIndex = script.indexOf("if (refreshLocalAfterPush) {");
+    expect(actionsIndex).toBeGreaterThan(-1);
+    expect(actionsIndex).toBeLessThan(refreshIndex);
+  });
 });
