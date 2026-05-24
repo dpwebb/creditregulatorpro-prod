@@ -182,12 +182,12 @@ export const KBRulesRegulations = () => {
               {renderViolationCards([
                 {
                   id: "TEMPORAL_MANIPULATION",
-                  desc: "The dates on this account look like they were changed to trick the system.",
+                  desc: "The dates on this account appear inconsistent with the available chronology.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "STATUTE_OF_LIMITATIONS",
-                  desc: "This debt is too old to be on your credit report anymore.",
+                  desc: "This debt appears to require reporting-period review.",
                   laws: ["PIPEDA 4.5"],
                 },
                 {
@@ -202,7 +202,7 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "LAST_ACTIVITY_DATE_MANIPULATION",
-                  desc: "The date you last did something on this account was changed to hurt your score.",
+                  desc: "The last-activity date appears inconsistent with the available account records.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
@@ -225,17 +225,17 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "CREDIT_LIMIT_MANIPULATION",
-                  desc: "Your credit limit is reported wrong, which makes you look riskier.",
+                  desc: "Your credit limit appears inconsistent with available account records.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "CLOSED_ACCOUNT_BALANCE_INFLATION",
-                  desc: "Your closed account shows a balance going up, which should not happen.",
+                  desc: "Your closed account shows a balance change that needs supporting records.",
                   laws: ["PIPEDA 4.6", "Metro2 CRRG"],
                 },
                 {
                   id: "COLLECTOR_UNAUTHORIZED_FEES",
-                  desc: "A collector added extra fees that were not in your original agreement.",
+                  desc: "A collection balance includes fees or interest that need supporting records.",
                   laws: ["Provincial Laws"],
                 },
                 {
@@ -263,17 +263,17 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "FURNISHER_STATUS_CODE_MISMATCH",
-                  desc: "The code they used for your account status is wrong.",
+                  desc: "The account status code does not match other account details.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "PAYMENT_HISTORY_MANIPULATION",
-                  desc: "Your payment history was changed or reported wrong.",
+                  desc: "Your payment history appears inconsistent with available records.",
                   laws: ["PIPEDA 4.6", "Metro2 CRRG"],
                 },
                 {
                   id: "RETROACTIVE_HISTORY_MANIPULATION",
-                  desc: "A company went back and changed your past payment history.",
+                  desc: "Past payment history changed and needs source-record support.",
                   laws: ["PIPEDA 4.6", "Metro2 CRRG"],
                 },
               ])}
@@ -286,37 +286,37 @@ export const KBRulesRegulations = () => {
               {renderViolationCards([
                 {
                   id: "BUREAU_INVESTIGATION_FAILURE",
-                  desc: "The credit bureau did not finish checking your dispute properly.",
+                  desc: "The bureau investigation response needs review for completeness.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "BUREAU_NOTIFICATION_FAILURE",
-                  desc: "The credit bureau forgot to tell you important news about your file.",
+                  desc: "The bureau notice record needs review for completeness.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "BUREAU_REINSERTION_VIOLATION",
-                  desc: "An item you removed was secretly put back on your report.",
+                  desc: "An item that was previously removed appears again and needs support.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "BUREAU_ACCESS_VIOLATION",
-                  desc: "Someone looked at your credit report without your permission.",
+                  desc: "Credit file access should be reviewed for authorization and support.",
                   laws: ["PIPEDA 4.3"],
                 },
                 {
                   id: "BUREAU_DISPUTE_MARKING_FAILURE",
-                  desc: "They failed to mark your account as 'In Dispute'.",
+                  desc: "The report may not show that the account is under dispute.",
                   laws: ["PIPEDA 4.6.1"],
                 },
                 {
                   id: "INVESTIGATION_RUBBER_STAMP",
-                  desc: "They rejected your dispute without actually looking into it.",
+                  desc: "The investigation response appears generic or incomplete.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "CONSUMER_STATEMENT_SUPPRESSION",
-                  desc: "Your personal statement or warning was hidden from your report.",
+                  desc: "Your personal statement or alert may not appear on the report.",
                   laws: ["PIPEDA 4.6.1"],
                 },
               ])}
@@ -329,7 +329,7 @@ export const KBRulesRegulations = () => {
               {renderViolationCards([
                 {
                   id: "CREDITOR_RESPONSE_QUALITY",
-                  desc: "The company's reply to your letter was not good enough.",
+                  desc: "The company's reply to your letter needs review for completeness.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
@@ -364,7 +364,7 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "FURNISHER_POST_DISPUTE_RETALIATION",
-                  desc: "A company made your report look worse right after you disputed it.",
+                  desc: "A negative reporting change occurred after a dispute and needs support.",
                   laws: ["PIPEDA 4.6"],
                 },
               ])}
@@ -387,22 +387,22 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "COLLECTOR_STATUTE_REVIVAL_ATTEMPT",
-                  desc: "A collector tried to restart the clock on an old debt.",
+                  desc: "Collection dates changed in a way that needs limitation-period review.",
                   laws: ["Provincial Laws"],
                 },
                 {
                   id: "MULTIPLE_COLLECTOR_VIOLATION",
-                  desc: "More than one collector is trying to report the exact same debt.",
+                  desc: "More than one collector appears to report the same debt.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
                   id: "PHANTOM_DEBT_UNVERIFIABLE",
-                  desc: "This looks like a fake debt that cannot be proven.",
+                  desc: "This debt cannot be connected to clear source records.",
                   laws: ["PIPEDA 4.6", "PIPEDA 4.6.1"],
                 },
                 {
                   id: "ZOMBIE_DEBT_RESURRECTION",
-                  desc: "An old debt that was already removed came back to life.",
+                  desc: "A previously removed or resolved debt record appears again.",
                   laws: ["PIPEDA 4.6"],
                 },
               ])}
@@ -425,17 +425,17 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "IDENTITY_THEFT_VIOLATION",
-                  desc: "There are signs that this account might belong to someone who stole your identity.",
+                  desc: "There are identity or authorization indicators that require review.",
                   laws: ["PIPEDA 4.3"],
                 },
                 {
                   id: "BANKRUPTCY_DISCHARGE_VIOLATION",
-                  desc: "They are reporting a debt that was wiped out in your bankruptcy.",
+                  desc: "The account reporting may not reflect bankruptcy discharge records.",
                   laws: ["Bankruptcy Act", "PIPEDA 4.6"],
                 },
                 {
                   id: "FURNISHER_JOINT_ACCOUNT_VIOLATION",
-                  desc: "A shared account is reported wrong, which might hurt you.",
+                  desc: "A shared account responsibility status appears inconsistent.",
                   laws: ["PIPEDA 4.6", "PIPEDA 4.3"],
                 },
                 {

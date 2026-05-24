@@ -18,8 +18,8 @@ const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /\bremove\s+(?:this|the)?\s*(?:account|tradeline|item|information|inquiry|it)?\b/gi, replacement: "review and correct the reported information" },
   { pattern: /\bremove\s+them\b/gi, replacement: "correct any unsupported information" },
   { pattern: /\bremoved\b/gi, replacement: "reviewed and corrected if unsupported" },
-  { pattern: /\bremoval\b/gi, replacement: "correction pathway" },
-  { pattern: /\bdeletion\b/gi, replacement: "correction pathway" },
+  { pattern: /\bremoval\b/gi, replacement: "correction review" },
+  { pattern: /\bdeletion\b/gi, replacement: "correction review" },
   { pattern: /\bdispute(?:d|s|ing)?\b/gi, replacement: "clarification request" },
   { pattern: /\bdemand(?:ed|s|ing)?\b/gi, replacement: "request" },
   { pattern: /\bcomplain\b/gi, replacement: "request clarification" },
@@ -67,7 +67,7 @@ function sanitizeFindingText(text: string): string {
     output = output.replace(rule.pattern, rule.replacement);
   }
 
-  output = output.replace(/\band\s+request\s+correction\s+pathway\b/gi, "and needs a correction pathway if unsupported");
+  output = output.replace(/\band\s+request\s+correction\s+review\b/gi, "and needs correction review if unsupported");
   output = output.replace(/\s+—\s+/g, " - ");
   return compactWhitespace(output);
 }
@@ -232,7 +232,7 @@ function buildRecommendedAction(violation: DetectedViolation): string {
   const fieldName = firstStringValue(details, ["fieldName", "field", "matchedField"]);
   const fieldClause = fieldName ? ` for "${humanizeKey(fieldName)}"` : "";
 
-  return `Ask ${entity} to review the cited report data${fieldClause}, provide the source documentation or reporting basis, explain any discrepancy, and describe the correction pathway for any field that cannot be verified.`;
+  return `Ask ${entity} to review the cited report data${fieldClause}, provide the source documentation or reporting basis, explain any discrepancy, and correct or update any field that cannot be verified.`;
 }
 
 export function normalizeDetectedViolation(

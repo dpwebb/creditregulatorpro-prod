@@ -8,6 +8,10 @@ import {
   type CanonicalDisputeIntent,
 } from "./disputeIntent";
 import {
+  canonicalFindingLabelFor,
+  neutralizeFindingText,
+} from "./findingTaxonomy";
+import {
   PACKET_REQUESTED_RESULT_FALLBACK,
   formatPacketAccountIdentifier,
   formatPacketConsumerEvidenceReference,
@@ -41,6 +45,7 @@ export const ALLOWED_PACKET_REQUESTED_ACTIONS = [
   "correct date",
   "correct personal information",
   "clarify collection authority/details",
+  "verify collection details",
 ] as const;
 
 export type PacketRequestedAction = (typeof ALLOWED_PACKET_REQUESTED_ACTIONS)[number];
@@ -223,6 +228,8 @@ export function labelizeIssueType(value: string | null | undefined): string {
   if (intent !== "GENERAL_ACCURACY_REVIEW") {
     return disputeIntentArchetypeFor(intent).label;
   }
+  const canonicalLabel = canonicalFindingLabelFor(value);
+  if (canonicalLabel) return canonicalLabel;
   const normalized = value
     .trim()
     .replace(/_/g, " ")
@@ -252,7 +259,7 @@ export function redactSensitiveText(value: unknown, accountNumber?: string | nul
 }
 
 function safeLetterText(value: unknown, accountNumber?: string | null): string {
-  return redactSensitiveText(value, accountNumber)
+  return neutralizeFindingText(redactSensitiveText(value, accountNumber))
     .replace(/\bsource\s+report\b/gi, "credit report")
     .replace(/\breport\s+artifact\b/gi, "credit report")
     .replace(/\bartifact\b/gi, "credit report")
@@ -411,7 +418,7 @@ export function actionForIssue(
   if (intent !== "GENERAL_ACCURACY_REVIEW") {
     const requestedAction = disputeIntentArchetypeFor(intent).requestedAction;
     return packetType === "collection_agency"
-      ? "clarify collection authority/details"
+      ? "verify collection details"
       : requestedAction as PacketRequestedAction;
   }
 
@@ -420,7 +427,7 @@ export function actionForIssue(
   const combinedText = normalizedActionText(issueText, fieldText);
 
   if (packetType === "collection_agency") {
-    return "clarify collection authority/details";
+    return "verify collection details";
   }
   if (
     actionTextHasAny(combinedText, [
@@ -585,7 +592,7 @@ function buildOpening(packetType: DisputePacketType): string {
 
 function buildRequestedActionSummary(packetType: DisputePacketType): string {
   if (packetType === "collection_agency") {
-    return "Please provide documentation showing your authority to collect or report this account, including the original creditor, balance claimed, account dates, and supporting records, and correct or remove any information that cannot be substantiated.";
+    return "Please verify the account details and supporting records, and correct or remove any information that cannot be supported.";
   }
 
   return "Please investigate this item with the company that supplied the information, provide the basis for any information you continue to report, and correct or remove any information that cannot be substantiated.";
@@ -700,7 +707,8 @@ function requestedActionSentenceForItem(item: SimpleDisputedItem): string {
     case "remove unsupported information":
       return "Please remove this information if the records supporting it cannot be verified.";
     case "clarify collection authority/details":
-      return "Please verify the collection authority and account details, and correct or remove any information that cannot be supported.";
+    case "verify collection details":
+      return "Please verify the collection details and supporting records, and correct or remove any information that cannot be supported.";
     case "correct inaccurate information":
       return "Please investigate and correct any inaccurate or incomplete information.";
     case "verify and provide basis":

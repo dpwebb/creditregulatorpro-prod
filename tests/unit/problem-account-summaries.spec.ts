@@ -58,7 +58,7 @@ describe("problem account summaries", () => {
     expect(summary.tradeline.status).toBe("Revolving - Bad debt write-off");
     expect(summary.tradeline.currentBalance).toBe("1234.00");
     expect(summary.tradeline.accountType).toBe("Revolving");
-    expect(summary.problemLabels).toEqual(["Balance Doesn't Add Up"]);
+    expect(summary.problemLabels).toEqual(["Balance reporting inconsistency"]);
   });
 
   it("uses collection agency and original creditor fallbacks before showing generic account labels", () => {
@@ -90,7 +90,7 @@ describe("problem account summaries", () => {
     expect(summaries).toHaveLength(1);
     expect(summaries[0].issueCount).toBe(1);
     expect(summaries[0].highPriorityCount).toBe(1);
-    expect(summaries[0].problemLabels).toEqual(["Account Status Doesn't Match"]);
+    expect(summaries[0].problemLabels).toEqual(["Account status inconsistency"]);
   });
 
   it("counts only consumer-visible review items so cards match the tradeline drilldown", () => {

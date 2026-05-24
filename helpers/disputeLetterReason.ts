@@ -61,9 +61,11 @@ export function disputeLetterReasonKeyFor(input: PlainDisputeLetterReasonInput):
   if (intent === "DUPLICATE_REPORTING") return "DUPLICATE_ACCOUNT";
   if (intent === "MISSING_ACCOUNT_IDENTIFIER") return "MISSING_ACCOUNT_IDENTIFIER";
   if (intent === "IDENTITY_OR_OWNERSHIP_MISMATCH") return "MIXED_FILE_OR_IDENTITY";
+  if (intent === "ACCOUNT_OWNERSHIP_AMBIGUITY") return "MIXED_FILE_OR_IDENTITY";
   if (intent === "INCONSISTENT_PAYMENT_REPORTING") return "INCORRECT_LATE_PAYMENTS";
   if (intent === "INCONSISTENT_STATUS_REPORTING") return "RESOLVED_STATUS_INCORRECT";
   if (intent === "INCOMPLETE_COLLECTION_REPORTING") return "COLLECTION_INCOMPLETE_OR_INACCURATE";
+  if (intent === "UNVERIFIABLE_COLLECTION_IDENTITY") return "COLLECTION_INCOMPLETE_OR_INACCURATE";
 
   const value = haystack(input);
   const fieldValue = String(input.disputedField ?? "").toUpperCase().replace(/[^A-Z0-9]+/g, " ");

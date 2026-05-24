@@ -43,6 +43,7 @@ import type {
 } from "../endpoints/admin/violation-correction/common";
 import { authorityIssueLabel, getLegalAuthorityById } from "../helpers/legalAuthorityRegistry";
 import { regulationRegistry } from "../helpers/regulationRegistry";
+import { canonicalFindingLabelFor } from "../helpers/findingTaxonomy";
 import styles from "./AdminViolationCorrectionPanel.module.css";
 
 const ACTIONS = [
@@ -107,6 +108,8 @@ type RegulationForm = {
 
 function labelize(value: string | null | undefined): string {
   if (!value) return "Not set";
+  const canonicalLabel = canonicalFindingLabelFor(value);
+  if (canonicalLabel) return canonicalLabel;
   return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 

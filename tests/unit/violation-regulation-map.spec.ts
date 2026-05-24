@@ -90,4 +90,30 @@ describe("violation regulation mapping", () => {
       }),
     );
   });
+
+  it("uses investigatory language for non-explicit dispute signals", () => {
+    const paymentRefs = getFederalRegulationsForViolation({
+      violationCategory: "PAYMENT_HISTORY_MANIPULATION",
+      technicalDetails: {
+        message: "Payment history differs between reports.",
+        regulationIds: ["PIPEDA_4_6"],
+      },
+    });
+    const statuteRefs = getFederalRegulationsForViolation({
+      violationCategory: "STATUTE_OF_LIMITATIONS",
+      technicalDetails: {
+        referenceDate: "2013-01-01",
+        reportingLimitDate: "2020-01-01",
+        retentionYears: 7,
+        regulationIds: ["PIPEDA_4_5"],
+      },
+    });
+
+    const text = [...paymentRefs, ...statuteRefs]
+      .map((ref) => ref.specificApplication)
+      .join(" ");
+
+    expect(text).toMatch(/review/i);
+    expect(text).not.toMatch(/illegal|unlawful|violates reporting law|manipulat|unfairly|misrepresents|exceeded the maximum allowed reporting period|must be removed/i);
+  });
 });

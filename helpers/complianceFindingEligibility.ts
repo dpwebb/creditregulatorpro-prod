@@ -9,7 +9,7 @@ import {
 } from "./legalAuthorityRegistry";
 import type { ViolationCategory } from "./schema";
 
-export const FORMAL_VIOLATION_ELIGIBILITY_VERSION = "formal-violation-eligibility-v1";
+export const FORMAL_VIOLATION_ELIGIBILITY_VERSION = "formal-violation-eligibility-v2";
 
 export const COMPLIANCE_FINDING_KINDS = [
   "regulatory_violation",
@@ -25,9 +25,20 @@ export const COMPLIANCE_FINDING_KINDS = [
 
 export type ComplianceFindingKind = (typeof COMPLIANCE_FINDING_KINDS)[number];
 
+export const FINDING_CONFIDENCE_CLASSES = [
+  "VERIFIED_REGULATORY_VIOLATION",
+  "HIGH_CONFIDENCE_DISPUTE_BASIS",
+  "REVIEW_RECOMMENDED",
+  "INVESTIGATORY_SIGNAL_ONLY",
+  "INSUFFICIENT_EVIDENCE",
+] as const;
+
+export type FindingConfidenceClass = (typeof FINDING_CONFIDENCE_CLASSES)[number];
+
 export interface ComplianceFindingEligibility {
   sourceVersion: typeof FORMAL_VIOLATION_ELIGIBILITY_VERSION;
   findingKind: ComplianceFindingKind;
+  confidenceClass: FindingConfidenceClass;
   formalViolationEligible: boolean;
   legalConclusionAllowed: boolean;
   explicitAuthorityMapped: boolean;
@@ -335,6 +346,26 @@ function nonFormalKind(category: ViolationCategory, details: Record<string, any>
   return "dispute_basis";
 }
 
+function confidenceClassFor(input: {
+  category: ViolationCategory;
+  formalViolationEligible: boolean;
+  linkedEvidence: boolean;
+  thresholdMet: boolean;
+  parserReview: boolean;
+  deterministicRule: boolean;
+  deterministicBreachLogic: boolean;
+}): FindingConfidenceClass {
+  if (input.formalViolationEligible) return "VERIFIED_REGULATORY_VIOLATION";
+  if (!input.linkedEvidence) return "INSUFFICIENT_EVIDENCE";
+  if (!input.thresholdMet || input.parserReview || MANUAL_REVIEW_CATEGORIES.has(input.category)) {
+    return "REVIEW_RECOMMENDED";
+  }
+  if (input.deterministicRule || input.deterministicBreachLogic) {
+    return "HIGH_CONFIDENCE_DISPUTE_BASIS";
+  }
+  return "INVESTIGATORY_SIGNAL_ONLY";
+}
+
 export function classifyDetectedViolationEligibility(
   violation: DetectedViolation,
 ): ComplianceFindingEligibility {
@@ -398,10 +429,20 @@ export function classifyDetectedViolationEligibility(
       ? "manual_review_only"
       : nonFormalKind(violation.violationCategory, details);
   const consumerLabel = consumerLabelFor(findingKind);
+  const confidenceClass = confidenceClassFor({
+    category: violation.violationCategory,
+    formalViolationEligible,
+    linkedEvidence,
+    thresholdMet,
+    parserReview,
+    deterministicRule,
+    deterministicBreachLogic,
+  });
 
   return {
     sourceVersion: FORMAL_VIOLATION_ELIGIBILITY_VERSION,
     findingKind,
+    confidenceClass,
     formalViolationEligible,
     legalConclusionAllowed: formalViolationEligible,
     explicitAuthorityMapped,
@@ -433,6 +474,7 @@ export function annotateDetectedViolationEligibility(
       ...details,
       findingEligibility,
       findingKind: findingEligibility.findingKind,
+      findingConfidenceClass: findingEligibility.confidenceClass,
       formalViolationEligible: findingEligibility.formalViolationEligible,
       legalConclusionAllowed: findingEligibility.legalConclusionAllowed,
       consumerDisputeIntent: findingEligibility.consumerDisputeIntent,

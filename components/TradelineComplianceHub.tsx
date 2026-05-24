@@ -316,7 +316,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                   ? "Your dispute letter for this finding has been sent — awaiting bureau response within 30 days."
                   : solPacket 
                     ? "Dispute letter created — review and send it."
-                    : "This debt is past its 6-year reporting term and must be removed from your credit report."}
+                    : "This debt appears past its reporting-period reference date and should be reviewed for correction or removal if it cannot be verified."}
               </p>
             </div>
           </div>
@@ -396,11 +396,11 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
           <div className={styles.approachingCard}>
             <div className={styles.approachingHeader}>
               <Clock className={styles.approachingIcon} size={32} />
-              <h3 className={styles.approachingTitle}>{Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months until this account must be removed</h3>
+              <h3 className={styles.approachingTitle}>{Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months until reporting-period review</h3>
             </div>
             <div className={styles.approachingContent}>
               <p className={styles.approachingText}>
-                Good news! This account is almost past the time limit. In {Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months, the credit bureau must take it off your report.
+                This account is approaching the reporting-period review date. In {Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months, ask the bureau to verify whether it should continue to appear.
               </p>
               <div className={styles.approachingProgressContainer}>
                 <div className={styles.approachingProgressLabels}>
@@ -413,7 +413,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                 />
               </div>
               <p className={styles.approachingAdvice}>
-                <strong>Our advice:</strong> Just wait. You don't need to send any letters. When the time is up, it goes away on its own.
+                <strong>Our advice:</strong> Keep watching this item and request verification if it remains after the reporting-period review date.
               </p>
             </div>
           </div>

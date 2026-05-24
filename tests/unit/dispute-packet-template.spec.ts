@@ -8,7 +8,7 @@ import {
 import { evaluatePacketReadinessForIssues } from "../../helpers/disputePacketService";
 
 const forbiddenConsumerPacketOutput =
-  /raw reference|review basis|reference ids|tradeline|artifact|report artifact|source report|field:|rule id|metadata|documentation chain|Documentation Chain Failure|Verification Integrity Failure|Regulatory Reference|Chain Integrity Concern|Metadata concern|furnisher correction pathway|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+  /raw reference|review basis|reference ids|tradeline|artifact|report artifact|source report|field:|rule id|metadata|documentation chain|Documentation Chain Failure|Verification Integrity Failure|Regulatory Reference|Chain Integrity Concern|Metadata concern|correction pathway|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 function words(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
@@ -115,7 +115,7 @@ describe("simple dispute packet template", () => {
 
     const letterBody = buildConsumerDisputePacketLetterText(packet);
 
-    expect(letterBody).toContain("Specific dispute reason: The date information being reported does not appear accurate or complete.");
+    expect(letterBody).toContain("Specific dispute reason: The account dates being reported do not appear consistent with the account history.");
     expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 2.");
     expect(letterBody).not.toContain("Specific dispute reason: Raw reference");
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
@@ -281,7 +281,7 @@ describe("simple dispute packet template", () => {
     ]);
     expect(reasons.every((reason) => words(reason) <= 18)).toBe(true);
     expect(packet.disputedItems.map((item) => item.requestedAction)).toEqual([
-      "clarify collection authority/details",
+      "verify collection details",
       "correct payment history",
       "update stale information",
     ]);
@@ -447,13 +447,13 @@ describe("simple dispute packet template", () => {
     });
 
     expect(packet.title).toBe("Collection Agency Clarification/Dispute Packet");
-    expect(packet.disputedItems[0].requestedAction).toBe("clarify collection authority/details");
+    expect(packet.disputedItems[0].requestedAction).toBe("verify collection details");
     expect(packet.openingParagraph).toMatch(/credit report/i);
     const letterBody = buildConsumerDisputePacketLetterText(packet);
 
     expect(letterBody).toContain("Requested action:");
     expect(letterBody).toContain(
-      "Please provide documentation showing your authority to collect or report this account",
+      "Please verify the account details and supporting records",
     );
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });

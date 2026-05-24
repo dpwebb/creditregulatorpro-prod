@@ -1,14 +1,17 @@
 export const CANONICAL_DISPUTE_INTENTS = [
   "INCOMPLETE_COLLECTION_REPORTING",
+  "UNVERIFIABLE_COLLECTION_IDENTITY",
   "INCONSISTENT_PAYMENT_REPORTING",
   "OBSOLETE_REPORTING",
   "INCONSISTENT_BALANCE_REPORTING",
   "INCONSISTENT_STATUS_REPORTING",
   "DATE_ACCURACY_REVIEW",
+  "REPORTING_CHRONOLOGY_CONFLICT",
   "MISSING_ACCOUNT_IDENTIFIER",
   "UNSUPPORTED_REPORTING",
   "DUPLICATE_REPORTING",
   "IDENTITY_OR_OWNERSHIP_MISMATCH",
+  "ACCOUNT_OWNERSHIP_AMBIGUITY",
   "GENERAL_ACCURACY_REVIEW",
 ] as const;
 
@@ -25,7 +28,8 @@ export type CanonicalPacketRequestedAction =
   | "correct account status"
   | "correct date"
   | "correct personal information"
-  | "clarify collection authority/details";
+  | "clarify collection authority/details"
+  | "verify collection details";
 
 export interface DisputeIntentInput {
   issueType?: string | null;
@@ -44,17 +48,32 @@ export interface DisputeIntentArchetype {
   consumerNarrative: string;
   requestedAction: CanonicalPacketRequestedAction;
   bureauActionSentence: string;
+  evidenceSentence?: string;
+  escalationTone?: "neutral" | "firm" | "review";
 }
 
-export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIntentArchetype> = {
+export const NARRATIVE_ARCHETYPE_REGISTRY: Record<CanonicalDisputeIntent, DisputeIntentArchetype> = {
   INCOMPLETE_COLLECTION_REPORTING: {
     intent: "INCOMPLETE_COLLECTION_REPORTING",
     label: "Incomplete collection reporting",
     consumerNarrative:
       "I cannot verify who is reporting or collecting this account because identifying information is incomplete.",
-    requestedAction: "clarify collection authority/details",
+    requestedAction: "verify collection details",
     bureauActionSentence:
       "Please verify who is reporting or collecting this account and correct or remove it if the reporting cannot be supported.",
+    evidenceSentence: "Relevant report section for the incomplete collection information.",
+    escalationTone: "neutral",
+  },
+  UNVERIFIABLE_COLLECTION_IDENTITY: {
+    intent: "UNVERIFIABLE_COLLECTION_IDENTITY",
+    label: "Unverifiable collection identity",
+    consumerNarrative:
+      "I cannot verify the collection agency identity or its connection to this account from the information shown.",
+    requestedAction: "verify collection details",
+    bureauActionSentence:
+      "Please verify the collection identity and supporting records, and correct or remove the item if it cannot be supported.",
+    evidenceSentence: "Relevant report section for the collection identity information.",
+    escalationTone: "review",
   },
   INCONSISTENT_PAYMENT_REPORTING: {
     intent: "INCONSISTENT_PAYMENT_REPORTING",
@@ -63,6 +82,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "correct payment history",
     bureauActionSentence:
       "Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the payment history information.",
+    escalationTone: "neutral",
   },
   OBSOLETE_REPORTING: {
     intent: "OBSOLETE_REPORTING",
@@ -72,6 +93,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "update stale information",
     bureauActionSentence:
       "Please investigate whether this item should continue to appear on the current report, and update or remove it if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the reporting-period information.",
+    escalationTone: "neutral",
   },
   INCONSISTENT_BALANCE_REPORTING: {
     intent: "INCONSISTENT_BALANCE_REPORTING",
@@ -80,6 +103,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "correct balance",
     bureauActionSentence:
       "Please investigate the reported balance and correct it, or remove the item if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the balance information.",
+    escalationTone: "neutral",
   },
   INCONSISTENT_STATUS_REPORTING: {
     intent: "INCONSISTENT_STATUS_REPORTING",
@@ -89,6 +114,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "correct account status",
     bureauActionSentence:
       "Please investigate the account status and correct it, or remove the item if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the account status information.",
+    escalationTone: "neutral",
   },
   DATE_ACCURACY_REVIEW: {
     intent: "DATE_ACCURACY_REVIEW",
@@ -97,6 +124,19 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "correct date",
     bureauActionSentence:
       "Please investigate the reported date information and correct it, or remove the item if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the date information.",
+    escalationTone: "neutral",
+  },
+  REPORTING_CHRONOLOGY_CONFLICT: {
+    intent: "REPORTING_CHRONOLOGY_CONFLICT",
+    label: "Reporting chronology conflict",
+    consumerNarrative:
+      "The account dates being reported do not appear consistent with the account history.",
+    requestedAction: "correct date",
+    bureauActionSentence:
+      "Please investigate the account dates and correct them, or remove the item if they cannot be verified.",
+    evidenceSentence: "Relevant report section for the account date information.",
+    escalationTone: "review",
   },
   MISSING_ACCOUNT_IDENTIFIER: {
     intent: "MISSING_ACCOUNT_IDENTIFIER",
@@ -106,6 +146,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "verify and provide basis",
     bureauActionSentence:
       "Please verify the account identifier and supporting records, and correct or remove the item if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the account identifier.",
+    escalationTone: "neutral",
   },
   UNSUPPORTED_REPORTING: {
     intent: "UNSUPPORTED_REPORTING",
@@ -115,6 +157,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "remove unsupported information",
     bureauActionSentence:
       "Please remove this information if the records supporting it cannot be verified.",
+    evidenceSentence: "Relevant report section for the disputed information.",
+    escalationTone: "neutral",
   },
   DUPLICATE_REPORTING: {
     intent: "DUPLICATE_REPORTING",
@@ -124,6 +168,8 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "correct duplicate account",
     bureauActionSentence:
       "Please investigate whether this account is duplicated and correct or remove any duplicate reporting.",
+    evidenceSentence: "Relevant report section for the duplicate account information.",
+    escalationTone: "neutral",
   },
   IDENTITY_OR_OWNERSHIP_MISMATCH: {
     intent: "IDENTITY_OR_OWNERSHIP_MISMATCH",
@@ -133,6 +179,19 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "correct personal information",
     bureauActionSentence:
       "Please investigate whether this information belongs on my credit file and correct or remove it if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the identity or ownership information.",
+    escalationTone: "neutral",
+  },
+  ACCOUNT_OWNERSHIP_AMBIGUITY: {
+    intent: "ACCOUNT_OWNERSHIP_AMBIGUITY",
+    label: "Account ownership ambiguity",
+    consumerNarrative:
+      "I am asking the bureau to verify that this account is connected to me and to the company reporting it.",
+    requestedAction: "verify and provide basis",
+    bureauActionSentence:
+      "Please verify the account ownership and reporting basis, and correct or remove the item if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the account ownership information.",
+    escalationTone: "review",
   },
   GENERAL_ACCURACY_REVIEW: {
     intent: "GENERAL_ACCURACY_REVIEW",
@@ -142,8 +201,12 @@ export const DISPUTE_INTENT_ARCHETYPES: Record<CanonicalDisputeIntent, DisputeIn
     requestedAction: "verify and provide basis",
     bureauActionSentence:
       "Please investigate this item, provide the basis for any information that remains, and correct or remove it if it cannot be verified.",
+    evidenceSentence: "Relevant report section for the disputed information.",
+    escalationTone: "neutral",
   },
 };
+
+export const DISPUTE_INTENT_ARCHETYPES = NARRATIVE_ARCHETYPE_REGISTRY;
 
 function normalizedText(...values: Array<string | null | undefined>): string {
   return values
@@ -159,7 +222,7 @@ function hasAny(value: string, terms: string[]): boolean {
 }
 
 export function disputeIntentArchetypeFor(intent: CanonicalDisputeIntent): DisputeIntentArchetype {
-  return DISPUTE_INTENT_ARCHETYPES[intent];
+  return NARRATIVE_ARCHETYPE_REGISTRY[intent];
 }
 
 export function canonicalDisputeIntentFor(input: DisputeIntentInput = {}): CanonicalDisputeIntent {
@@ -179,14 +242,33 @@ export function canonicalDisputeIntentFor(input: DisputeIntentInput = {}): Canon
       "COLLECTION AGENCY NAME",
       "INCOMPLETE COLLECTION",
       "COLLECTION OR DEFAULT STATUS",
-      "COLLECTOR LICENSE",
-      "COLLECTION AUTHORITY",
-      "PHANTOM DEBT",
-      "MULTIPLE COLLECTOR",
     ]) ||
     input.isCollectionAccount === true
   ) {
     return "INCOMPLETE_COLLECTION_REPORTING";
+  }
+
+  if (
+    hasAny(text, [
+      "UNVERIFIABLE COLLECTION IDENTITY",
+      "COLLECTION IDENTITY VERIFICATION",
+      "COLLECTOR LICENSE",
+      "COLLECTION AUTHORITY",
+      "PHANTOM DEBT",
+    ])
+  ) {
+    return "UNVERIFIABLE_COLLECTION_IDENTITY";
+  }
+
+  if (
+    hasAny(text, [
+      "MULTIPLE COLLECTOR",
+      "COLLECTION REPORTING AMBIGUITY",
+      "ACCOUNT OWNERSHIP AMBIGUITY",
+      "OWNERSHIP AMBIGUITY",
+    ])
+  ) {
+    return "ACCOUNT_OWNERSHIP_AMBIGUITY";
   }
 
   if (
@@ -244,8 +326,21 @@ export function canonicalDisputeIntentFor(input: DisputeIntentInput = {}): Canon
   }
 
   if (
+    hasAny(text, [
+      "REPORTING CHRONOLOGY",
+      "TEMPORAL",
+      "DATE LOGIC",
+      "REAGING",
+      "RE AGING",
+      "RETROACTIVE HISTORY",
+    ])
+  ) {
+    return "REPORTING_CHRONOLOGY_CONFLICT";
+  }
+
+  if (
     hasAny(field, ["DATE", "ACTIVITY", "LAST REPORTED", "OPENED", "CLOSED", "DELINQUENCY"]) ||
-    hasAny(text, ["DATE REPORTING", "TEMPORAL", "DATE LOGIC", "DATE ACCURACY"])
+    hasAny(text, ["DATE REPORTING", "DATE ACCURACY"])
   ) {
     return "DATE_ACCURACY_REVIEW";
   }
@@ -271,8 +366,12 @@ export function canonicalDisputeIntentFor(input: DisputeIntentInput = {}): Canon
     return "DUPLICATE_REPORTING";
   }
 
-  if (hasAny(text, ["IDENTITY", "ALIAS", "MIXED FILE", "PERSONAL INFORMATION", "NOT MY ACCOUNT", "OWNERSHIP"])) {
+  if (hasAny(text, ["IDENTITY", "ALIAS", "MIXED FILE", "PERSONAL INFORMATION", "NOT MY ACCOUNT"])) {
     return "IDENTITY_OR_OWNERSHIP_MISMATCH";
+  }
+
+  if (hasAny(text, ["OWNERSHIP", "ACCOUNT OWNERSHIP"])) {
+    return "ACCOUNT_OWNERSHIP_AMBIGUITY";
   }
 
   if (hasAny(text, ["UNSUPPORTED", "UNVERIFIABLE", "DOCUMENTATION", "CHAIN", "NO DOCUMENTATION", "MISSING INFORMATION"])) {

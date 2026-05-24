@@ -93,7 +93,7 @@ export const section2 = (): Content[] => [
     "Balance Inflation: Detects mathematically impossible increases in debt balances, especially on closed accounts.",
     "DOFD Changes: Flags Date of First Delinquency changes that may indicate unsupported re-aging.",
     "Status Alterations: Monitors for sudden shifts in account status codes (e.g., from 11 to 97).",
-    "Removed/Re-inserted Accounts: Tracks phantom debt that vanishes and reappears, triggering a Bureau Reinsertion Violation."
+    "Removed/Re-inserted Accounts: Tracks unverifiable debt records that disappear and reappear, triggering reinserted-item review."
   ]),
 
   subHeader("Report Artifact Management"),

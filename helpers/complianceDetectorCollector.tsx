@@ -19,7 +19,7 @@ function validateAgencyNameBasic(agencyName: string): string[] {
   const flags: string[] = [];
 
   if (!agencyName || agencyName.trim() === "" || agencyName.toLowerCase() === "unknown") {
-    flags.push("Agency name is missing or unknown. Anonymous collection reporting is a severe violation.");
+    flags.push("Agency name is missing or unknown. Collection reporting identity should be verified.");
     return flags;
   }
 
@@ -35,14 +35,14 @@ function validateAgencyNameBasic(agencyName: string): string[] {
   const genericNames = ["COLLECTION DEPT", "RECOVERY DEPT", "CREDIT SERVICES", "ACCOUNTS RECEIVABLE"];
   for (const generic of genericNames) {
     if (nameUpper.includes(generic) && nameUpper.length < generic.length + 8) {
-      flags.push(`Uses generic or internal-sounding name ("${generic}"). Collections must be reported under the exact registered agency name.`);
+      flags.push(`Uses generic or internal-sounding name ("${generic}"). The reporting identity should be verified against available registry or account records.`);
       break;
     }
   }
 
   // Suspicious formatting (e.g., masking in the name)
   if (/[*X]{3,}/.test(nameUpper)) {
-    flags.push("Name contains masking characters. The identity of a debt collector cannot be hidden from the consumer.");
+    flags.push("Name contains masking characters. The collection agency identity should be verified from source records.");
   }
 
   return flags;
@@ -122,7 +122,7 @@ export async function detectCollectorLicenseFailure(
           dbCheckResult,
           regulationIds: [`${province}_COLLECTION_ACT`],
         },
-        recommendedAction: `Dispute this account and demand proof of their collection license in ${province}.${urlText}`,
+        recommendedAction: `Request verification of the collection agency identity and licensing record in ${province}.${urlText}`,
         tradelineId: tradeline.id,
         responsibleEntity: "COLLECTOR",
       });
@@ -147,7 +147,7 @@ export async function detectCollectorLicenseFailure(
           dbCheckResult,
           regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_LICENSE_FAILURE"] || [],
         },
-        recommendedAction: "Dispute this account and demand written proof of the collection agency's identity and authorization to collect this debt.",
+        recommendedAction: "Request written verification of the collection agency identity and its basis for collecting this debt.",
         tradelineId: tradeline.id,
         responsibleEntity: "COLLECTOR",
       });
@@ -202,8 +202,8 @@ export async function detectDuplicateCollectionAssignment(
         ? ` Both collection accounts use account number ${tradeline.accountNumber}.`
         : "";
       const userExplanation = isOlder
-        ? `This appears to be the same debt as the account reported by ${otherAgencyName}.${accountNumberText} The older collector should stop reporting when the debt is reassigned.`
-        : `This appears to be the same debt as the account reported by ${otherAgencyName}.${accountNumberText} Two collectors should not report the same debt at the same time.`;
+        ? `This appears to be the same debt as the account reported by ${otherAgencyName}.${accountNumberText} The older collection listing should be verified against the reassignment records.`
+        : `This appears to be the same debt as the account reported by ${otherAgencyName}.${accountNumberText} The duplicate collection reporting should be verified.`;
 
       violations.push({
         violationCategory: "MULTIPLE_COLLECTOR_VIOLATION",
@@ -220,7 +220,7 @@ export async function detectDuplicateCollectionAssignment(
           matchedOn: sameDebtMatch.matchedOn,
           regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["MULTIPLE_COLLECTOR_VIOLATION"] || [],
         },
-        recommendedAction: "Dispute this duplicate listing. Only one collector should be reporting this debt.",
+        recommendedAction: "Request verification of the duplicate listing and ask that unsupported duplicate reporting be corrected or removed.",
         tradelineId: tradeline.id,
         responsibleEntity: "COLLECTOR",
       });
@@ -264,7 +264,7 @@ export async function detectCollectorUnauthorizedFees(
         detectedValue: balance - originalAmount,
         regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_UNAUTHORIZED_FEES"] || [],
       },
-      recommendedAction: "Ask the collection agency to prove why the balance went up and show you a breakdown of the fees.",
+      recommendedAction: "Ask the collection agency to verify the balance increase and provide a fee or interest breakdown.",
       tradelineId: tradeline.id,
       responsibleEntity: "COLLECTOR",
     });
@@ -316,7 +316,7 @@ export async function detectCollectorDuplicateReporting(
           detectedValue: dup.id,
           regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_DUPLICATE_REPORTING"] || [],
         },
-        recommendedAction: "Dispute the extra accounts so this debt is only listed once.",
+        recommendedAction: "Request verification of the duplicate accounts and correction or removal of any unsupported duplicate reporting.",
         tradelineId: tradeline.id,
         responsibleEntity: "COLLECTOR",
       });
@@ -381,7 +381,7 @@ export async function detectCollectorStatuteRevivalAttempt(
               detectedValue: diff,
               regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_STATUTE_REVIVAL_ATTEMPT"] || [],
             },
-            recommendedAction: "Dispute the date change and ask for the original date to be put back.",
+            recommendedAction: "Request verification of the date change and correction if the source records do not support it.",
             tradelineId: tradeline.id,
             responsibleEntity: "COLLECTOR",
           });

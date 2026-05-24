@@ -135,12 +135,12 @@ export const createTable = (headers: string[], rows: any[][], widths?: string[])
 });
 
 export const MODULES_DATA = [
-  { title: "Temporal Manipulation", desc: "Identifies retroactive manipulation of account history dates.", sev: "ERROR" },
+  { title: "Reporting Chronology Conflict", desc: "Identifies inconsistent account history dates.", sev: "ERROR" },
   { title: "Cross-Entity Discrepancies", desc: "Detects conflicting data points across different reporting entities.", sev: "WARNING" },
   { title: "Statute of Limitations", desc: "Flags accounts being reported or collected beyond provincial limits.", sev: "ERROR" },
-  { title: "Payment History Manipulation", desc: "Identifies impossible or unsupported payment pattern updates.", sev: "ERROR" },
+  { title: "Payment History Inconsistency", desc: "Identifies impossible or unsupported payment pattern updates.", sev: "ERROR" },
   { title: "Balance Calculation Errors", desc: "Detects mathematically impossible balance reporting based on credit limits and payments.", sev: "ERROR" },
-  { title: "Documentation Chain Failures", desc: "Identifies missing or broken chains of title for purchased debt.", sev: "ERROR" },
+  { title: "Incomplete Account Documentation", desc: "Identifies missing support or unclear ownership records for purchased debt.", sev: "ERROR" },
   { title: "Procedural Timing Findings", desc: "Flags missed statutory investigation response timeframes.", sev: "ERROR" },
   { title: "Multiple Collector Findings", desc: "Detects multiple agencies reporting or collecting on the same debt simultaneously.", sev: "WARNING" },
   { title: "Credit Limit Manipulation", desc: "Identifies artificial lowering of credit limits to manufacture high utilization.", sev: "WARNING" },

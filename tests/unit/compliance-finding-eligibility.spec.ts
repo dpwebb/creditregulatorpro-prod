@@ -54,6 +54,7 @@ describe("formal violation eligibility boundary", () => {
     expect(eligibility).toEqual(
       expect.objectContaining({
         findingKind: "regulatory_violation",
+        confidenceClass: "VERIFIED_REGULATORY_VIOLATION",
         formalViolationEligible: true,
         legalConclusionAllowed: true,
         explicitAuthorityMapped: true,
@@ -87,6 +88,7 @@ describe("formal violation eligibility boundary", () => {
     expect(eligibility).toEqual(
       expect.objectContaining({
         findingKind: "inconsistency",
+        confidenceClass: "HIGH_CONFIDENCE_DISPUTE_BASIS",
         formalViolationEligible: false,
         legalConclusionAllowed: false,
         explicitAuthorityMapped: false,
@@ -117,6 +119,7 @@ describe("formal violation eligibility boundary", () => {
     expect(eligibility).toEqual(
       expect.objectContaining({
         findingKind: "manual_review_only",
+        confidenceClass: "INSUFFICIENT_EVIDENCE",
         formalViolationEligible: false,
         legalConclusionAllowed: false,
         explicitAuthorityMapped: true,
@@ -126,6 +129,34 @@ describe("formal violation eligibility boundary", () => {
     );
     expect(eligibility.reasonCodes).toEqual(
       expect.arrayContaining(["NO_EVIDENCE_LINK", "CONFIDENCE_BELOW_THRESHOLD"]),
+    );
+  });
+
+  it("keeps evidence-linked manual-review categories out of violation status", () => {
+    const eligibility = classifyDetectedViolationEligibility(
+      violation({
+        violationCategory: "IDENTITY_THEFT_VIOLATION",
+        severity: "WARNING",
+        confidenceScore: 88,
+        userExplanation: "Identity information requires review.",
+        technicalDetails: {
+          reportArtifactId: 91,
+          fieldName: "remarks",
+          textSnippet: "Potential unauthorized account.",
+          regulationIds: ["PIPEDA_4_3"],
+        },
+      }),
+    );
+
+    expect(eligibility).toEqual(
+      expect.objectContaining({
+        findingKind: "manual_review_only",
+        confidenceClass: "REVIEW_RECOMMENDED",
+        formalViolationEligible: false,
+        legalConclusionAllowed: false,
+        evidenceLinked: true,
+        confidenceThresholdMet: true,
+      }),
     );
   });
 });
