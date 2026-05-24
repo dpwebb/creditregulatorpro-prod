@@ -8,7 +8,7 @@ import {
 import { evaluatePacketReadinessForIssues } from "../../helpers/disputePacketService";
 
 const forbiddenConsumerPacketOutput =
-  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|Documentation Chain Failure|Verification Integrity Failure|Regulatory Reference|Chain Integrity Concern|Metadata concern|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 describe("simple dispute packet template", () => {
   it("builds a neutral credit bureau packet without direct furnisher instructions", () => {
@@ -114,6 +114,41 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Specific dispute reason: I dispute the Date last reported information for Sample Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
     expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 2.");
     expect(letterBody).not.toContain("Specific dispute reason: Raw reference");
+    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
+  });
+
+  it("maps internal analytic labels to consumer dispute intent", () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion credit report",
+      reportDate: "2026-04-15",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St"],
+      },
+      disputedItems: [
+        {
+          creditorCollectorName: "Sample Bank",
+          accountNumber: "123456789012",
+          disputedField: "originalCreditorName",
+          reportedValue: "Not shown",
+          expectedValue: "Not known",
+          issueType: "DOCUMENTATION_CHAIN_FAILURE",
+          findingReason: "Documentation Chain Failure; Regulatory Reference PIPEDA_4_6; Chain Integrity Concern; Metadata concern.",
+          evidenceReference: "Source report page 2",
+        },
+      ],
+    });
+
+    const letterBody = buildConsumerDisputePacketLetterText(packet);
+
+    expect(packet.disputedItems[0].issueType).toBe("Verification issue");
+    expect(letterBody).toContain("Account reviewed: Sample Bank: Verification issue");
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
 

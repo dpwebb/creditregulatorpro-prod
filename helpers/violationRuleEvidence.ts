@@ -9,6 +9,12 @@ import {
 import { regulationRegistry, type RegulationEntry } from "./regulationRegistry";
 import type { ViolationCategory } from "./schema";
 import {
+  annotateDetectedViolationEligibility,
+  annotateDetectedViolationsEligibility,
+  classifyDetectedViolationEligibility,
+  type ComplianceFindingEligibility,
+} from "./complianceFindingEligibility";
+import {
   resolveEvidenceLocation,
   type EvidenceLocationResolveContext,
   type EvidenceLocationSummary,
@@ -65,10 +71,11 @@ export interface ViolationDefensibilityMetadata {
   };
   adminReviewStatus?: string;
   parserUncertaintyStatus?: string;
+  findingEligibility?: ComplianceFindingEligibility;
   sourceVersion?: string;
 }
 
-const DEFENSIBILITY_METADATA_SOURCE_VERSION = "defensibility-metadata-v1";
+const DEFENSIBILITY_METADATA_SOURCE_VERSION = "defensibility-metadata-v2";
 
 function detailsOf(violation: DetectedViolation): Record<string, any> {
   return violation.technicalDetails && typeof violation.technicalDetails === "object"
@@ -611,6 +618,17 @@ export function buildViolationDefensibilityMetadata(
   const sourceFieldValues = deterministicRule.sourceFields.length > 0
     ? deterministicRule.sourceFields
     : ["tradeline"];
+  const eligibilityDetails = {
+    ...details,
+    regulationIds: regulationReferenceIds,
+    deterministicRule,
+    regulationReferences: deterministicRule.regulationReferences,
+    evidenceLink: evidence,
+  };
+  const findingEligibility = classifyDetectedViolationEligibility({
+    ...violation,
+    technicalDetails: eligibilityDetails,
+  });
 
   return {
     deterministicRuleId: deterministicRule.ruleId,
@@ -632,6 +650,7 @@ export function buildViolationDefensibilityMetadata(
     }),
     adminReviewStatus: adminReviewStatus(options),
     parserUncertaintyStatus: parserUncertaintyStatus(details, options.validationStatus),
+    findingEligibility,
     sourceVersion: DEFENSIBILITY_METADATA_SOURCE_VERSION,
   };
 }
@@ -657,12 +676,13 @@ export function enrichDetectedViolationRuleEvidence(
     ...violation,
     technicalDetails: baseDetails,
   };
+  const eligibilityAnnotatedViolation = annotateDetectedViolationEligibility(enrichedViolation);
 
   return {
-    ...enrichedViolation,
+    ...eligibilityAnnotatedViolation,
     technicalDetails: {
-      ...baseDetails,
-      defensibility: buildViolationDefensibilityMetadata(enrichedViolation),
+      ...eligibilityAnnotatedViolation.technicalDetails,
+      defensibility: buildViolationDefensibilityMetadata(eligibilityAnnotatedViolation),
     },
   };
 }
@@ -680,7 +700,7 @@ export function enrichDetectedViolationDefensibilityMetadata(
   return {
     ...violation,
     technicalDetails: {
-      ...detailsOf(violation),
+      ...annotateDetectedViolationEligibility(violation).technicalDetails,
       defensibility,
     },
   };
@@ -774,11 +794,7 @@ export function hasFieldSpecificAuthorityForMissingInformation(violation: Detect
 export function filterViolationsWithLocalAuthorityLinks(
   violations: DetectedViolation[],
 ): DetectedViolation[] {
-  return violations.filter(
-    (violation) =>
-      hasBonaFideLocalAuthorityLink(violation) &&
-      hasFieldSpecificAuthorityForMissingInformation(violation),
-  );
+  return annotateDetectedViolationsEligibility(enrichDetectedViolationsRuleEvidence(violations));
 }
 
 export function enrichDetectedViolationsRuleEvidence(
@@ -801,6 +817,9 @@ export function enrichDetectedViolationsDefensibilityMetadata(
 export function getDeterministicViolationStatutoryBasis(
   violation: DetectedViolation,
 ): string | null {
+  const eligibility = classifyDetectedViolationEligibility(violation);
+  if (!eligibility.formalViolationEligible) return null;
+
   const details = detailsOf(violation);
   const refs = Array.isArray(details.regulationReferences)
     ? details.regulationReferences

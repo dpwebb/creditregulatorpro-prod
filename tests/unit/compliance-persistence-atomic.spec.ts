@@ -235,9 +235,11 @@ async function loadPersistViolations(
   vi.doMock("../../helpers/complianceFindingNormalizer", () => ({
     normalizeDetectedViolations: (violations: unknown[]) => violations,
   }));
+  vi.doMock("../../helpers/complianceFindingEligibility", () => ({
+    annotateDetectedViolationsEligibility: (violations: unknown[]) => violations,
+  }));
   vi.doMock("../../helpers/violationRuleEvidence", () => ({
     enrichDetectedViolationsRuleEvidence: (violations: unknown[]) => violations,
-    filterViolationsWithLocalAuthorityLinks: (violations: unknown[]) => violations,
     enrichDetectedViolationDefensibilityMetadata: (violation: any) => violation,
     enrichDetectedViolationsDefensibilityMetadata: (violations: unknown[]) => violations,
     getDeterministicViolationStatutoryBasis: () => "FCRA 1681s-2",

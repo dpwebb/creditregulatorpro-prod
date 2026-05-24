@@ -64,11 +64,11 @@ import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { executeActiveRules } from "./dynamicRuleExecutor";
 import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 import { applyViolationCorrectionTruthLayer } from "./violationCorrectionRetrieval";
+import { annotateDetectedViolationsEligibility } from "./complianceFindingEligibility";
 import {
   enrichDetectedViolationDefensibilityMetadata,
   enrichDetectedViolationsDefensibilityMetadata,
   enrichDetectedViolationsRuleEvidence,
-  filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
 } from "./violationRuleEvidence";
 import {
@@ -444,6 +444,9 @@ export async function scanForViolations(
       filteredCount++;
       return false;
     }
+
+    if (!v.technicalDetails) v.technicalDetails = {};
+    v.technicalDetails.complianceConfidenceThreshold = config.confidenceThreshold;
     
     return true;
   });
@@ -484,20 +487,20 @@ export async function scanForViolations(
 
   const truthLayerViolations = await applyViolationCorrectionTruthLayer(finalViolations, tradeline);
   const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(truthLayerViolations, evidenceLocationContext);
-  const authorityLinkedViolations = filterViolationsWithLocalAuthorityLinks(ruleLinkedViolations);
   const confidenceAnnotatedViolations =
     parserConfidenceGate && parserConfidenceGate.status !== "unknown"
-      ? authorityLinkedViolations.map((violation) => ({
+      ? ruleLinkedViolations.map((violation) => ({
           ...violation,
           technicalDetails: {
             ...violation.technicalDetails,
             extractionConfidenceGate: parserConfidenceGate,
           },
         }))
-      : authorityLinkedViolations;
+      : ruleLinkedViolations;
+  const eligibilityAnnotatedViolations = annotateDetectedViolationsEligibility(confidenceAnnotatedViolations);
 
   return normalizeDetectedViolations(
-    enrichDetectedViolationsDefensibilityMetadata(confidenceAnnotatedViolations, {
+    enrichDetectedViolationsDefensibilityMetadata(eligibilityAnnotatedViolations, {
       userStatus: "active",
     }),
   );
@@ -642,7 +645,7 @@ export async function persistViolations(
   }
 
   const normalizedViolations = normalizeDetectedViolations(
-    filterViolationsWithLocalAuthorityLinks(enrichDetectedViolationsRuleEvidence(violations, evidenceLocationContext)),
+    annotateDetectedViolationsEligibility(enrichDetectedViolationsRuleEvidence(violations, evidenceLocationContext)),
   );
 
   if (normalizedViolations.length === 0) {

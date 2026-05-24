@@ -343,8 +343,23 @@ function valueFromTradeline(row: PacketConsumerDisputedItemSource, fieldName: st
   return null;
 }
 
-function issueTypeForRow(row: PacketConsumerDisputedItemSource): string {
-  return firstKnownText([row.issueViolationCategory, row.issueDisputeVector]) ?? "reporting_issue";
+function consumerIssueIntentFromDetails(details: Record<string, unknown>): string | null {
+  const eligibility = objectValue(details.findingEligibility);
+  return firstKnownText([
+    eligibility ? firstText(eligibility, ["consumerDisputeIntent", "consumerLabel", "findingKind"]) : null,
+    firstText(details, ["consumerDisputeIntent", "consumerLabel", "findingKind"]),
+  ]);
+}
+
+function issueTypeForRow(
+  row: PacketConsumerDisputedItemSource,
+  details: Record<string, unknown> = parseDetails(row.issueTechnicalDetails),
+): string {
+  return firstKnownText([
+    consumerIssueIntentFromDetails(details),
+    row.issueDisputeVector,
+    row.issueViolationCategory,
+  ]) ?? "reporting_issue";
 }
 
 function evidenceReferenceForRow(row: PacketConsumerDisputedItemSource, details: Record<string, unknown>): string {
@@ -897,14 +912,19 @@ function rowHasCollectionRecipient(row: IssueRow): boolean {
 
 function packetTypesForRow(row: IssueRow): DisputePacketType[] {
   const types: DisputePacketType[] = ["credit_bureau"];
-  const issueType = issueTypeForRow(row).toUpperCase();
+  const issueType = issueTypeForRow(row, parseDetails(row.issueTechnicalDetails)).toUpperCase();
+  const rawIssueType = firstKnownText([row.issueViolationCategory, row.issueDisputeVector])?.toUpperCase() ?? "";
   if (
     rowHasCollectionRecipient(row) &&
     (row.isCollectionAccount === true ||
       issueType.includes("COLLECTOR") ||
       issueType.includes("COLLECTION") ||
       issueType.includes("PHANTOM_DEBT") ||
-      issueType.includes("MULTIPLE_COLLECTOR"))
+      issueType.includes("MULTIPLE_COLLECTOR") ||
+      rawIssueType.includes("COLLECTOR") ||
+      rawIssueType.includes("COLLECTION") ||
+      rawIssueType.includes("PHANTOM_DEBT") ||
+      rawIssueType.includes("MULTIPLE_COLLECTOR"))
   ) {
     types.push("collection_agency");
   }
@@ -1225,14 +1245,14 @@ function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit
     creditorCollectorName: redactSensitiveText(creditorCollectorName),
     collectionAgencyName: row.collectionAgencyName ? redactSensitiveText(row.collectionAgencyName) : null,
     maskedAccountNumber: maskAccountNumber(row.accountNumber),
-    issueType: labelizeIssueType(issueTypeForRow(row)),
+    issueType: labelizeIssueType(issueTypeForRow(row, details)),
     explanation: redactSensitiveText(
       sanitizeComplianceNeutralText(row.issueUserExplanation ?? row.issueRecommendedAction) ??
         "Review this account information against the source report.",
       row.accountNumber,
     ),
     evidenceReference,
-    requestedAction: actionForIssue(issueTypeForRow(row), packetType, {
+    requestedAction: actionForIssue(issueTypeForRow(row, details), packetType, {
       disputedField: fieldName ? formatPacketFieldLabel(fieldName) : null,
       violationCategory: row.issueViolationCategory,
       disputeVector: row.issueDisputeVector,
@@ -1253,7 +1273,7 @@ function consumerDisputeReasonForRow(row: PacketConsumerDisputedItemSource, pack
     packetType === "collection_agency"
       ? firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]) ?? "this collection account"
       : firstKnownText([row.creditorName, row.originalCreditorName, row.collectionAgencyName]) ?? "this account";
-  const issueLabel = labelizeIssueType(issueTypeForRow(row)).toLowerCase();
+  const issueLabel = labelizeIssueType(issueTypeForRow(row, parseDetails(row.issueTechnicalDetails))).toLowerCase();
 
   if (packetType === "collection_agency") {
     return `I dispute the ${issueLabel} for ${redactSensitiveText(accountName, row.accountNumber)} and am asking you to verify whether this collection account information is accurate, complete, and supported by records showing the authority to collect or report this account.`;
@@ -1278,7 +1298,7 @@ export function buildConsumerDisputedItemInput(
     "Not known";
   const creditorName = firstKnownText([row.creditorName, row.originalCreditorName, row.collectionAgencyName]);
   const collectionName = firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]);
-  const issueType = issueTypeForRow(row);
+  const issueType = issueTypeForRow(row, details);
   const evidenceReference = evidenceReferenceForRow(row, details);
   const findingReason = consumerDisputeReasonForRow(row, packetType);
   const pageNumber = Number(evidence?.pageNumber ?? evidence?.page ?? details.pageNumber ?? details.page);

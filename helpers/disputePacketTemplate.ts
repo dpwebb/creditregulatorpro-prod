@@ -209,11 +209,23 @@ export function formatPacketDate(value: Date | string | null | undefined): strin
 
 export function labelizeIssueType(value: string | null | undefined): string {
   if (!hasText(value)) return "Reporting issue";
-  return value
+  const normalized = value
     .trim()
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
-    .toLowerCase()
+    .toLowerCase();
+
+  if (/documentation chain failure|verification integrity failure/.test(normalized)) {
+    return "Verification issue";
+  }
+  if (/chain integrity concern/.test(normalized)) {
+    return "Ownership or reporting support issue";
+  }
+  if (/regulatory reference|raw reference|metadata concern/.test(normalized)) {
+    return "Reporting review detail";
+  }
+
+  return normalized
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
@@ -322,6 +334,12 @@ function consumerSafeFindingText(
   if (options.rejectLowValueReason && isLowValueReasonText(neutral)) return null;
 
   let output = safeLetterText(neutral, accountNumber)
+    .replace(/\bDocumentation Chain Failure\b/gi, "verification issue")
+    .replace(/\bVerification Integrity Failure\b/gi, "verification issue")
+    .replace(/\bRegulatory Reference\b/gi, "reporting reference")
+    .replace(/\bChain Integrity Concern\b/gi, "ownership or reporting support issue")
+    .replace(/\bRaw reference\b/gi, "supporting reference")
+    .replace(/\bMetadata concern\b/gi, "supporting detail")
     .replace(/\b[A-Z]{2,}(?:_[A-Z0-9]+)+\b/g, "the applicable reporting reference")
     .replace(/\b(?:PIPEDA|FCRA)\b/gi, "the applicable reporting reference")
     .replace(/\blegal action\b/gi, "reporting review")
