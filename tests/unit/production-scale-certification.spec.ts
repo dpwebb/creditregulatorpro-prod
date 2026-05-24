@@ -316,8 +316,10 @@ describe("production-scale certification report", () => {
     expect(packageJson.scripts.lint).toContain("No lint infrastructure is configured");
     expect(packageJson.scripts.lint).toContain("process.exit(1)");
     expect(packageJson.scripts.check).toContain("pnpm run typecheck");
+    expect(packageJson.scripts.check).toContain("pnpm run test:golden-path");
     expect(packageJson.scripts.check).toContain("pnpm run test:unit:check");
     expect(packageJson.scripts["test:unit:check"]).toContain("--testTimeout=60000");
+    expect(packageJson.scripts["test:unit:check"]).toContain("--exclude tests/golden-path/**");
     expect(packageJson.scripts["test:unit:check"]).toContain("tests/api/response-processing-queue.spec.ts");
     expect(packageJson.scripts["test:unit:check"]).toContain("tests/api/ingest-processing-worker.spec.ts");
   });

@@ -475,7 +475,6 @@ jobs:
             pnpm install --frozen-lockfile
             pnpm run storage:durability-contract -- --environment staging --compose docker-compose.yml --service creditregulatorpro-staging --preflight --no-write-evidence
             pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence
-            pnpm run build
 
             cleanup_staging_container() {
               docker compose rm -sf creditregulatorpro-staging 2>/dev/null || true
@@ -569,7 +568,6 @@ jobs:
                 pnpm install --frozen-lockfile
                 pnpm run storage:durability-contract -- --environment staging --compose docker-compose.yml --service creditregulatorpro-staging --preflight --no-write-evidence
                 pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence
-                pnpm run build
                 cleanup_staging_container
                 docker compose up -d --build --force-recreate creditregulatorpro-staging creditregulatorpro-staging-ingest-worker
               ); then

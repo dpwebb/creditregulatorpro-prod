@@ -18,6 +18,15 @@ describe("staging deploy workflow health gate", () => {
     expect(workflow).not.toContain("--remove-orphans");
   });
 
+  it("uses Docker as the staging deploy build gate without a duplicate host build", () => {
+    const workflow = workflowSource();
+
+    expect(workflow).toContain("Build + internal regression checks");
+    expect(workflow).toContain("run: pnpm run check");
+    expect(workflow).toContain("docker compose up -d --build --force-recreate creditregulatorpro-staging");
+    expect(workflow).not.toContain("pnpm run build");
+  });
+
   it("fails fast on unsupported Vite NODE_ENV production entries without mutating env files", () => {
     const source = workflowSource();
     const driftBlock = source.match(/assert_no_unsupported_vite_node_env\(\) \{[\s\S]*?\n            \}/)?.[0] ?? "";
