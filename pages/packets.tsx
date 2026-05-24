@@ -6,6 +6,7 @@ import {
   usePacketList,
   useDeletePacket,
   usePacketRecommendations,
+  usePacketReadiness,
 } from "../helpers/packetQueries";
 import { useUpdatePacketStatus } from "../helpers/useUpdatePacketStatus";
 import { Button } from "../components/Button";
@@ -34,7 +35,11 @@ import { useResponseDocuments } from "../helpers/responseDocumentQueries";
 import type { OutputType as ResponseListOutput } from "../endpoints/responses/list_GET.schema";
 import { Link, useSearchParams } from "react-router-dom";
 import type { DisputePacketType } from "../helpers/disputePacketTemplate";
-import type { DisputePacketCandidate } from "../helpers/disputePacketService";
+import type {
+  DisputePacketCandidate,
+  PacketReadinessReasonCode,
+  PacketReadinessResult,
+} from "../helpers/disputePacketService";
 import type { SimpleDisputePacketContent } from "../helpers/disputePacketTemplate";
 import { buildPacketPreviewDisplayContent, type PacketPreviewDisplayContent } from "../helpers/packetPreviewDisplay";
 import styles from "./packets.module.css";
@@ -44,6 +49,99 @@ export function parseInitialPacketIssueId(searchParams: URLSearchParams): number
   if (issueIdParam === null) return null;
   const parsedIssueId = Number(issueIdParam);
   return Number.isInteger(parsedIssueId) && parsedIssueId > 0 ? parsedIssueId : null;
+}
+
+type PacketReviewStep = {
+  needed: string;
+  reviewer: string;
+  completion: string;
+};
+
+const DEFAULT_PACKET_REVIEW_STEP: PacketReviewStep = {
+  needed: "This problem needs review before a letter can be created.",
+  reviewer: "You or support can review the account details.",
+  completion: "Open the account details, confirm the source-report evidence supports the problem, then verify the problem.",
+};
+
+function packetReviewStepForReason(code: PacketReadinessReasonCode | string | null | undefined): PacketReviewStep {
+  switch (code) {
+    case "MISSING_REQUIRED_EVIDENCE":
+      return {
+        needed: "Source-report evidence needs to be linked to this problem.",
+        reviewer: "You or support can review the account details.",
+        completion: "Open the account, confirm the report section that supports the problem, then verify the problem.",
+      };
+    case "NEEDS_USER_REVIEW":
+    case "MANUAL_REVIEW_REQUIRED":
+      return {
+        needed: "The problem needs to be confirmed before a letter is created.",
+        reviewer: "You can review it; support can help if the evidence is unclear.",
+        completion: "Review the source-report evidence and verify the problem, or dismiss it if it is not correct.",
+      };
+    case "PARSER_UNCERTAIN":
+    case "EXTRACTION_CONFIDENCE_NOT_READY":
+      return {
+        needed: "The report text extraction needs review.",
+        reviewer: "Support needs to review the extracted account details.",
+        completion: "Support corrects or approves the extracted details, then the problem can be verified for letter creation.",
+      };
+    case "PACKET_TYPE_UNAVAILABLE":
+    case "COLLECTION_AGENCY_REQUIRED":
+    case "RECIPIENT_BUREAU_MISMATCH":
+      return {
+        needed: "This letter type does not match the selected problem.",
+        reviewer: "No evidence review is needed.",
+        completion: "Switch to the matching letter type or select a different problem.",
+      };
+    case "DISMISSED_FINDING":
+      return {
+        needed: "This problem was dismissed.",
+        reviewer: "You or support can review whether it should be restored.",
+        completion: "Restore and verify the problem before creating a letter.",
+      };
+    case "FINDING_NOT_FOUND":
+    case "UNAUTHORIZED_FINDING":
+      return {
+        needed: "This problem is not available for your account.",
+        reviewer: "Support can review access if you believe this is wrong.",
+        completion: "Return to the account page and choose an active problem, or contact support.",
+      };
+    case "MIXED_OWNER_SELECTION":
+    case "MIXED_TRADELINE_SELECTION":
+    case "MIXED_BUREAU_SELECTION":
+      return {
+        needed: "The selected problems cannot be combined in one letter.",
+        reviewer: "No evidence review is needed.",
+        completion: "Create one letter per account, person, and bureau.",
+      };
+    case "WEAK_PACKET_NARRATIVE":
+      return {
+        needed: "The letter reason needs a clearer plain-language explanation.",
+        reviewer: "Support can review the problem description.",
+        completion: "Update the problem description so the letter can clearly explain what should be investigated.",
+      };
+    default:
+      return DEFAULT_PACKET_REVIEW_STEP;
+  }
+}
+
+function packetReviewStepsForReadiness(readiness: PacketReadinessResult | undefined): PacketReviewStep[] {
+  const codes = [
+    ...(readiness?.blockers ?? []).map((blocker) => blocker.code),
+    ...(readiness?.reasonCodes ?? []),
+  ];
+  const steps = codes.map(packetReviewStepForReason);
+  const uniqueSteps: PacketReviewStep[] = [];
+  const seen = new Set<string>();
+
+  for (const step of steps) {
+    const key = `${step.needed}|${step.reviewer}|${step.completion}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueSteps.push(step);
+  }
+
+  return uniqueSteps.length > 0 ? uniqueSteps : [DEFAULT_PACKET_REVIEW_STEP];
 }
 
 type ResponseTimelineItem = ResponseListOutput["responses"][number];
@@ -390,7 +488,7 @@ export default function PacketsPage() {
             <>
               <strong>Packet readiness and PDF rendering follow limited beta constraints.</strong>
               <span>
-                {FRONTEND_LIMITED_BETA_READINESS.notReady} Packet creation stays gated by verified source-report evidence and readiness blockers.
+                {FRONTEND_LIMITED_BETA_READINESS.notReady} Letter creation stays gated by verified source-report evidence and readiness review rules.
               </span>
               <span>
                 Packet PDFs may render on first open/download and reuse cached output when packet content is unchanged; render/download failures remain visible here and in operator dashboard metrics.
@@ -400,7 +498,7 @@ export default function PacketsPage() {
             <>
               <strong>Your letters are ready to review under limited beta safeguards.</strong>
               <span>
-                Packet creation stays gated by verified source-report evidence and readiness blockers.
+                Letters can be created only for problems with verified source-report evidence.
               </span>
               <span>
                 Open a letter to review it, then download, print, or send it when you are satisfied with the contents.
@@ -777,6 +875,28 @@ function CreatePacketDialog({
     return Object.keys(cleaned).length > 0 ? cleaned : undefined;
   };
 
+  const originatingReadinessInput = React.useMemo(() => ({
+    packetType,
+    selectedIssueIds: initialIssueId ? [initialIssueId] : [],
+    recipient: normalizedRecipient(),
+  }), [
+    initialIssueId,
+    packetType,
+    recipient.addressLine1,
+    recipient.addressLine2,
+    recipient.city,
+    recipient.name,
+    recipient.postalCode,
+    recipient.province,
+  ]);
+  const originatingReadiness = usePacketReadiness(originatingReadinessInput, {
+    enabled: open && initialIssueReadinessMessage && !!initialIssueId,
+  });
+  const originatingReviewSteps = React.useMemo(
+    () => packetReviewStepsForReadiness(originatingReadiness.data),
+    [originatingReadiness.data],
+  );
+
   const buildInput = () => ({
     packetType,
     selectedIssueIds: isOriginatingIssueMode && originatingCandidate
@@ -821,7 +941,7 @@ function CreatePacketDialog({
           <DialogDescription>
             {isOriginatingIssueMode
               ? "Create one letter for this problem only, preview it if needed, then generate the PDF."
-              : "Select packet-ready report findings, preview the plain-language packet if needed, then generate the PDF."}
+              : "Select report problems that are ready for a letter, preview the plain-language packet if needed, then generate the PDF."}
           </DialogDescription>
         </DialogHeader>
 
@@ -900,13 +1020,28 @@ function CreatePacketDialog({
               <h3>{isOriginatingIssueMode ? "Selected Problem" : "Disputed Items"}</h3>
               <span>
                 {isOriginatingIssueMode
-                  ? originatingCandidate ? "1 letter" : "Not ready"
+                  ? originatingCandidate ? "1 letter" : "Needs review"
                   : `${selectedIssueIds.size} selected`}
               </span>
             </div>
             {initialIssueReadinessMessage && (
               <div className={styles.originatingFindingNotice}>
-                This finding is not packet-ready yet. Review the readiness blockers before creating a packet.
+                <p>This problem needs review before a letter can be created.</p>
+                {originatingReadiness.isFetching ? (
+                  <p>Checking what needs review...</p>
+                ) : originatingReadiness.error ? (
+                  <p>Open the account details, confirm the source-report evidence, then try creating the letter again.</p>
+                ) : (
+                  <ul className={styles.originatingReviewList}>
+                    {originatingReviewSteps.map((step) => (
+                      <li key={`${step.needed}-${step.reviewer}`} className={styles.originatingReviewStep}>
+                        <span><strong>What needs review:</strong> {step.needed}</span>
+                        <span><strong>Who reviews it:</strong> {step.reviewer}</span>
+                        <span><strong>How to complete it:</strong> {step.completion}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             {recommendations.isFetching ? (
@@ -930,7 +1065,7 @@ function CreatePacketDialog({
                 </div>
               ) : null
             ) : candidates.length === 0 ? (
-              <div className={styles.builderState}>No packet-ready findings found for this packet type. Review blocked findings before creating a packet.</div>
+              <div className={styles.builderState}>No problems are ready for this letter type yet. Try another letter type or review the account details for missing evidence.</div>
             ) : (
               <div className={styles.candidateList}>
                 {candidates.map((candidate) => (
@@ -967,7 +1102,7 @@ function CreatePacketDialog({
               <div className={styles.builderState}>
                 {isOriginatingIssueMode
                   ? "Preview this letter, or generate the PDF directly for the selected problem."
-                  : "Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings."}
+                  : "Select one or more items to preview the letter, or generate the PDF directly from selected problems."}
               </div>
             ) : (
               previewDisplay ? (
