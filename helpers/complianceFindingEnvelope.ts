@@ -1,0 +1,429 @@
+import type { Selectable } from "kysely";
+
+import type { DetectedViolation } from "./complianceDetectorTypes";
+import {
+  disputeLetterReasonKeyFor,
+  plainDisputeLetterReasonFor,
+  type PlainDisputeLetterReasonKey,
+} from "./disputeLetterReason";
+import type {
+  CreditorObligationTest,
+  ValidationSeverity,
+  ViolationCategory,
+} from "./schema";
+import {
+  evaluateViolationPacketConfidenceGate,
+  type ParserConfidenceGateStatus,
+  type ViolationPacketGateBlockerCode,
+} from "./violationPacketConfidenceGate";
+
+export type ComplianceFindingSourceType =
+  | "detected_violation"
+  | "creditor_obligation_test"
+  | "unknown";
+
+export type ComplianceFindingActor = "BUREAU" | "CREDITOR" | "COLLECTOR" | string;
+
+export interface ComplianceFindingEvidence {
+  hasEvidenceLink: boolean;
+  evidenceIds: string[];
+  sourceFields: string[];
+  evidenceLink: Record<string, unknown> | null;
+  evidenceLocations: Record<string, unknown>[];
+}
+
+export interface ComplianceFindingEvidenceQuality {
+  hasEvidence: boolean;
+  hasEvidenceLocation: boolean;
+  needsManualReview: boolean;
+  reasonCodes: string[];
+}
+
+export interface ComplianceFindingReadiness {
+  packetReady: boolean;
+  status: ParserConfidenceGateStatus;
+  blockerCode: ViolationPacketGateBlockerCode | null;
+  confidenceScore: number | null;
+  message: string;
+  reasonCodes: string[];
+}
+
+export interface ComplianceFindingStatus {
+  userStatus: string | null;
+  validationStatus: string | null;
+  obligationState: string | null;
+  packetGateStatus: ParserConfidenceGateStatus;
+}
+
+export interface ComplianceFindingEnvelope<TSource = unknown> {
+  findingId: number | null;
+  tradelineId: number | null;
+  bureau: string | null;
+  actor: ComplianceFindingActor | null;
+  category: ViolationCategory | string | null;
+  technicalRuleId: string | null;
+  severity: ValidationSeverity | string | null;
+  confidenceScore: number | null;
+  status: ComplianceFindingStatus;
+  evidence: ComplianceFindingEvidence;
+  evidenceQuality: ComplianceFindingEvidenceQuality;
+  regulationReferences: Array<Record<string, unknown> | string>;
+  readiness: ComplianceFindingReadiness;
+  externalReasonKey: PlainDisputeLetterReasonKey;
+  plainLanguageReason: string;
+  technicalDetails: Record<string, unknown>;
+  sourceType: ComplianceFindingSourceType;
+  sourceFinding: TSource;
+}
+
+export interface ComplianceFindingEnvelopeContext {
+  findingId?: unknown;
+  tradelineId?: unknown;
+  bureau?: unknown;
+  actor?: unknown;
+  userStatus?: unknown;
+  validationStatus?: unknown;
+  obligationState?: unknown;
+}
+
+export type CreditorObligationTestFindingSource = Partial<Selectable<CreditorObligationTest>> & {
+  bureauName?: string | null;
+  actor?: string | null;
+  responsibleEntity?: string | null;
+};
+
+const MANUAL_REVIEW_TEXT = "needs manual review";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function recordOrEmpty(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function textOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text ? text : null;
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(String(value).replace(/[$,\s]/g, ""));
+  if (!Number.isFinite(parsed)) return null;
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+}
+
+function positiveIntegerOrNull(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function firstText(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = textOrNull(value);
+    if (text) return text;
+  }
+  return null;
+}
+
+function firstNumber(...values: unknown[]): number | null {
+  for (const value of values) {
+    const number = numberOrNull(value);
+    if (number !== null) return number;
+  }
+  return null;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.map(textOrNull).filter((item): item is string => Boolean(item))));
+}
+
+function collectStringValues(records: unknown[], keys: string[]): string[] {
+  const values = records.flatMap((record) => {
+    if (!isRecord(record)) return [];
+    return keys.flatMap((key) => {
+      const value = record[key];
+      return Array.isArray(value) ? value : [value];
+    });
+  });
+  return Array.from(new Set(values.map(textOrNull).filter((item): item is string => Boolean(item))));
+}
+
+function technicalRuleId(details: Record<string, unknown>): string | null {
+  const deterministicRule = recordOrEmpty(details.deterministicRule);
+  return firstText(
+    details.deterministicRuleId,
+    details.detectorRuleId,
+    details.runtimeRuleId,
+    details.ruleId,
+    deterministicRule.ruleId,
+    details.ruleName,
+  );
+}
+
+function evidenceLink(details: Record<string, unknown>): Record<string, unknown> | null {
+  const direct = recordOrEmpty(details.evidenceLink);
+  if (Object.keys(direct).length > 0) return direct;
+  const deterministicRule = recordOrEmpty(details.deterministicRule);
+  const deterministicEvidence = recordOrEmpty(deterministicRule.evidence);
+  return Object.keys(deterministicEvidence).length > 0 ? deterministicEvidence : null;
+}
+
+function evidenceIds(details: Record<string, unknown>, link: Record<string, unknown> | null): string[] {
+  return collectStringValues([details, link], ["evidenceIds", "evidenceId", "canonicalEvidenceId"]);
+}
+
+function sourceFields(details: Record<string, unknown>, link: Record<string, unknown> | null): string[] {
+  return collectStringValues(
+    [details, link],
+    ["sourceFields", "sourceField", "canonicalField", "fieldName", "field", "disputedField"],
+  );
+}
+
+function evidenceLocations(details: Record<string, unknown>, link: Record<string, unknown> | null): Record<string, unknown>[] {
+  const candidates = [
+    details.evidenceLocation,
+    details.evidenceLocations,
+    link?.evidenceLocation,
+    link?.evidenceLocations,
+  ];
+
+  return candidates
+    .flatMap((candidate) => (Array.isArray(candidate) ? candidate : [candidate]))
+    .filter(isRecord);
+}
+
+function hasMeaningfulEvidence(link: Record<string, unknown> | null, ids: string[], locations: Record<string, unknown>[]): boolean {
+  if (ids.length > 0 || locations.length > 0) return true;
+  if (!link) return false;
+  return Boolean(
+    textOrNull(link.evidenceId) ||
+      textOrNull(link.fieldName) ||
+      textOrNull(link.field) ||
+      textOrNull(link.textSnippet) ||
+      textOrNull(link.sourceField) ||
+      positiveIntegerOrNull(link.reportArtifactId) ||
+      positiveIntegerOrNull(link.pageNumber),
+  );
+}
+
+function normalizeRegulationReferences(details: Record<string, unknown>): Array<Record<string, unknown> | string> {
+  const references = Array.isArray(details.regulationReferences)
+    ? details.regulationReferences
+    : [];
+  const ids = asStringArray(details.regulationIds);
+
+  return [
+    ...references.filter((ref): ref is Record<string, unknown> | string => isRecord(ref) || typeof ref === "string"),
+    ...ids,
+  ];
+}
+
+function readinessFromDetails(input: {
+  technicalDetails: Record<string, unknown>;
+  validationStatus?: unknown;
+  userStatus?: unknown;
+  missingEvidence: boolean;
+}): ComplianceFindingReadiness {
+  const gate = evaluateViolationPacketConfidenceGate({
+    technicalDetails: input.technicalDetails,
+    validationStatus: textOrNull(input.validationStatus),
+    userStatus: textOrNull(input.userStatus),
+  });
+  const defensibility = recordOrEmpty(input.technicalDetails.defensibility);
+  const packetEligibility = recordOrEmpty(defensibility.packetEligibility);
+  const reasonCodes = [
+    ...asStringArray(packetEligibility.reasonCodes),
+    ...(input.missingEvidence ? ["MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED"] : []),
+    ...(gate.blockerCode === "parser_uncertain" ? ["PARSER_UNCERTAIN"] : []),
+    ...(gate.blockerCode === "violation_needs_review" ? ["NEEDS_USER_REVIEW"] : []),
+  ];
+
+  return {
+    packetReady: gate.packetReady && !input.missingEvidence,
+    status: gate.status,
+    blockerCode: gate.blockerCode,
+    confidenceScore: gate.confidenceScore,
+    message: gate.message,
+    reasonCodes: Array.from(new Set(reasonCodes)),
+  };
+}
+
+function externalReasonInput(input: {
+  category?: unknown;
+  recommendedAction?: unknown;
+  technicalDetails: Record<string, unknown>;
+}) {
+  return {
+    issueType: textOrNull(input.category),
+    requestedAction: textOrNull(input.recommendedAction),
+    disputedField: firstText(
+      input.technicalDetails.fieldName,
+      input.technicalDetails.canonicalField,
+      input.technicalDetails.field,
+      input.technicalDetails.sourceField,
+      input.technicalDetails.disputedField,
+    ),
+  };
+}
+
+function makeEnvelope<TSource>(input: {
+  sourceFinding: TSource;
+  sourceType: ComplianceFindingSourceType;
+  findingId?: unknown;
+  tradelineId?: unknown;
+  bureau?: unknown;
+  actor?: unknown;
+  category?: unknown;
+  technicalDetails?: unknown;
+  severity?: unknown;
+  confidenceScore?: unknown;
+  userStatus?: unknown;
+  validationStatus?: unknown;
+  obligationState?: unknown;
+  recommendedAction?: unknown;
+}): ComplianceFindingEnvelope<TSource> {
+  const technicalDetails = recordOrEmpty(input.technicalDetails);
+  const link = evidenceLink(technicalDetails);
+  const ids = evidenceIds(technicalDetails, link);
+  const fields = sourceFields(technicalDetails, link);
+  const locations = evidenceLocations(technicalDetails, link);
+  const hasEvidence = hasMeaningfulEvidence(link, ids, locations);
+  const needsManualReview = !hasEvidence;
+  const readiness = readinessFromDetails({
+    technicalDetails,
+    validationStatus: input.validationStatus,
+    userStatus: input.userStatus,
+    missingEvidence: needsManualReview,
+  });
+  const reasonInput = externalReasonInput({
+    category: input.category,
+    recommendedAction: input.recommendedAction,
+    technicalDetails,
+  });
+  const externalReasonKey = disputeLetterReasonKeyFor(reasonInput);
+
+  return {
+    findingId: positiveIntegerOrNull(input.findingId),
+    tradelineId: positiveIntegerOrNull(input.tradelineId),
+    bureau: textOrNull(input.bureau),
+    actor: firstText(input.actor, technicalDetails.responsibleEntity) as ComplianceFindingActor | null,
+    category: textOrNull(input.category),
+    technicalRuleId: technicalRuleId(technicalDetails),
+    severity: textOrNull(input.severity),
+    confidenceScore: firstNumber(input.confidenceScore),
+    status: {
+      userStatus: textOrNull(input.userStatus),
+      validationStatus: textOrNull(input.validationStatus),
+      obligationState: textOrNull(input.obligationState),
+      packetGateStatus: readiness.status,
+    },
+    evidence: {
+      hasEvidenceLink: Boolean(link),
+      evidenceIds: ids,
+      sourceFields: fields,
+      evidenceLink: link,
+      evidenceLocations: locations,
+    },
+    evidenceQuality: {
+      hasEvidence,
+      hasEvidenceLocation: locations.length > 0,
+      needsManualReview,
+      reasonCodes: needsManualReview ? ["MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED"] : [],
+    },
+    regulationReferences: normalizeRegulationReferences(technicalDetails),
+    readiness,
+    externalReasonKey,
+    plainLanguageReason: plainDisputeLetterReasonFor(reasonInput),
+    technicalDetails,
+    sourceType: input.sourceType,
+    sourceFinding: input.sourceFinding,
+  };
+}
+
+export function fromDetectedViolation(
+  violation: DetectedViolation,
+  context: ComplianceFindingEnvelopeContext = {},
+): ComplianceFindingEnvelope<DetectedViolation> {
+  return makeEnvelope({
+    sourceFinding: violation,
+    sourceType: "detected_violation",
+    findingId: context.findingId,
+    tradelineId: context.tradelineId ?? violation.tradelineId,
+    bureau: context.bureau,
+    actor: context.actor ?? violation.responsibleEntity,
+    category: violation.violationCategory,
+    technicalDetails: violation.technicalDetails,
+    severity: violation.severity,
+    confidenceScore: violation.confidenceScore,
+    userStatus: context.userStatus,
+    validationStatus: context.validationStatus,
+    obligationState: context.obligationState,
+    recommendedAction: violation.recommendedAction,
+  });
+}
+
+export function fromCreditorObligationTest(
+  finding: CreditorObligationTestFindingSource,
+  context: ComplianceFindingEnvelopeContext = {},
+): ComplianceFindingEnvelope<CreditorObligationTestFindingSource> {
+  return makeEnvelope({
+    sourceFinding: finding,
+    sourceType: "creditor_obligation_test",
+    findingId: context.findingId ?? finding.id,
+    tradelineId: context.tradelineId ?? finding.tradelineId,
+    bureau: context.bureau ?? finding.bureauName,
+    actor: context.actor ?? finding.actor ?? finding.responsibleEntity,
+    category: finding.violationCategory,
+    technicalDetails: finding.technicalDetails,
+    severity: finding.severity,
+    confidenceScore: finding.confidenceScore,
+    userStatus: context.userStatus ?? finding.userStatus,
+    validationStatus: context.validationStatus ?? finding.validationStatus,
+    obligationState: context.obligationState ?? finding.obligationState,
+    recommendedAction: finding.recommendedAction,
+  });
+}
+
+export function safeNormalizeFindingEnvelope(
+  value: unknown,
+  context: ComplianceFindingEnvelopeContext = {},
+): ComplianceFindingEnvelope | null {
+  if (!isRecord(value)) return null;
+  if (
+    "sourceType" in value &&
+    "sourceFinding" in value &&
+    "evidence" in value &&
+    "readiness" in value
+  ) {
+    return value as unknown as ComplianceFindingEnvelope;
+  }
+
+  if ("id" in value || "userStatus" in value || "validationStatus" in value || "obligationType" in value) {
+    return fromCreditorObligationTest(value as CreditorObligationTestFindingSource, context);
+  }
+
+  if ("violationCategory" in value || "technicalDetails" in value || "confidenceScore" in value) {
+    return fromDetectedViolation(value as unknown as DetectedViolation, context);
+  }
+
+  return makeEnvelope({
+    sourceFinding: value,
+    sourceType: "unknown",
+    findingId: context.findingId,
+    tradelineId: context.tradelineId,
+    bureau: context.bureau,
+    actor: context.actor,
+    category: value.category ?? value.violationCategory,
+    technicalDetails: value.technicalDetails,
+    severity: value.severity,
+    confidenceScore: value.confidenceScore,
+    userStatus: context.userStatus ?? value.userStatus,
+    validationStatus: context.validationStatus ?? value.validationStatus,
+    obligationState: context.obligationState ?? value.obligationState,
+    recommendedAction: value.recommendedAction,
+  });
+}
