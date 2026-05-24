@@ -65,6 +65,10 @@ describe("frontend production-readiness UX constraints", () => {
     const packetPdfCacheSource = source("helpers/packetPdfCache.ts");
 
     expect(packetsSource).toContain("needs review before a letter can be created");
+    expect(packetsSource).toContain("Replies from bureaus, creditors, or collectors appear here after they are captured.");
+    expect(packetsSource).not.toContain("readiness blockers");
+    expect(packetsSource).not.toContain("Intake classification only");
+    expect(packetsSource).not.toContain("safe comparison");
     expect(packetsSource).toContain("{isAdmin ? (");
     expect(packetsSource).toContain("Packet PDFs may render on first open/download");
     expect(packetsSource).toContain(

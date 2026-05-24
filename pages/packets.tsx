@@ -176,20 +176,49 @@ function PacketRecipientFacingPreview({ content }: { content: PacketPreviewDispl
   );
 }
 
-function formatResponseEnum(value: string | null | undefined): string {
-  if (!value) return "Unknown";
-  return value.replace(/_/g, " ");
+function responseDocumentLabel(value: string | null | undefined): string {
+  const normalized = value?.toLowerCase() ?? "";
+  if (normalized.includes("bureau") && normalized.includes("email")) return "Bureau email reply";
+  if (normalized.includes("bureau")) return "Bureau reply";
+  if (normalized.includes("collector") || normalized.includes("collection")) return "Collector reply";
+  if (normalized.includes("creditor") || normalized.includes("furnisher")) return "Creditor reply";
+  return "Reply received";
 }
 
 function responseOutcomeLabel(response: ResponseTimelineItem): string {
-  if (response.latestClassification === "verified_deleted") return "Response claims deletion or removal";
-  if (response.latestClassification === "updated") return "Response claims update";
-  if (response.latestClassification === "remains") return "Response says item remains";
-  if (response.latestClassification === "unable_to_verify") return "Response says unable to verify";
-  if (response.latestClassification === "frivolous") return "Response asserts frivolous dispute";
-  if (response.latestClassification === "duplicate") return "Response asserts duplicate dispute";
-  if (response.latestClassification === "suspicious_non_compliant") return "Needs compliance review";
-  return "Manual review needed";
+  if (response.latestRequiresManualReview) return "Response needs review";
+  if (response.latestClassification === "verified_deleted") return "They report the item was deleted";
+  if (response.latestClassification === "updated") return "They report the item was updated";
+  if (response.latestClassification === "remains") return "They say the item remains";
+  if (response.latestClassification === "unable_to_verify") return "They say they could not verify it";
+  if (response.latestClassification === "frivolous") return "They questioned the dispute";
+  if (response.latestClassification === "duplicate") return "They marked the dispute as duplicate";
+  if (response.latestClassification === "suspicious_non_compliant") return "Response needs support review";
+  return "Reply received";
+}
+
+function responseNextStepText(response: ResponseTimelineItem): string {
+  if (response.latestRequiresManualReview) {
+    return "We received this reply, but it has not been matched to a clear outcome yet. Support will review it, or it can be compared with a newer credit report before the next step is recommended.";
+  }
+
+  if (response.latestClassification === "verified_deleted" || response.latestClassification === "updated") {
+    return "Review the reply and your current credit report to confirm the change appears correctly.";
+  }
+
+  if (response.latestClassification === "remains") {
+    return "Review the reply against your records. If the item still looks wrong, support can help decide the next step.";
+  }
+
+  if (response.latestClassification === "unable_to_verify") {
+    return "Review the reply and your current credit report to confirm whether the item was removed or corrected.";
+  }
+
+  if (response.latestClassification === "frivolous" || response.latestClassification === "duplicate") {
+    return "Review this reply before sending anything else; support can help decide whether a follow-up is useful.";
+  }
+
+  return "The reply has been recorded for review.";
 }
 
 function ResponseTimelinePanel({
@@ -203,12 +232,12 @@ function ResponseTimelinePanel({
 }) {
   if (isError) {
     return (
-      <section className={styles.responseTimelinePanel} aria-label="Response timeline">
+      <section className={styles.responseTimelinePanel} aria-label="Dispute replies">
         <div className={styles.responseTimelineHeader}>
           <AlertCircle size={18} />
           <div>
-            <h2>Response Timeline</h2>
-            <p>Unable to load recent response history.</p>
+            <h2>Replies Received</h2>
+            <p>Unable to load recent replies.</p>
           </div>
         </div>
       </section>
@@ -216,19 +245,19 @@ function ResponseTimelinePanel({
   }
 
   return (
-    <section className={styles.responseTimelinePanel} aria-label="Response timeline">
+    <section className={styles.responseTimelinePanel} aria-label="Dispute replies">
       <div className={styles.responseTimelineHeader}>
         <FileCheck size={18} />
         <div>
-          <h2>Response Timeline</h2>
-          <p>Recent bureau, creditor, and collector responses linked to your dispute work.</p>
+          <h2>Replies Received</h2>
+          <p>Replies from bureaus, creditors, or collectors appear here after they are captured.</p>
         </div>
       </div>
 
       {isLoading ? (
         <Skeleton className={styles.responseTimelineSkeleton} />
       ) : responses.length === 0 ? (
-        <div className={styles.responseTimelineEmpty}>Recorded responses will appear here after they are captured.</div>
+        <div className={styles.responseTimelineEmpty}>Replies will appear here after they are captured.</div>
       ) : (
         <div className={styles.responseTimelineList}>
           {responses.map((response) => (
@@ -236,21 +265,15 @@ function ResponseTimelinePanel({
               <div className={styles.responseTimelineTop}>
                 <strong>{responseOutcomeLabel(response)}</strong>
                 <Badge variant={response.latestRequiresManualReview ? "warning" : "info"}>
-                  {formatResponseEnum(response.latestExtractionSource)}
+                  {response.latestRequiresManualReview ? "Needs review" : "Recorded"}
                 </Badge>
               </div>
               <div className={styles.responseTimelineMeta}>
                 <span>{formatDateTime(response.responseReceivedAt)}</span>
-                <span>{formatResponseEnum(response.responseDocumentType)}</span>
-                <span>{Math.round(Number(response.latestClassificationConfidence ?? 0) * 100)}% confidence</span>
-                <span>Intake classification only</span>
+                <span>{responseDocumentLabel(response.responseDocumentType)}</span>
                 {response.packetId ? <span>Letter #{response.packetId}</span> : null}
               </div>
-              <p>
-                {response.latestRequiresManualReview
-                  ? "This response is unresolved and will stay in review until a safe comparison or admin review supports the next step."
-                  : "This response was classified deterministically. Packet readiness still waits for the normal evidence comparison path."}
-              </p>
+              <p><strong>Next step:</strong> {responseNextStepText(response)}</p>
             </article>
           ))}
         </div>

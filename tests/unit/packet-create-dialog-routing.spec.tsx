@@ -353,11 +353,11 @@ describe("packet create dialog routing", () => {
   it("does not render the response timeline when no response records exist", () => {
     renderPacketsPage("/packets");
 
-    expect(screen.queryByRole("region", { name: /response timeline/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Recorded responses will appear/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: /dispute replies/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Replies will appear/i)).not.toBeInTheDocument();
   });
 
-  it("renders response timeline only for existing response records with uncertainty visible", () => {
+  it("renders response replies with plain-language review guidance", () => {
     mocks.responseDocuments = [
       {
         id: 77,
@@ -373,10 +373,12 @@ describe("packet create dialog routing", () => {
 
     renderPacketsPage("/packets");
 
-    expect(screen.getByRole("region", { name: /response timeline/i })).toBeInTheDocument();
-    expect(screen.getByText("Response says item remains")).toBeInTheDocument();
-    expect(screen.getByText("83% confidence")).toBeInTheDocument();
-    expect(screen.getByText("Intake classification only")).toBeInTheDocument();
-    expect(screen.getByText(/unresolved and will stay in review/i)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /dispute replies/i })).toBeInTheDocument();
+    expect(screen.getByText("Replies Received")).toBeInTheDocument();
+    expect(screen.getByText("Response needs review")).toBeInTheDocument();
+    expect(screen.getByText("Needs review")).toBeInTheDocument();
+    expect(screen.getByText("Bureau email reply")).toBeInTheDocument();
+    expect(screen.getByText(/Support will review it, or it can be compared with a newer credit report/i)).toBeInTheDocument();
+    expect(screen.queryByText(/83% confidence|Intake classification only|deterministic|safe comparison|admin review/i)).not.toBeInTheDocument();
   });
 });
