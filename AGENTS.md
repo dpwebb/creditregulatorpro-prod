@@ -115,9 +115,14 @@ Every meaningful change must:
 - validate no regression
 - preserve existing deterministic behavior
 
-The fixed golden path must stay green before merge:
-- `pnpm run test:golden-path`
-- `pnpm run test:regression-dashboard` when a human-readable pass/fail table is needed
+Use the tiered validation commands documented in `docs/validation-tiers.md`:
+- ordinary local work: `pnpm run validate:fast`
+- changed subsystem work: `pnpm run validate:changed`
+- staging push readiness: `pnpm run validate:staging`
+- production promotion readiness: `pnpm run validate:release`
+- admin route/permission/navigation/rendering changes: `pnpm run certify:admin`
+
+The fixed golden path must stay green as part of `validate:staging` whenever protected systems change and as part of every `validate:release` run. Use `pnpm run test:regression-dashboard` when a human-readable pass/fail table is needed.
 
 The golden path covers upload payload contract, parse, canonical map, anomaly detect, violation detect, evidence bind, packet generate, and PDF download.
 
@@ -190,6 +195,7 @@ Produce an implementation plan and risk analysis instead of modifying code direc
 - Make changes in staging only
 - Default publish path is `pnpm run commit-push -- --message "<summary>"`
 - `commit-push` is the standard integrated publish command and must target `staging`
+- `commit-push` defaults to `validate:fast`; use `--local-gate changed`, `--local-gate staging`, or `--local-gate full` when the changed files require broader validation.
 - Unless the user explicitly asks to hold changes locally, run the automated commit-push flow after task changes are complete and checks pass
 - Do not add or require new secrets, tokens, deploy keys, Hostinger authentication, or GitHub authentication
 - Suggest a commit message after each task

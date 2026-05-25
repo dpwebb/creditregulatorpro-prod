@@ -18,11 +18,11 @@ describe("staging deploy workflow health gate", () => {
     expect(workflow).not.toContain("--remove-orphans");
   });
 
-  it("uses Docker as the staging deploy build gate without a duplicate host build", () => {
+  it("uses the staging validation tier before the Docker deploy build", () => {
     const workflow = workflowSource();
 
-    expect(workflow).toContain("Build + internal regression checks");
-    expect(workflow).toContain("run: pnpm run check");
+    expect(workflow).toContain("Tiered staging validation");
+    expect(workflow).toContain('run: pnpm run validate:staging -- --head "$VALIDATION_HEAD_SHA"');
     expect(workflow).toContain("docker compose up -d --build --force-recreate creditregulatorpro-staging");
     expect(workflow).not.toContain("pnpm run build");
   });

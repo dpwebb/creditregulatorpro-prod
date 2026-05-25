@@ -92,7 +92,7 @@ jobs:
           echo "approved_branch_sha=$approved_branch_sha" >> "$GITHUB_OUTPUT"
 
   check:
-    name: Build check
+    name: Tiered staging validation
     if: github.repository == 'dpwebb/creditregulatorpro-staging'
     runs-on: ubuntu-latest
     needs: resolve-target
@@ -156,8 +156,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build + internal regression checks
-        run: pnpm run check
+      - name: Tiered staging validation
+        env:
+          VALIDATION_BASE_SHA: ${{ github.event.before || '' }}
+          VALIDATION_HEAD_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: pnpm run validate:staging -- --head "$VALIDATION_HEAD_SHA"
 
   deploy:
     name: Deploy to staging server

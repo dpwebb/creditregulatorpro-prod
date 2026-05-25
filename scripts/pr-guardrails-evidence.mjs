@@ -9,20 +9,11 @@ export const PR_WORKFLOW_PATH = ".github/workflows/pr-regression-guardrails.yml"
 export const PRODUCTION_WORKFLOW_PATH = ".github/workflows/deploy-production.yml";
 
 export const CRITICAL_PR_GUARDRAIL_COMMANDS = [
-  "pnpm run test:contracts",
-  "pnpm run test:api",
-  "pnpm run test:deterministic-ingestion-report",
-  "pnpm run migrations:gate",
-  "pnpm run packet-pdf:cache-miss-proof",
-  "pnpm run test:evidence-ledger",
+  "pnpm run validate:changed",
 ];
 
 export const HEAVY_PRE_PROMOTION_COMMANDS = [
-  "pnpm run response:soak-check",
-  "pnpm run storage:durability-contract",
-  "pnpm run deploy:rollback-simulation",
-  "pnpm run production-scale:evidence",
-  "pnpm run production-scale:promotion-pack",
+  "pnpm run validate:release",
 ];
 
 const MANUAL_UI_COMMAND_PATTERNS = [
@@ -145,7 +136,9 @@ export function parseWorkflowSummary({ workflowText, workflowPath }) {
 }
 
 function containsAll(values, required) {
-  return required.every((command) => values.includes(command));
+  return required.every((command) =>
+    values.some((value) => value === command || value.startsWith(`${command} `)),
+  );
 }
 
 function commandRequiresManualUi(command) {
@@ -171,7 +164,6 @@ export function validatePrGuardrails({ prWorkflowText, productionWorkflowText })
     workflowPath: PRODUCTION_WORKFLOW_PATH,
   });
   const guardrailCommands = [
-    "pnpm run test:golden-path",
     ...CRITICAL_PR_GUARDRAIL_COMMANDS,
     ...HEAVY_PRE_PROMOTION_COMMANDS,
   ];
@@ -184,10 +176,10 @@ export function validatePrGuardrails({ prWorkflowText, productionWorkflowText })
       workflowName: productionWorkflow.name,
       jobs: productionWorkflow.jobs,
     }),
-    check("fast golden path preserved", prWorkflow.jobs.includes("golden-path") && prWorkflow.commands.includes("pnpm run test:golden-path")),
+    check("changed-area validation tier preserved", prWorkflow.jobs.includes("changed-validation") && containsAll(prWorkflow.commands, ["pnpm run validate:changed"])),
     check(
       "compliance-critical PR guardrail commands present",
-      prWorkflow.jobs.includes("compliance-critical") && containsAll(prWorkflow.commands, CRITICAL_PR_GUARDRAIL_COMMANDS),
+      prWorkflow.jobs.includes("changed-validation") && containsAll(prWorkflow.commands, CRITICAL_PR_GUARDRAIL_COMMANDS),
       {
         requiredCommands: CRITICAL_PR_GUARDRAIL_COMMANDS,
         presentCommands: prWorkflow.commands,
@@ -206,12 +198,9 @@ export function validatePrGuardrails({ prWorkflowText, productionWorkflowText })
     ),
     check(
       "production promotion workflow includes heavier checks",
-      containsAll(productionWorkflow.commands, [
-        ...CRITICAL_PR_GUARDRAIL_COMMANDS,
-        ...HEAVY_PRE_PROMOTION_COMMANDS,
-      ]),
+      containsAll(productionWorkflow.commands, HEAVY_PRE_PROMOTION_COMMANDS),
       {
-        requiredCommands: [...CRITICAL_PR_GUARDRAIL_COMMANDS, ...HEAVY_PRE_PROMOTION_COMMANDS],
+        requiredCommands: HEAVY_PRE_PROMOTION_COMMANDS,
         presentCommands: productionWorkflow.commands,
       },
     ),
@@ -263,7 +252,7 @@ export function buildPrGuardrailsEvidence({
       validation.prWorkflow,
       validation.productionWorkflow,
     ],
-    fastGoldenPathCommand: "pnpm run test:golden-path",
+    fastGoldenPathCommand: "pnpm run validate:changed",
     criticalPrGuardrailCommands: CRITICAL_PR_GUARDRAIL_COMMANDS,
     heavyPrePromotionCommands: HEAVY_PRE_PROMOTION_COMMANDS,
     noManualUiInteractionRequired: validation.checks.find((item) => item.name === "guardrail commands require no manual UI interaction")?.passed === true,

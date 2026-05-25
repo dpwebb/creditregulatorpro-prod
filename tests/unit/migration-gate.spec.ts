@@ -559,8 +559,8 @@ describe("migration gate", () => {
     expect(packageJson.scripts["migrations:gate"]).toBe("node scripts/migration-gate.mjs");
     expect(script).toContain("Migration gate is static and non-mutating");
     expect(script).not.toMatch(/from\s+["']\.\.\/helpers\/db["']/);
-    expect(promoteScript).toContain("Running migration governance production promotion gate");
-    expect(productionWorkflow).toContain("Migration governance production promotion gate");
-    expect(productionWorkflow).toContain("pnpm run migrations:gate");
+    expect(promoteScript).toContain("Running production release validation tier");
+    expect(productionWorkflow).toContain("Tiered production release validation");
+    expect(productionWorkflow).toContain("pnpm run validate:release");
   });
 });

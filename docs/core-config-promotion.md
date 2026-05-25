@@ -26,7 +26,7 @@ The snapshot also excludes local bootstrap runtime settings that must remain env
 For code-only work:
 
 ```powershell
-pnpm run check
+pnpm run validate:changed
 pnpm run commit-push -- --message "your short summary"
 ```
 
@@ -46,7 +46,7 @@ The apply command is a dry run unless `--confirm` is present. The confirmed stag
 When the core-config tooling itself or related code has changed, deploy the code first without replacing local data:
 
 ```powershell
-pnpm run check
+pnpm run validate:staging
 pnpm run commit-push -- --message "your short summary" --skip-local-refresh
 ```
 

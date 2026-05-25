@@ -44,8 +44,8 @@ function parsePositiveInteger(value, flagName) {
 
 function parseLocalGate(value, flagName) {
   const gate = String(value ?? "").trim().toLowerCase();
-  if (!["fast", "full", "none"].includes(gate)) {
-    fail(`${flagName} must be one of: fast, full, none`);
+  if (!["fast", "changed", "staging", "full", "none"].includes(gate)) {
+    fail(`${flagName} must be one of: fast, changed, staging, full, none`);
   }
   return gate;
 }
@@ -162,15 +162,26 @@ function runPnpmScript(scriptName, scriptArgs = []) {
 
 function runLocalGate() {
   if (localGate === "full") {
-    console.log("Running full local quality gate (pnpm check)...");
-    runPnpmScript("check");
+    console.log("Running full local quality gate (validate:release)...");
+    runPnpmScript("validate:release");
     return;
   }
 
   if (localGate === "fast") {
-    console.log("Running fast local quality gate (typecheck + golden path)...");
-    runPnpmScript("typecheck");
-    runPnpmScript("test:golden-path");
+    console.log("Running fast local quality gate (validate:fast)...");
+    runPnpmScript("validate:fast");
+    return;
+  }
+
+  if (localGate === "changed") {
+    console.log("Running changed-area local quality gate (validate:changed)...");
+    runPnpmScript("validate:changed");
+    return;
+  }
+
+  if (localGate === "staging") {
+    console.log("Running staging local quality gate (validate:staging)...");
+    runPnpmScript("validate:staging");
     return;
   }
 
@@ -262,10 +273,10 @@ for (let i = 0; i < args.length; i += 1) {
 
   if (arg === "--help" || arg === "-h") {
     console.log([
-      "Usage: node scripts/commit-push-staging.mjs [--message <text>] [--local-gate fast|full|none] [--refresh-local-after-push] [--skip-local-refresh] [--dry-run]",
+      "Usage: node scripts/commit-push-staging.mjs [--message <text>] [--local-gate fast|changed|staging|full|none] [--refresh-local-after-push] [--skip-local-refresh] [--dry-run]",
       "",
-      "By default the script runs a fast local gate (typecheck + golden path), verifies origin/staging, waits for GitHub Actions, and skips localhost database refresh.",
-      "Use --local-gate full when the full pnpm check must run locally before pushing.",
+      "By default the script runs validate:fast, verifies origin/staging, waits for GitHub Actions, and skips localhost database refresh.",
+      "Use --local-gate changed for related tests, --local-gate staging for staging-tier checks, or --local-gate full for release-tier checks before pushing.",
       "Use --local-gate none only when you intentionally want GitHub Actions to be the first full quality gate.",
       "Use --refresh-local-after-push when local data must be refreshed from staging after the push is verified.",
     ].join("\n"));

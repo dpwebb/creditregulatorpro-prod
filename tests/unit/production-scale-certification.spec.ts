@@ -315,9 +315,11 @@ describe("production-scale certification report", () => {
     expect(packageJson.scripts.test).toBe("pnpm run test:unit");
     expect(packageJson.scripts.lint).toContain("No lint infrastructure is configured");
     expect(packageJson.scripts.lint).toContain("process.exit(1)");
-    expect(packageJson.scripts.check).toContain("pnpm run typecheck");
-    expect(packageJson.scripts.check).toContain("pnpm run test:golden-path");
-    expect(packageJson.scripts.check).toContain("pnpm run test:unit:check");
+    expect(packageJson.scripts.check).toBe("pnpm run validate:release");
+    expect(packageJson.scripts["validate:fast"]).toBe("node scripts/validation-tier.mjs fast");
+    expect(packageJson.scripts["validate:staging"]).toBe("node scripts/validation-tier.mjs staging");
+    expect(packageJson.scripts["validate:release"]).toBe("node scripts/validation-tier.mjs release");
+    expect(packageJson.scripts["certify:admin"]).toBe("node scripts/validation-tier.mjs admin --require-admin");
     expect(packageJson.scripts["test:unit:check"]).toContain("--testTimeout=60000");
     expect(packageJson.scripts["test:unit:check"]).toContain("--exclude tests/golden-path/**");
     expect(packageJson.scripts["test:unit:check"]).toContain("tests/api/response-processing-queue.spec.ts");

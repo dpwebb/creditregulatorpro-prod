@@ -11,6 +11,6 @@ description: Use for CreditRegulatorPro dispute packet generator, packet endpoin
 4. Keep consumer wording neutral. Legal references must be framed as review references, not legal conclusions.
 5. Do not create packets for parser-uncertain or unreviewed findings unless an existing readiness gate explicitly allows it.
 6. Run:
-   - `pnpm run test:golden-path`
+   - `pnpm run validate:staging`
    - `pnpm run test:unit -- tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts`
 7. Report any packet content version, evidence, PDF, download, or lifecycle behavior changes.

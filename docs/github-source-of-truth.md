@@ -126,7 +126,7 @@ The command is a dry run by default. It verifies:
 - the local branch is clean,
 - local `HEAD` matches `origin/staging`,
 - `pnpm run check:staging-gate` passes,
-- `pnpm run check` passes,
+- `pnpm run validate:release` passes,
 - the production repository is reachable,
 - the production branch has not moved unexpectedly.
 

@@ -270,9 +270,9 @@ CreditRegulatorPro is a Canada-only credit report ingestion, compliance scanning
 
 ```bash
 pnpm install
-pnpm run typecheck
-pnpm run check
-pnpm run build
+pnpm run validate:fast
+pnpm run validate:changed
+pnpm run validate:staging
 pnpm start
 pnpm run check:source-of-truth
 pnpm run check:staging-gate
@@ -287,6 +287,7 @@ pnpm run commit-push -- --message "short summary"
 Production promotion:
 
 ```bash
+pnpm run validate:release
 pnpm run promote:production
 ```
 
@@ -308,4 +309,3 @@ Use production promotion only when explicitly approved.
 - AI Assist is diagnostic support only and must not replace deterministic truth layers.
 - Some legacy template workflows are intentionally disabled in the current build.
 - Admin operations can be destructive; verify target user/report/tradeline before reset, delete, purge, promotion, or production promotion.
-

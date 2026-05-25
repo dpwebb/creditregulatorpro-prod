@@ -23,8 +23,8 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain('git merge-base --is-ancestor "$target_sha" "origin/${APPROVED_BRANCH}"');
     expect(source).toContain("ref: ${{ needs.resolve-target.outputs.target_sha }}");
     expect(source).toContain('validation_sha="$(git rev-parse HEAD)"');
-    expect(source).toContain("Build + internal regression checks");
-    expect(source).toContain("run: pnpm run check");
+    expect(source).toContain("Tiered production release validation");
+    expect(source).toContain('run: pnpm run validate:release -- --head "$VALIDATION_HEAD_SHA"');
     expect(source).toContain("pnpm run build");
     expect(source).toContain("needs: resolve-target");
     expect(source).toContain("- resolve-target");

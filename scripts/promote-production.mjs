@@ -87,17 +87,11 @@ if (!skipStagingGate) {
   console.log("Skipping staging validation gate (--skip-staging-gate).");
 }
 
-console.log("Running migration governance production promotion gate...");
-run(process.execPath, ["scripts/migration-gate.mjs"], { stdio: "inherit" });
-
-console.log("Running production promotion evidence guard (CERTIFYING:true, canPromoteProductionAtScale:true, no open P0/P1 blockers, no stale/human-dependent proof)...");
-run(process.execPath, ["scripts/production-promotion-guard.mjs"], { stdio: "inherit" });
-
-console.log("Running build check...");
+console.log("Running production release validation tier...");
 if (process.platform === "win32") {
-  run("cmd.exe", ["/d", "/s", "/c", "pnpm run check"], { stdio: "inherit" });
+  run("cmd.exe", ["/d", "/s", "/c", "pnpm run validate:release"], { stdio: "inherit" });
 } else {
-  run("pnpm", ["run", "check"], { stdio: "inherit" });
+  run("pnpm", ["run", "validate:release"], { stdio: "inherit" });
 }
 
 console.log("Fetching production branch for comparison...");

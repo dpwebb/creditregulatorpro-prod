@@ -11,7 +11,7 @@ description: Use for bounded parser, extraction, canonical mapping, parser test 
 4. Preserve canonical output shape, replay hash behavior, source evidence, and null-overwrite rules.
 5. Update or add fixtures when parser truth changes. Prefer synthetic TransUnion/Equifax fixtures over real consumer data.
 6. Run:
-   - `pnpm run test:golden-path`
+   - `pnpm run validate:staging`
    - `pnpm run test:deterministic-ingestion-report`
    - targeted parser tests for the touched extractor or endpoint
 7. Report whether canonical truth, mappings, evidence links, violations, or packet inputs changed.

@@ -11,6 +11,7 @@ description: Use for bounded CreditRegulatorPro admin UI repairs, admin route fi
 4. If the UI writes admin-reviewed truth, require explicit tests and audit/admin review behavior.
 5. Preserve existing routing, permissions, loading/error states, and user/admin ownership boundaries.
 6. Run targeted admin UI/unit tests plus:
-   - `pnpm run test:golden-path` when the UI touches parser, evidence, violation, regulation, or packet workflows
-   - `pnpm run test:unit -- tests/unit/admin-sidebar-routes.spec.ts` for route/navigation changes
+   - `pnpm run validate:changed` for normal bounded admin UI repairs
+   - `pnpm run validate:staging` when the UI touches parser, evidence, violation, regulation, or packet workflows
+   - `pnpm run certify:admin` for route, permission, navigation, rendering, or production-critical admin flow changes
 7. Report changed admin workflows and whether any protected truth changed.

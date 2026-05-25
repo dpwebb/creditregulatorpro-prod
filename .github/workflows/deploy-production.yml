@@ -98,7 +98,7 @@ jobs:
           echo "approved_branch_sha=$approved_branch_sha" >> "$GITHUB_OUTPUT"
 
   check:
-    name: Build and regression check
+    name: Tiered production release validation
     if: github.repository == 'dpwebb/creditregulatorpro-prod'
     runs-on: ubuntu-latest
     needs: resolve-target
@@ -162,26 +162,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Migration governance production promotion gate
-        run: pnpm run migrations:gate
-
-      - name: Build + internal regression checks
-        run: pnpm run check
-
-      - name: Pre-promotion automated evidence checks
-        run: |
-          pnpm run test:contracts
-          pnpm run test:api
-          pnpm run test:deterministic-ingestion-report
-          pnpm run migrations:gate
-          pnpm run packet-pdf:cache-miss-proof
-          pnpm run test:evidence-ledger
-          pnpm run response:soak-check
-          pnpm run storage:durability-contract
-          pnpm run deploy:rollback-simulation
-          pnpm run production-scale:evidence
-          pnpm run production-scale:promotion-pack
-          pnpm run production-scale:promotion-guard
+      - name: Tiered production release validation
+        env:
+          VALIDATION_BASE_SHA: ${{ github.event.before || '' }}
+          VALIDATION_HEAD_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: pnpm run validate:release -- --head "$VALIDATION_HEAD_SHA"
 
   deploy:
     name: Deploy to production server

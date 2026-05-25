@@ -146,11 +146,6 @@ export const REQUIRED_CERTIFICATION_GATES = [
     evidencePath: MACHINE_PROOF_SUMMARY_JSON,
   },
   {
-    id: 'applicationCheck',
-    label: 'Application check',
-    command: 'pnpm run check',
-  },
-  {
     id: 'evidenceFreshness',
     label: 'Evidence freshness check',
     command: 'internal evidence freshness check',

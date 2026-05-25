@@ -322,14 +322,16 @@ describe("production promotion guard", () => {
     expect(result.reasons.map((reason) => reason.code)).toContain("unresolved-migration-allowlist");
   });
 
-  it("wires the hard guard into package scripts, local promotion, and production CI preflight", () => {
+  it("wires the hard guard into package scripts, release validation, local promotion, and production CI preflight", () => {
     const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+    const validationTierScript = readFileSync("scripts/validation-tier.mjs", "utf8");
     const promoteProductionScript = readFileSync("scripts/promote-production.mjs", "utf8");
     const productionWorkflow = readFileSync(".github/workflows/deploy-production.yml", "utf8");
 
     expect(packageJson.scripts["production-scale:promotion-guard"]).toBe("node scripts/production-promotion-guard.mjs");
-    expect(promoteProductionScript).toContain("scripts/production-promotion-guard.mjs");
-    expect(productionWorkflow).toContain("pnpm run production-scale:promotion-guard");
+    expect(validationTierScript).toContain("pnpm run production-scale:promotion-guard");
+    expect(promoteProductionScript).toContain("pnpm run validate:release");
+    expect(productionWorkflow).toContain("pnpm run validate:release");
   });
 
   it("loads a safe fixture pack from disk", () => {

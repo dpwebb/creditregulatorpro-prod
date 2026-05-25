@@ -15,18 +15,17 @@ const workflowSource = (name: string) =>
   readFileSync(join(process.cwd(), ".github", "workflows", name), "utf8");
 
 describe("PR regression guardrail workflow", () => {
-  it("keeps the fast golden path and includes the compliance-critical PR guardrail commands", () => {
+  it("keeps the changed-area tier and includes the compliance-critical PR guardrail command", () => {
     const report = buildPrGuardrailsEvidence({ rootDir: process.cwd(), generatedAt: "2026-05-21T12:00:00.000Z" });
     const prWorkflow = report.workflows.find((workflow: { path: string }) =>
       workflow.path.endsWith("pr-regression-guardrails.yml"),
     );
 
     expect(prWorkflow?.name).toBe("PR regression guardrails");
-    expect(prWorkflow?.jobs).toEqual(expect.arrayContaining(["golden-path", "compliance-critical"]));
+    expect(prWorkflow?.jobs).toEqual(expect.arrayContaining(["changed-validation"]));
     expect(prWorkflow?.commands).toEqual(
       expect.arrayContaining([
-        "pnpm run test:golden-path",
-        ...CRITICAL_PR_GUARDRAIL_COMMANDS,
+        expect.stringMatching(/^pnpm run validate:changed\b/),
       ]),
     );
   }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
@@ -45,13 +44,8 @@ describe("PR regression guardrail workflow", () => {
       schedule: true,
     });
     expect(prWorkflow?.jobs).toContain("pre-promotion-automated");
-    expect(prWorkflow?.commands).toEqual(expect.arrayContaining(HEAVY_PRE_PROMOTION_COMMANDS));
-    expect(productionWorkflow?.commands).toEqual(
-      expect.arrayContaining([
-        ...CRITICAL_PR_GUARDRAIL_COMMANDS,
-        ...HEAVY_PRE_PROMOTION_COMMANDS,
-      ]),
-    );
+    expect(prWorkflow?.commands).toEqual(expect.arrayContaining([expect.stringMatching(/^pnpm run validate:release\b/)]));
+    expect(productionWorkflow?.commands).toEqual(expect.arrayContaining([expect.stringMatching(/^pnpm run validate:release\b/)]));
   }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("does not require manual UI interaction for guardrail commands", () => {

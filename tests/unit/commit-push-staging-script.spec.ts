@@ -41,11 +41,14 @@ describe("staging commit-push script", () => {
     const script = source();
 
     expect(script).toContain('let localGate = "fast";');
-    expect(script).toContain("Running fast local quality gate (typecheck + golden path)...");
-    expect(script).toContain('runPnpmScript("typecheck")');
-    expect(script).toContain('runPnpmScript("test:golden-path")');
-    expect(script).toContain("Running full local quality gate (pnpm check)...");
-    expect(script).toContain('runPnpmScript("check")');
+    expect(script).toContain("Running fast local quality gate (validate:fast)...");
+    expect(script).toContain('runPnpmScript("validate:fast")');
+    expect(script).toContain("Running changed-area local quality gate (validate:changed)...");
+    expect(script).toContain('runPnpmScript("validate:changed")');
+    expect(script).toContain("Running staging local quality gate (validate:staging)...");
+    expect(script).toContain('runPnpmScript("validate:staging")');
+    expect(script).toContain("Running full local quality gate (validate:release)...");
+    expect(script).toContain('runPnpmScript("validate:release")');
     expect(script).toContain('arg === "--local-gate"');
     expect(script).toContain('arg === "--full-check"');
 

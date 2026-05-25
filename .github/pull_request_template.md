@@ -1,7 +1,8 @@
 ## Regression Guardrails
 
-- [ ] `pnpm run test:golden-path`
-- [ ] `pnpm run test:regression-dashboard` reviewed
+- [ ] `pnpm run validate:fast` for ordinary local changes, or `pnpm run validate:changed` for subsystem changes
+- [ ] `pnpm run validate:staging` when staging push readiness is required
+- [ ] `pnpm run certify:admin` when admin routes, permissions, navigation, rendering, or production-critical admin flows changed
 - [ ] Codex review requested or completed for regressions, missing tests, and security issues
 
 ## Protected Systems

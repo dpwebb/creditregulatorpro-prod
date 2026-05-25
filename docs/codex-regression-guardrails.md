@@ -35,15 +35,20 @@ Do not change canonical truth, parser mappings, regulation mappings, violation r
 - audit log or review trail
 - admin review path when human approval is needed
 
-## Golden Path Suite
+## Tiered Validation
 
-Run before merge:
+Use the smallest safe tier for the change:
 
 ```bash
-pnpm run test:golden-path
+pnpm run validate:fast
+pnpm run validate:changed
+pnpm run validate:staging
+pnpm run validate:release
 ```
 
-The suite uses a fixed pair of synthetic TransUnion and Equifax reports and checks:
+`validate:staging` automatically runs the golden path and full regression when protected systems change. `validate:release` always runs the full baseline and release safety gates before production promotion.
+
+The golden path uses a fixed pair of synthetic TransUnion and Equifax reports and checks:
 
 - upload payload contract
 - parse
@@ -74,4 +79,4 @@ Avoid stating that an item is a confirmed legal violation unless a reviewed auth
 
 ## PR Review
 
-Every pull request should request Codex review for regressions, missing tests, and security issues. The PR template records golden-path status, dashboard review, protected-system truth checks, and consumer wording review.
+Every pull request should request Codex review for regressions, missing tests, and security issues. The PR template records the selected validation tier, protected-system truth checks, and consumer wording review.

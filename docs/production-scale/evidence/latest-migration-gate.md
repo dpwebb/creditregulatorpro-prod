@@ -1,9 +1,9 @@
 # Migration Governance Release Gate
 
 Safety: non-mutating static source and policy validation only; no database connection, credentials, runtime DDL, or schema mutation.
-Generated at: 2026-05-23T03:23:38.662Z
+Generated at: 2026-05-25T14:54:23.660Z
 Branch: staging
-Commit: 40fd438dd95a1afeee4b6d3a471b5769a44db513
+Commit: 41603d61cf853bfb489cc1b61f9e62a49f86a9ff
 Policy: docs/production-scale/migration-governance-policy.json
 Policy mode: release-blocking
 Status: accepted-release-blocking
