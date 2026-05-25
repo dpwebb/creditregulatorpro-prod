@@ -103,6 +103,10 @@ export async function checkStoredFileAvailability(storageUrl: string): Promise<S
     };
   }
 
+  return checkStoredObjectAvailability(objectName);
+}
+
+export async function checkStoredObjectAvailability(objectName: string): Promise<StoredFileAvailability> {
   try {
     await stat(getSafeObjectPath(objectName));
     return {

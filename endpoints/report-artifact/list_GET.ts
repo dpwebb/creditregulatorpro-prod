@@ -5,8 +5,11 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { maskAccountNumber } from "../../helpers/disputePacketTemplate";
 import { logger } from "../../helpers/logger";
-import { reportArtifactFileNameSelection } from "../../helpers/reportArtifactListQuery";
-import { getReportArtifactStorageAvailability } from "../../helpers/reportArtifactStorage";
+import {
+  reportArtifactFileNameSelection,
+  reportArtifactStorageReferenceSelections,
+} from "../../helpers/reportArtifactListQuery";
+import { getReportArtifactListStorageAvailability } from "../../helpers/reportArtifactStorage";
 
 export async function handle(request: Request) {
   try {
@@ -49,8 +52,8 @@ export async function handle(request: Request) {
       "reportArtifact.expiresAt",
       "reportArtifact.validationRulesApplied",
       "reportArtifact.processingStatus",
-      "reportArtifact.storageUrl",
       reportArtifactFileNameSelection(),
+      ...reportArtifactStorageReferenceSelections(),
       "tradeline.accountNumber as tradelineAccountNumber",
       "tradeline.accountType as tradelineAccountType",
       // Subquery: count tradelines linked to this artifact via report_artifact_id
@@ -86,16 +89,23 @@ export async function handle(request: Request) {
     // linkedAccountCount comes back as a string from pg COUNT aggregate; coerce to number.
     const artifacts = await Promise.all(rawArtifacts.map(async (row) => {
       const {
-        storageUrl,
+        storageUrl: _storageUrl,
+        hasStorageReference,
+        storageObjectName,
         data: _data,
         tradelineAccountNumber,
         ...safeRow
       } = row as typeof row & {
         storageUrl?: string | null;
+        hasStorageReference?: boolean | null;
+        storageObjectName?: string | null;
         data?: unknown;
         tradelineAccountNumber?: string | null;
       };
-      const storageAvailability = await getReportArtifactStorageAvailability(storageUrl);
+      const storageAvailability = await getReportArtifactListStorageAvailability({
+        hasStorageReference,
+        storageObjectName,
+      });
       if (storageAvailability.status !== "available") {
         logger.warn(
           storageAvailability.failureReason === "not_found"
