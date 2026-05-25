@@ -9,6 +9,10 @@ import postgres from "postgres";
 const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const ENVIRONMENT_KEYS = ["CRP_ENV", "APP_ENV", "FLOOT_ENV", "DEPLOYMENT_ENV", "ENVIRONMENT", "VERCEL_ENV"];
 const DATABASE_URL_KEYS = ["FLOOT_DATABASE_URL", "DATABASE_URL", "DATABASE_PRIVATE_URL", "POSTGRES_URL", "CRP_DATABASE_URL"];
+const ADMIN_PRESERVE_ROLES = ["admin", "super_admin"];
+const SOFT_SERVICE_PRESERVE_ROLES = ["system", "service"];
+const LOCAL_NODE_ENV_VALUES = new Set(["development", "dev", "test"]);
+const USER_REPORT_LIMIT = 200;
 
 export const PRESERVED_SUBSYSTEMS = [
   "migrations and version metadata",
@@ -124,15 +128,15 @@ const SOFT_RESET_TABLES = [
 ];
 
 const HARD_RESET_TABLES = [
-  { table: "consumer_identification_document", where: "user_id in (select id from public.users where role <> 'admin')" },
-  { table: "consumer_signature", where: "user_id in (select id from public.users where role <> 'admin')" },
-  { table: "subscriptions", where: "user_id in (select id from public.users where role <> 'admin')" },
-  { table: "user_account", where: "user_id in (select id from public.users where role <> 'admin')" },
-  { table: "user_passwords", where: "user_id in (select id from public.users where role <> 'admin')" },
-  { table: "users", where: "role <> 'admin'" },
+  { table: "consumer_identification_document", where: `user_id in (select id from public.users where ${buildDeletedUserPredicate("hard", [])})` },
+  { table: "consumer_signature", where: `user_id in (select id from public.users where ${buildDeletedUserPredicate("hard", [])})` },
+  { table: "subscriptions", where: `user_id in (select id from public.users where ${buildDeletedUserPredicate("hard", [])})` },
+  { table: "user_account", where: `user_id in (select id from public.users where ${buildDeletedUserPredicate("hard", [])})` },
+  { table: "user_passwords", where: `user_id in (select id from public.users where ${buildDeletedUserPredicate("hard", [])})` },
+  { table: "users", where: buildDeletedUserPredicate("hard", []) },
   {
     table: "organizations",
-    where: "not exists (select 1 from public.users where users.organization_id = organizations.id and users.role = 'admin')",
+    where: `not exists (select 1 from public.users where users.organization_id = organizations.id and (${buildPreservedUserPredicate("hard", [])}))`,
   },
 ];
 
@@ -180,14 +184,89 @@ function tableRef(table) {
   return `public.${quoteIdentifier(table)}`;
 }
 
+function sqlStringLiteral(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function sqlInList(values) {
+  const normalized = normalizeEmailList(values);
+  if (normalized.length === 0) return null;
+  return normalized.map(sqlStringLiteral).join(", ");
+}
+
+export function parseEmailAllowlist(value) {
+  if (Array.isArray(value)) return normalizeEmailList(value);
+  return normalizeEmailList(String(value ?? "").split(/[,\s;]+/u));
+}
+
+function normalizeEmailList(values) {
+  return Array.from(
+    new Set(
+      values
+        .flatMap((value) => String(value ?? "").split(/[,\s;]+/u))
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function rolePredicate(roles) {
+  const normalizedRoles = roles.map((role) => String(role).toLowerCase());
+  return `lower(coalesce(role::text, '')) in (${normalizedRoles.map(sqlStringLiteral).join(", ")})`;
+}
+
+function buildAllowedEmailPredicate(emails) {
+  const emailList = sqlInList(emails);
+  return emailList ? `lower(email) in (${emailList})` : null;
+}
+
+export function buildPreservedUserPredicate(scope = "soft", preserveAdminEmails = []) {
+  const roles = scope === "soft"
+    ? [...ADMIN_PRESERVE_ROLES, ...SOFT_SERVICE_PRESERVE_ROLES]
+    : ADMIN_PRESERVE_ROLES;
+  const clauses = [rolePredicate(roles)];
+  const emailPredicate = buildAllowedEmailPredicate(preserveAdminEmails);
+  if (emailPredicate) clauses.push(emailPredicate);
+  return clauses.join(" or ");
+}
+
+export function buildDeletedUserPredicate(scope = "soft", preserveAdminEmails = []) {
+  return `not (${buildPreservedUserPredicate(scope, preserveAdminEmails)})`;
+}
+
+function userSubquery(scope, preserveAdminEmails) {
+  return `select id from public.users where ${buildDeletedUserPredicate(scope, preserveAdminEmails)}`;
+}
+
+function buildUserCleanupTableSteps(scope, preserveAdminEmails) {
+  const deletedUsers = userSubquery(scope, preserveAdminEmails);
+  const preservedUsers = buildPreservedUserPredicate(scope, preserveAdminEmails);
+  return [
+    { table: "consumer_identification_document", where: `user_id in (${deletedUsers})`, action: "delete_deleted_user_related", resetIdentity: true },
+    { table: "consumer_signature", where: `user_id in (${deletedUsers})`, action: "delete_deleted_user_related", resetIdentity: true },
+    { table: "subscriptions", where: `user_id in (${deletedUsers})`, action: "delete_deleted_user_related", resetIdentity: true },
+    { table: "user_account", where: `user_id in (${deletedUsers})`, action: "delete_deleted_user_related", resetIdentity: true },
+    { table: "user_passwords", where: `user_id in (${deletedUsers})`, action: "delete_deleted_user_auth", resetIdentity: false },
+    { table: "users", where: buildDeletedUserPredicate(scope, preserveAdminEmails), action: "delete_deleted_users", resetIdentity: true },
+    {
+      table: "organizations",
+      where: `not exists (select 1 from public.users where users.organization_id = organizations.id and (${preservedUsers}))`,
+      action: "delete_unowned_organizations",
+      resetIdentity: true,
+    },
+  ];
+}
+
 export function parseResetArgs(args) {
   const options = {
     execution: "dry-run",
     resetScope: "soft",
+    confirm: false,
     confirmEnv: null,
     json: false,
     baseUrl: process.env.CRP_PLATFORM_RESET_BASE_URL || "http://localhost:5175",
     requireHttpValidation: false,
+    preserveAdminEmails: parseEmailAllowlist(process.env.RESET_PRESERVE_ADMIN_EMAILS || ""),
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -219,6 +298,17 @@ export function parseResetArgs(args) {
       index += 1;
       continue;
     }
+    if (arg === "--confirm") {
+      options.confirm = true;
+      continue;
+    }
+    if (arg === "--preserve-admin-email") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) fail("--preserve-admin-email requires an email address.");
+      options.preserveAdminEmails = normalizeEmailList([...options.preserveAdminEmails, value]);
+      index += 1;
+      continue;
+    }
     if (arg === "--base-url") {
       const value = args[index + 1];
       if (!value || value.startsWith("--")) fail("--base-url requires a URL.");
@@ -240,6 +330,9 @@ export function parseResetArgs(args) {
   if (!["local", "staging"].includes(options.confirmEnv || "")) {
     fail("Explicit environment confirmation is required: --confirm-env local or --confirm-env staging.");
   }
+  if (options.execution === "apply" && !options.confirm) {
+    fail("Destructive platform reset requires --confirm.");
+  }
 
   return options;
 }
@@ -259,6 +352,10 @@ function normalizedEnvironmentValues(env) {
     .filter((entry) => entry.value);
 }
 
+function normalizedNodeEnv(env) {
+  return String(env.NODE_ENV ?? "").trim().toLowerCase();
+}
+
 function signatureIncludesProduction(value) {
   const lowered = String(value ?? "").toLowerCase();
   if (lowered.includes("staging")) return false;
@@ -269,6 +366,7 @@ export function resolveResetEnvironment(env = process.env, databaseUrl = "") {
   const target = databaseUrl ? describeDatabaseTarget(databaseUrl) : null;
   const dbSignature = target ? `${target.host} ${target.database}`.toLowerCase() : "";
   const environmentValues = normalizedEnvironmentValues(env);
+  const nodeEnv = normalizedNodeEnv(env);
 
   if (signatureIncludesProduction(dbSignature)) {
     return { kind: "production", reason: "Database host or name appears production-like." };
@@ -280,16 +378,24 @@ export function resolveResetEnvironment(env = process.env, databaseUrl = "") {
     }
   }
 
-  if (dbSignature.includes("staging") || environmentValues.some(({ value }) => value.includes("staging"))) {
-    return { kind: "staging", reason: "Environment or database target indicates staging." };
-  }
-
-  if (target && LOCAL_DB_HOSTS.has(target.host.toLowerCase())) {
-    return { kind: "local", reason: "Database host is local." };
+  if (environmentValues.some(({ value }) => value.includes("staging"))) {
+    return { kind: "staging", reason: "Environment indicates staging." };
   }
 
   if (environmentValues.some(({ value }) => ["local", "development", "dev", "test"].includes(value))) {
     return { kind: "local", reason: "Environment indicates local/development/test." };
+  }
+
+  if (target && LOCAL_DB_HOSTS.has(target.host.toLowerCase()) && LOCAL_NODE_ENV_VALUES.has(nodeEnv)) {
+    return { kind: "local", reason: "Database host is local and NODE_ENV indicates development/test." };
+  }
+
+  if (dbSignature.includes("staging")) {
+    return { kind: "staging", reason: "Database target indicates staging." };
+  }
+
+  if (target && LOCAL_DB_HOSTS.has(target.host.toLowerCase())) {
+    return { kind: "local", reason: "Database host is local." };
   }
 
   return { kind: "unknown", reason: "Unable to determine local, staging, or production from environment and database target." };
@@ -317,7 +423,9 @@ function resolveDatabaseUrl(env = process.env) {
   fail("FLOOT_DATABASE_URL, DATABASE_URL, DATABASE_PRIVATE_URL, POSTGRES_URL, or CRP_DATABASE_URL is required.");
 }
 
-export function buildResetPlan(scope = "soft") {
+export function buildResetPlan(scope = "soft", options = {}) {
+  if (!["soft", "hard"].includes(scope)) fail(`Unsupported reset scope: ${scope}`);
+  const preserveAdminEmails = normalizeEmailList(options.preserveAdminEmails ?? []);
   const tableSteps = SOFT_RESET_TABLES.map((table) => ({
     table,
     where: null,
@@ -325,13 +433,7 @@ export function buildResetPlan(scope = "soft") {
     resetIdentity: true,
   }));
 
-  if (scope === "hard") {
-    tableSteps.push(...HARD_RESET_TABLES.map((step) => ({
-      ...step,
-      action: step.table === "users" ? "delete_non_admin" : "delete_non_admin_related",
-      resetIdentity: true,
-    })));
-  }
+  tableSteps.push(...buildUserCleanupTableSteps(scope, preserveAdminEmails));
 
   return {
     scope,
@@ -339,6 +441,10 @@ export function buildResetPlan(scope = "soft") {
     fileTargets: RESET_FILE_TARGETS,
     preservedTables: PRESERVED_TABLES,
     preservedSubsystems: PRESERVED_SUBSYSTEMS,
+    preserveAdminEmails,
+    userPreservePredicate: buildPreservedUserPredicate(scope, preserveAdminEmails),
+    userDeletePredicate: buildDeletedUserPredicate(scope, preserveAdminEmails),
+    deletesUsers: true,
   };
 }
 
@@ -409,14 +515,17 @@ async function runUpdate(sql, statement) {
 
 async function resolveAdminUser(sql) {
   if (!(await tableExists(sql, "users"))) return null;
-  const rows = await sql`
-    select id::bigint as id, email
+  const predicate = rolePredicate(ADMIN_PRESERVE_ROLES);
+  const rows = await sql.unsafe(`
+    select id::bigint as id, email, role::text as role
     from public.users
-    where role = 'admin'
-    order by id asc
+    where ${predicate}
+    order by
+      case when lower(coalesce(role::text, '')) in (${ADMIN_PRESERVE_ROLES.map(sqlStringLiteral).join(", ")}) then 0 else 1 end,
+      id asc
     limit 1
-  `;
-  return rows[0] ? { id: Number(rows[0].id), email: rows[0].email } : null;
+  `);
+  return rows[0] ? { id: Number(rows[0].id), email: rows[0].email, role: rows[0].role } : null;
 }
 
 async function assertAdminAccessRows(sql) {
@@ -437,9 +546,9 @@ async function assertAdminAccessRows(sql) {
   return admin;
 }
 
-async function hardModeUserReferenceUpdates(sql, resetTables) {
-  const admin = await resolveAdminUser(sql);
-  if (!admin) fail("Hard reset requires an admin user to preserve/reassign protected references.");
+async function userReferenceUpdates(sql, resetSteps, deleteUserWhere, preserveAdminEmails) {
+  const admin = await resolveAdminUser(sql, preserveAdminEmails);
+  if (!admin) fail("Reset requires an admin user to preserve/reassign protected references.");
 
   const refs = await sql`
     select
@@ -465,19 +574,26 @@ async function hardModeUserReferenceUpdates(sql, resetTables) {
 
   const updates = [];
   const blockers = [];
-  const resetSet = new Set(resetTables);
+  const resetStepByTable = new Map(resetSteps.map((step) => [step.table, step]));
 
   for (const ref of refs) {
     const table = ref.table_name;
     const column = ref.column_name;
-    if (table === "users" || resetSet.has(table)) continue;
+    if (table === "users") continue;
 
-    const predicate = `${quoteIdentifier(column)} in (select id from public.users where role <> 'admin')`;
+    const resetStep = resetStepByTable.get(table);
+    const predicate = `${quoteIdentifier(column)} in (select id from public.users where ${deleteUserWhere})`;
+    const stepDeletesAllRows = resetStep && !resetStep.where;
+    const stepDeletesThisUserColumn = Boolean(
+      resetStep?.where && resetStep.where.includes(`${column} in (select id from public.users where`),
+    );
+    if (stepDeletesAllRows || stepDeletesThisUserColumn) continue;
+
     if (ref.is_nullable === "YES") {
       updates.push({
         table,
         column,
-        action: "nullify_non_admin_user_reference",
+        action: "nullify_deleted_user_reference",
         countSql: `select count(*)::int as count from ${tableRef(table)} where ${predicate}`,
         runSql: `with updated as (update ${tableRef(table)} set ${quoteIdentifier(column)} = null where ${predicate} returning 1) select count(*)::int as count from updated`,
       });
@@ -488,7 +604,7 @@ async function hardModeUserReferenceUpdates(sql, resetTables) {
       updates.push({
         table,
         column,
-        action: "reassign_non_admin_user_reference_to_admin",
+        action: "reassign_deleted_user_reference_to_admin",
         countSql: `select count(*)::int as count from ${tableRef(table)} where ${predicate}`,
         runSql: `with updated as (update ${tableRef(table)} set ${quoteIdentifier(column)} = ${admin.id} where ${predicate} returning 1) select count(*)::int as count from updated`,
       });
@@ -499,7 +615,7 @@ async function hardModeUserReferenceUpdates(sql, resetTables) {
   }
 
   if (blockers.length > 0) {
-    fail(`Hard reset would leave protected non-null user references unresolved: ${blockers.join(", ")}`);
+    fail(`Reset would leave protected non-null user references unresolved: ${blockers.join(", ")}`);
   }
 
   return updates;
@@ -516,6 +632,82 @@ async function runDynamicUpdates(sql, updates, dryRun) {
       count: Number(rows[0]?.count ?? 0),
       skipped: false,
     });
+  }
+  return results;
+}
+
+function userReason(user, scope, preserveAdminEmails, preserved) {
+  const role = String(user.role ?? "").toLowerCase();
+  const email = String(user.email ?? "").toLowerCase();
+  if (preserved) {
+    if (ADMIN_PRESERVE_ROLES.includes(role)) return "admin_role";
+    if (scope === "soft" && SOFT_SERVICE_PRESERVE_ROLES.includes(role)) return "service_or_system_role";
+    if (preserveAdminEmails.includes(email)) return "explicit_allowlist";
+    return "preserved_by_predicate";
+  }
+  return scope === "hard" ? "non_canonical_admin_user" : "non_admin_operational_user";
+}
+
+function serializeUserRow(row, scope, preserveAdminEmails, preserved) {
+  return {
+    id: Number(row.id),
+    email: row.email,
+    displayName: row.display_name,
+    role: row.role,
+    createdAt: row.created_at,
+    reason: userReason(row, scope, preserveAdminEmails, preserved),
+  };
+}
+
+async function buildUserPlan(sql, plan) {
+  if (!(await tableExists(sql, "users"))) {
+    return {
+      usersTableMissing: true,
+      preservedUsers: [],
+      deletedUsers: [],
+      preservedCount: 0,
+      deletedCount: 0,
+      reportLimit: USER_REPORT_LIMIT,
+    };
+  }
+
+  const preservedCountRows = await sql.unsafe(`select count(*)::int as count from public.users where ${plan.userPreservePredicate}`);
+  const deletedCountRows = await sql.unsafe(`select count(*)::int as count from public.users where ${plan.userDeletePredicate}`);
+  const columns = `id::bigint as id, email, display_name, role::text as role, created_at::text as created_at`;
+  const preservedRows = await sql.unsafe(`
+    select ${columns}
+    from public.users
+    where ${plan.userPreservePredicate}
+    order by lower(coalesce(role::text, '')), lower(email)
+    limit ${USER_REPORT_LIMIT}
+  `);
+  const deletedRows = await sql.unsafe(`
+    select ${columns}
+    from public.users
+    where ${plan.userDeletePredicate}
+    order by lower(coalesce(role::text, '')), lower(email)
+    limit ${USER_REPORT_LIMIT}
+  `);
+
+  return {
+    usersTableMissing: false,
+    preservedUsers: preservedRows.map((row) => serializeUserRow(row, plan.scope, plan.preserveAdminEmails, true)),
+    deletedUsers: deletedRows.map((row) => serializeUserRow(row, plan.scope, plan.preserveAdminEmails, false)),
+    preservedCount: Number(preservedCountRows[0]?.count ?? 0),
+    deletedCount: Number(deletedCountRows[0]?.count ?? 0),
+    reportLimit: USER_REPORT_LIMIT,
+  };
+}
+
+async function countOperationalRows(sql, tables) {
+  const results = [];
+  for (const table of tables) {
+    if (!(await tableExists(sql, table))) {
+      results.push({ table, skipped: true, count: 0, reason: "table missing" });
+      continue;
+    }
+    const rows = await sql.unsafe(`select count(*)::int as count from ${tableRef(table)}`);
+    results.push({ table, skipped: false, count: Number(rows[0]?.count ?? 0) });
   }
   return results;
 }
@@ -596,7 +788,7 @@ async function runFilePlan({ rootDir, targets, dryRun }) {
   return results;
 }
 
-async function runValidation({ sql, baseUrl, requireHttpValidation }) {
+async function runValidation({ sql, baseUrl, requireHttpValidation, preserveAdminEmails, deletedUserEmails, deletedUserPredicate }) {
   const checks = [];
 
   try {
@@ -607,11 +799,52 @@ async function runValidation({ sql, baseUrl, requireHttpValidation }) {
   }
 
   try {
-    const admin = await assertAdminAccessRows(sql);
+    const admin = await assertAdminAccessRows(sql, preserveAdminEmails);
     checks.push({ name: "admin_login_rows", status: "pass", detail: `admin=${admin.email}` });
   } catch (error) {
     checks.push({ name: "admin_login_rows", status: "fail", detail: error instanceof Error ? error.message : String(error) });
   }
+
+  const deletedEmails = normalizeEmailList(deletedUserEmails ?? []);
+  const usersTableExists = await tableExists(sql, "users");
+  if (deletedEmails.length > 0 && usersTableExists) {
+    const emailList = sqlInList(deletedEmails);
+    const remainingRows = await sql.unsafe(`select count(*)::int as count from public.users where lower(email) in (${emailList})`);
+    const remaining = Number(remainingRows[0]?.count ?? 0);
+    checks.push({
+      name: "deleted_test_user_login_fails",
+      status: remaining === 0 ? "pass" : "fail",
+      detail: remaining === 0 ? "deleted user auth rows absent" : `remaining users=${remaining}`,
+    });
+  } else {
+    checks.push({ name: "deleted_test_user_login_fails", status: "warn", detail: "no deleted users sampled" });
+  }
+
+  if (usersTableExists && deletedUserPredicate) {
+    const remainingRows = await sql.unsafe(`select count(*)::int as count from public.users where ${deletedUserPredicate}`);
+    const remaining = Number(remainingRows[0]?.count ?? 0);
+    checks.push({
+      name: "user_list_no_deleted_test_users",
+      status: remaining === 0 ? "pass" : "fail",
+      detail: remaining === 0 ? "no reset-deletable users remain" : `remaining reset-deletable users=${remaining}`,
+    });
+  } else {
+    checks.push({ name: "user_list_no_deleted_test_users", status: "warn", detail: "users table unavailable" });
+  }
+
+  const operationalCounts = await countOperationalRows(sql, [
+    "report_artifact",
+    "tradeline",
+    "creditor_obligation_test",
+    "packet",
+    "ingest_processing_job",
+  ]);
+  const remainingOperationalRows = operationalCounts.reduce((sum, row) => sum + row.count, 0);
+  checks.push({
+    name: "ingestion_can_start_fresh",
+    status: remainingOperationalRows === 0 ? "pass" : "warn",
+    detail: operationalCounts.map((row) => `${row.table}=${row.count}${row.skipped ? `:${row.reason}` : ""}`).join(", "),
+  });
 
   for (const table of REQUIRED_RULE_TABLES) {
     if (!(await tableExists(sql, table))) {
@@ -666,18 +899,22 @@ async function runReset(options, env = process.env) {
   assertResetSafety({ environment, confirmEnv: options.confirmEnv });
 
   const dryRun = options.execution === "dry-run";
-  const plan = buildResetPlan(options.resetScope);
+  if (!dryRun && !options.confirm) fail("Destructive platform reset requires --confirm.");
+  const plan = buildResetPlan(options.resetScope, { preserveAdminEmails: options.preserveAdminEmails });
   const rootDir = process.cwd();
   const sql = postgres(databaseUrl, { prepare: false, max: 1, onnotice: () => undefined });
 
   try {
-    await assertAdminAccessRows(sql);
+    const userPlan = await buildUserPlan(sql, plan);
+    await assertAdminAccessRows(sql, plan.preserveAdminEmails);
+    if (!userPlan.usersTableMissing && userPlan.preservedCount < 1) {
+      fail("Platform reset would leave no preserved admin/service user rows.");
+    }
     const updateStatements = [
       { table: "report_artifact", column: "tradeline_id", action: "nullify_report_artifact_tradeline_back_reference" },
     ];
-    const resetTables = new Set(plan.tableSteps.map((step) => step.table));
-    const hardReferenceUpdates = options.resetScope === "hard"
-      ? await hardModeUserReferenceUpdates(sql, resetTables)
+    const referenceUpdates = plan.deletesUsers
+      ? await userReferenceUpdates(sql, plan.tableSteps, plan.userDeletePredicate, plan.preserveAdminEmails)
       : [];
 
     let updateResults = [];
@@ -687,7 +924,7 @@ async function runReset(options, env = process.env) {
     if (dryRun) {
       updateResults = [
         ...(await Promise.all(updateStatements.map((statement) => countUpdate(sql, statement)))),
-        ...(await runDynamicUpdates(sql, hardReferenceUpdates, true)),
+        ...(await runDynamicUpdates(sql, referenceUpdates, true)),
       ];
       tableResults = [];
       for (const step of plan.tableSteps) {
@@ -702,7 +939,7 @@ async function runReset(options, env = process.env) {
         for (const statement of updateStatements) {
           updateResults.push(await runUpdate(trx, statement));
         }
-        updateResults.push(...(await runDynamicUpdates(trx, hardReferenceUpdates, false)));
+        updateResults.push(...(await runDynamicUpdates(trx, referenceUpdates, false)));
 
         tableResults = [];
         for (const step of plan.tableSteps) {
@@ -719,7 +956,14 @@ async function runReset(options, env = process.env) {
     const fileResults = await runFilePlan({ rootDir, targets: plan.fileTargets, dryRun });
     const validation = dryRun
       ? []
-      : await runValidation({ sql, baseUrl: options.baseUrl, requireHttpValidation: options.requireHttpValidation });
+      : await runValidation({
+        sql,
+        baseUrl: options.baseUrl,
+        requireHttpValidation: options.requireHttpValidation,
+        preserveAdminEmails: plan.preserveAdminEmails,
+        deletedUserEmails: userPlan.deletedUsers.map((user) => user.email),
+        deletedUserPredicate: plan.userDeletePredicate,
+      });
 
     const totalRows = tableResults.reduce((sum, row) => sum + row.count, 0);
     const totalUpdates = updateResults.reduce((sum, row) => sum + row.count, 0);
@@ -739,6 +983,7 @@ async function runReset(options, env = process.env) {
       },
       preservedSubsystems: plan.preservedSubsystems,
       preservedTables: plan.preservedTables,
+      userPlan,
       updateResults,
       rowsByTable: tableResults,
       identityResults,
@@ -758,15 +1003,17 @@ function printHelp() {
     "Usage:",
     "  pnpm reset:platform --dry-run --confirm-env local",
     "  pnpm reset:platform --dry-run --preview-hard --confirm-env staging",
-    "  pnpm reset:platform --soft --confirm-env local",
-    "  pnpm reset:platform --hard --confirm-env staging",
+    "  pnpm reset:platform --soft --confirm-env local --confirm",
+    "  pnpm reset:platform --hard --confirm-env staging --confirm",
     "",
     "Options:",
     "  --dry-run                    Preview soft reset by default.",
     "  --preview-hard               Preview hard reset without deleting data.",
-    "  --soft                       Delete operational data, preserve users.",
-    "  --hard                       Delete operational data and non-admin users.",
+    "  --soft                       Delete operational data and non-admin users; preserve admin and service/system users.",
+    "  --hard                       Delete operational data and all users except canonical admins.",
+    "  --confirm                    Required with --soft or --hard.",
     "  --confirm-env <local|staging> Required environment confirmation.",
+    "  --preserve-admin-email <email> Preserve an explicit admin email; repeatable. Also reads RESET_PRESERVE_ADMIN_EMAILS.",
     "  --base-url <url>             App URL for post-reset endpoint probes; default http://localhost:5175.",
     "  --require-http-validation    Fail validation if app/endpoint probes are unreachable.",
     "  --json                       Print machine-readable JSON.",
@@ -776,10 +1023,30 @@ function printHelp() {
 function printHuman(result) {
   console.log(`Platform reset ${result.mode}`);
   console.log(`Environment: ${result.environment.kind} (${result.environment.reason})`);
-  console.log(`Database: host=${result.database.host} port=${result.database.port} name=${result.database.database}`);
+  console.log(`Database: source=${result.database.source} host=${result.database.host} port=${result.database.port} name=${result.database.database}`);
   console.log(`Total matched rows: ${result.totalRowsMatched}`);
   console.log(`Total matched update rows: ${result.totalUpdatesMatched}`);
   console.log(`Total matched files: ${result.totalFilesMatched}`);
+  console.log("");
+  console.log("Users:");
+  if (result.userPlan.usersTableMissing) {
+    console.log("- users table missing");
+  } else {
+    console.log(`- preserve: ${result.userPlan.preservedCount}`);
+    for (const user of result.userPlan.preservedUsers) {
+      console.log(`  - ${user.email} role=${user.role} reason=${user.reason}`);
+    }
+    if (result.userPlan.preservedCount > result.userPlan.preservedUsers.length) {
+      console.log(`  - ... ${result.userPlan.preservedCount - result.userPlan.preservedUsers.length} more`);
+    }
+    console.log(`- delete: ${result.userPlan.deletedCount}`);
+    for (const user of result.userPlan.deletedUsers) {
+      console.log(`  - ${user.email} role=${user.role} reason=${user.reason}`);
+    }
+    if (result.userPlan.deletedCount > result.userPlan.deletedUsers.length) {
+      console.log(`  - ... ${result.userPlan.deletedCount - result.userPlan.deletedUsers.length} more`);
+    }
+  }
   console.log("");
   console.log("Rows by table:");
   for (const row of result.rowsByTable) {
