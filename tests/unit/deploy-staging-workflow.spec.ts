@@ -115,6 +115,33 @@ describe("staging deploy workflow health gate", () => {
     expect(source).not.toContain("curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com/login");
   });
 
+  it("runs response auth smokes only for high-risk runtime surfaces or unknown scope", () => {
+    const source = workflowSource();
+
+    expect(source).toContain("response_auth_smoke_change_requires_full_coverage() {");
+    expect(source).toContain("Running automated staging response auth smokes: changed-file scope is unavailable.");
+    expect(source).toContain("Running automated staging response auth smokes: no changed-file scope was detected.");
+    expect(source).toContain(
+      "Running automated staging response auth smokes: changed file touches response/auth/admin/backend runtime scope ($changed_file).",
+    );
+    expect(source).toContain(
+      "Skipping automated staging response auth smokes: changed files do not touch response/auth/admin/backend runtime scope.",
+    );
+
+    expect(source).toContain(
+      ".github/workflows/deploy-staging.yml|Dockerfile|docker-compose.yml|server.ts|loadEnv.js|env.json|package.json|pnpm-lock.yaml",
+    );
+    expect(source).toContain(
+      "endpoints/auth/*|endpoints/responses/*|endpoints/outcomes/*|endpoints/admin/*|endpoints/obligation-instance/record-response_*",
+    );
+    expect(source).toContain("helpers/response*|helpers/Response*|helpers/outcome*|helpers/Outcome*");
+    expect(source).toContain("components/Auth*|components/ProtectedRoute*|components/ProfileRequiredRoute*|components/RoleBadge*");
+    expect(source).toContain("components/Admin*|components/KBAdmin*|pages/admin-*");
+    expect(source).toContain("scripts/staging-auth-*|scripts/staging-outcome-*|scripts/staging-response-*|scripts/response-*");
+    expect(source).toContain("migrations/*|scripts/migration-*|scripts/check-migrations.mjs|scripts/migration-gate.mjs");
+    expect(source).not.toContain("changed file requires full response smoke coverage");
+  });
+
   it("provides an opt-in bounded staging ingest worker orchestration path", () => {
     const source = workflowSource();
 

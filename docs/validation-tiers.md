@@ -27,6 +27,12 @@ This repo uses tiered validation to keep ordinary development fast without remov
 
 Unknown changed-file scope fails safe and uses full regression outside `validate:fast`.
 
+## Staging Runtime Smoke Scope
+
+The staging deploy workflow always validates and deploys the selected commit, then checks the public `/login` route before and after deployment. The heavier response/auth smoke block runs only when changed files touch runtime surfaces that can affect auth, sessions, roles, response documents, outcome tracking, admin review/routing, backend routing, migrations, deployment config, or the smoke scripts themselves.
+
+Unknown changed-file scope or an empty changed-file list still fails safe and runs the response/auth smoke block.
+
 ## Duplicate Runs Removed
 
 The release tier intentionally does not run `test:contracts`, `test:api`, or `test:evidence-ledger` separately because `test:unit:check` already includes those Vitest suites while splitting long-running queue specs into bounded invocations.

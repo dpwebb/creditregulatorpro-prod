@@ -609,6 +609,37 @@ jobs:
               exit 1
             fi
 
+            response_auth_smoke_change_requires_full_coverage() {
+              local changed_file="$1"
+
+              case "$changed_file" in
+                .github/workflows/deploy-staging.yml|Dockerfile|docker-compose.yml|server.ts|loadEnv.js|env.json|package.json|pnpm-lock.yaml)
+                  return 0
+                  ;;
+                endpoints/auth/*|endpoints/responses/*|endpoints/outcomes/*|endpoints/admin/*|endpoints/obligation-instance/record-response_*)
+                  return 0
+                  ;;
+                helpers/*Auth*|helpers/*auth*|helpers/*Session*|helpers/*session*|helpers/*Role*|helpers/*role*|helpers/getServerUserSession*|helpers/getSetServerSession*|helpers/ingestSessionResolver*|helpers/OAuthProvider*|helpers/FlootOAuthProvider*|helpers/userRoleUtils*|helpers/adminSidebarRoutes.ts)
+                  return 0
+                  ;;
+                helpers/response*|helpers/Response*|helpers/outcome*|helpers/Outcome*|helpers/disputeOutcomeEvaluator*|helpers/*Schema*|helpers/*schema*)
+                  return 0
+                  ;;
+                components/Auth*|components/ProtectedRoute*|components/ProfileRequiredRoute*|components/RoleBadge*|components/Admin*|components/KBAdmin*|pages/admin-*|pages/login*|pages/register*|pages/reset*|pages/oauth*|App.tsx)
+                  return 0
+                  ;;
+                scripts/staging-auth-*|scripts/staging-outcome-*|scripts/staging-response-*|scripts/response-*|scripts/bootstrap-local-auth-schema.ts|scripts/bootstrap-local-app-fixtures.ts|scripts/localAdminAuth.ts)
+                  return 0
+                  ;;
+                migrations/*|scripts/migration-*|scripts/check-migrations.mjs|scripts/migration-gate.mjs)
+                  return 0
+                  ;;
+                *)
+                  return 1
+                  ;;
+              esac
+            }
+
             response_auth_smokes_required() {
               local changed_files="/tmp/response-auth-changed-files.txt"
               local changed_file
@@ -634,19 +665,15 @@ jobs:
               fi
 
               while IFS= read -r changed_file; do
-                case "$changed_file" in
-                  docs/*|*.md|scripts/operator-regression-dashboard.ts|tests/unit/operator-regression-dashboard.spec.ts)
-                    ;;
-                  *)
-                    echo "Running automated staging response auth smokes: changed file requires full response smoke coverage ($changed_file)."
-                    rm -f "$changed_files"
-                    return 0
-                    ;;
-                esac
+                if response_auth_smoke_change_requires_full_coverage "$changed_file"; then
+                  echo "Running automated staging response auth smokes: changed file touches response/auth/admin/backend runtime scope ($changed_file)."
+                  rm -f "$changed_files"
+                  return 0
+                fi
               done < "$changed_files"
 
               rm -f "$changed_files"
-              echo "Skipping automated staging response auth smokes: changed files are docs/readiness/operator-dashboard only."
+              echo "Skipping automated staging response auth smokes: changed files do not touch response/auth/admin/backend runtime scope."
               return 1
             }
 
