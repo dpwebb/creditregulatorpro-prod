@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -82,6 +83,22 @@ describe("tiered validation workflow", () => {
     expect(commandList).not.toContain("pnpm run test:api");
     expect(commandList).not.toContain("pnpm run test:contracts");
     expect(commandList).not.toContain("pnpm run test:evidence-ledger");
+  });
+
+  it("accepts the npm argument separator used by CI workflow commands", () => {
+    const output = execFileSync(
+      process.execPath,
+      [
+        "scripts/validation-tier.mjs",
+        "staging",
+        "--",
+        "--dry-run",
+        "--changed-file=docs/validation-tiers.md",
+      ],
+      { encoding: "utf8" },
+    );
+
+    expect(output).toContain("[validation] COMPLETE: staging validation passed.");
   });
 
   it("adds admin click-through only when release changes touch admin-critical surfaces", () => {
