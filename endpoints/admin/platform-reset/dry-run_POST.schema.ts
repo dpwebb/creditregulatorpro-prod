@@ -76,6 +76,13 @@ export type PlatformResetResult = {
   database: PlatformResetDatabase;
   preservedSubsystems: string[];
   preservedTables: string[];
+  adminPreservation?: {
+    configuredAdminEmails: string[];
+    allowMultiplePreservedAdmins: boolean;
+    preservedAdminCount: number;
+    preservedAdminEmails: string[];
+    requiresExactlyOneAdmin: boolean;
+  };
   userPlan: {
     usersTableMissing: boolean;
     preservedUsers: PlatformResetUserPreview[];

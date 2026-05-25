@@ -40,16 +40,16 @@ pnpm seed:minimal
 
 Soft reset removes operational report, packet, finding, response, queue, parser-run, lifecycle, beta, session/token, audit/log, compliance detection configuration, and generated file data while preserving users.
 
-Hard reset does everything in soft reset, then deletes non-admin users while preserving admin, super_admin, service, and system users. References from preserved intelligence tables are nullified or reassigned to the preserved admin where needed.
+Hard reset does everything in soft reset, then deletes every user except the configured admin/super_admin account in `RESET_PRESERVE_ADMIN_EMAILS`. References from preserved intelligence tables are nullified or reassigned to the preserved admin where needed.
 
-Set `RESET_PRESERVE_ADMIN_EMAILS` or pass `--preserve-admin-email user@example.com` when a staging admin account must be preserved even if role data is being repaired. Prefer role-based preservation; the email allowlist is a safety override.
+Set exactly one `RESET_PRESERVE_ADMIN_EMAILS` value or pass one `--preserve-admin-email user@example.com` for hard reset. Hard reset fails when the allowlist is empty, when no matching admin/super_admin exists, or when more than one admin would remain unless `RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS=true` is explicitly configured.
 
 ## Preserved
 
 - Migrations and version metadata
 - Laws, statutes, obligations, legal references, and rule definitions
 - Parser mappings, parser test cases, parser training archive, parser rules, known entities, and canonical extraction intelligence
-- Admin users and admin password records
+- Exactly one configured admin/super_admin user and its password row in hard mode
 - System settings, feature flags, deterministic OCR/runtime configuration, and letter templates
 - Supported bureau records and licensed collection agency reference mappings
 
@@ -58,12 +58,12 @@ Set `RESET_PRESERVE_ADMIN_EMAILS` or pass `--preserve-admin-email user@example.c
 - Uploaded reports, report artifacts, parsed report child rows, tradelines, findings, violations, packet rows, generated PDFs, and packet exports
 - Ingest jobs/events, response jobs/events, response timeline rows, outcome comparison rows, and worker/lifecycle state
 - Parser lab run results, beta/lifecycle test records, support/test activity, audit/log rows, sessions, reset/email/OAuth tokens, login attempts, and rate-limit rows
-- Non-admin users and their account/password/profile rows in hard mode
+- All users except the configured preserved admin, plus deleted-user account/password/profile rows in hard mode
 - Generated files under `.local/document-storage/report-artifacts`, `.local/document-storage/packet-pdfs`, `.local/document-storage/packets`, `document-storage/...`, `output/pdf`, `.local/test-runs`, `.local/beta-testing-hub`, and local temp/cache folders
 
 ## Validation
 
-After an applied reset, the script verifies database connectivity, an admin login row/password row, deleted-user absence when hard mode deletes users, preserved rule/parser table availability, storage write/read/delete health, and empty core operational tables. It also probes the app shell plus admin, ingestion, and packet endpoints using `http://localhost:5175` by default. Use `--base-url` for another running app URL or `--require-http-validation` to fail the reset report if HTTP probes are unreachable.
+After an applied reset, the script verifies database connectivity, the preserved admin password row, exactly one remaining admin/user row by default, deleted-user absence when hard mode deletes users, preserved rule/parser table availability, storage write/read/delete health, and empty core operational tables. It also probes the app shell plus admin, ingestion, and packet endpoints using `http://localhost:5175` by default. Use `--base-url` for another running app URL or `--require-http-validation` to fail the reset report if HTTP probes are unreachable.
 
 ## Recommended Workflow
 

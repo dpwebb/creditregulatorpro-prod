@@ -22,4 +22,8 @@ export type PlatformResetRuntimeContext = {
 
 export function detectResetRuntimeContext(env?: NodeJS.ProcessEnv): PlatformResetRuntimeContext;
 
+export function buildPreservedUserPredicate(scope?: string, preserveAdminEmails?: string[]): string;
+
+export function validateCanonicalAdminPreservationSummary(input?: Record<string, unknown>): void;
+
 export function runReset(options: Record<string, unknown>, env?: NodeJS.ProcessEnv): Promise<Record<string, unknown>>;

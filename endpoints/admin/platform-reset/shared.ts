@@ -87,7 +87,7 @@ export function toPlatformResetEndpointError(error: unknown): unknown {
   if (/production/i.test(message)) {
     return new BusinessRuleError(message, 403);
   }
-  if (/database target changed|storage .*failed|no preserved admin|requires|refusing|unknown|mismatch/i.test(message)) {
+  if (/database target changed|storage .*failed|no preserved admin|zero admins|more than one admin|exactly one|requires|refusing|unknown|mismatch/i.test(message)) {
     return new BusinessRuleError(message, 400);
   }
 

@@ -5,9 +5,11 @@ import {
   PRESERVED_TABLES,
   RESET_FILE_TARGETS,
   assertResetSafety,
+  buildPreservedUserPredicate,
   buildResetPlan,
   parseResetArgs,
   resolveResetEnvironment,
+  validateCanonicalAdminPreservationSummary,
 } from "../../scripts/reset-platform.mjs";
 
 describe("platform reset script guards", () => {
@@ -75,7 +77,7 @@ describe("platform reset script guards", () => {
     expect(targetedTables.has("compliance_config")).toBe(true);
   });
 
-  it("soft reset preserves users and hard reset deletes users only after operational data is cleared", () => {
+  it("soft reset preserves users and hard reset preserves only explicitly configured admin emails", () => {
     const softPlan = buildResetPlan("soft");
     const softUserStep = softPlan.tableSteps.find((step) => step.table === "users");
     expect(softPlan.deletesUsers).toBe(false);
@@ -85,12 +87,16 @@ describe("platform reset script guards", () => {
 
     const hardUserStep = HARD_RESET_TABLES.find((step) => step.table === "users");
     expect(hardUserStep?.where).toContain("not (");
-    expect(hardUserStep?.where).toContain("'admin'");
-    expect(hardUserStep?.where).toContain("'super_admin'");
-    expect(hardUserStep?.where).toContain("'service'");
-    expect(hardUserStep?.where).toContain("'system'");
+    expect(hardUserStep?.where).toContain("false");
 
-    const hardPlan = buildResetPlan("hard");
+    const hardPlan = buildResetPlan("hard", { preserveAdminEmails: ["Admin@Test.Example"] });
+    expect(hardPlan.deletesUsers).toBe(true);
+    expect(hardPlan.userPreservePredicate).toContain("'admin'");
+    expect(hardPlan.userPreservePredicate).toContain("'super_admin'");
+    expect(hardPlan.userPreservePredicate).toContain("lower(email) in ('admin@test.example')");
+    expect(hardPlan.userPreservePredicate).not.toContain("'service'");
+    expect(hardPlan.userPreservePredicate).not.toContain("'system'");
+
     expect(hardPlan.deletesUsers).toBe(true);
     const usersIndex = hardPlan.tableSteps.findIndex((step) => step.table === "users");
     const auditIndex = hardPlan.tableSteps.findIndex((step) => step.table === "audit_log");
@@ -104,6 +110,56 @@ describe("platform reset script guards", () => {
     expect(auditStep?.where).toBe("id not in (12)");
     expect(auditStep?.action).toBe("delete_all_except_platform_reset_audit");
     expect(hardPlan.preserveAuditLogIds).toEqual([12]);
+  });
+
+  it("fails hard reset plans that would not leave exactly one configured admin by default", () => {
+    expect(buildPreservedUserPredicate("hard", [])).toBe("false");
+    expect(() => validateCanonicalAdminPreservationSummary({
+      scope: "hard",
+      usersTableMissing: false,
+      preserveAdminEmails: [],
+      preservedAdminCount: 0,
+      preservedUserCount: 0,
+    })).toThrow(/RESET_PRESERVE_ADMIN_EMAILS/i);
+    expect(() => validateCanonicalAdminPreservationSummary({
+      scope: "hard",
+      usersTableMissing: false,
+      preserveAdminEmails: ["admin@example.test"],
+      preservedAdminCount: 0,
+      preservedUserCount: 0,
+    })).toThrow(/zero admins/i);
+    expect(() => validateCanonicalAdminPreservationSummary({
+      scope: "hard",
+      usersTableMissing: false,
+      preserveAdminEmails: ["one@example.test", "two@example.test"],
+      preservedAdminCount: 2,
+      preservedUserCount: 2,
+    })).toThrow(/more than one admin/i);
+    expect(() => validateCanonicalAdminPreservationSummary({
+      scope: "hard",
+      usersTableMissing: false,
+      preserveAdminEmails: ["admin@example.test"],
+      preservedAdminCount: 1,
+      preservedUserCount: 2,
+    })).toThrow(/exactly one user row/i);
+    expect(() => validateCanonicalAdminPreservationSummary({
+      scope: "hard",
+      usersTableMissing: false,
+      preserveAdminEmails: ["admin@example.test"],
+      preservedAdminCount: 1,
+      preservedUserCount: 1,
+    })).not.toThrow();
+  });
+
+  it("allows explicitly configured multiple preserved admins only when acknowledged", () => {
+    expect(() => validateCanonicalAdminPreservationSummary({
+      scope: "hard",
+      usersTableMissing: false,
+      preserveAdminEmails: ["one@example.test", "two@example.test"],
+      preservedAdminCount: 2,
+      preservedUserCount: 2,
+      allowMultiplePreservedAdmins: true,
+    })).not.toThrow();
   });
 
   it("allows explicit preserved admin emails without changing schema roles", () => {

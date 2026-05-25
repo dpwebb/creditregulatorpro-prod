@@ -12,7 +12,7 @@ The button is labeled `Reset Platform Test Data`. The UI runs a dry-run preview 
 
 ## Preserved Data
 
-- Admin, super_admin, service, and system users
+- Exactly one admin/super_admin user whose email is listed in `RESET_PRESERVE_ADMIN_EMAILS`
 - Migrations and app version metadata
 - Laws, regulations, statutes, obligations, rule definitions, and legal references
 - Parser mappings, parser training/corrections, parser rules, known entities, and canonical extraction intelligence
@@ -35,7 +35,7 @@ The reset clears operational and test/user-generated data, including:
 - Sessions, password reset tokens, email verification tokens, OAuth state/account rows, login attempts, and rate-limit rows
 - Temporary OCR, upload cache, parser temp, generated PDF/export, and local generated storage objects
 
-Hard mode also deletes non-admin users and their related account/password/profile/subscription rows. Soft mode preserves users.
+Hard mode also deletes every user except the configured preserved admin, plus related account/password/profile/subscription rows for deleted users. Soft mode preserves users.
 
 ## Safety Gates
 
@@ -44,7 +44,8 @@ Hard mode also deletes non-admin users and their related account/password/profil
 - Requests must use JSON and include the admin platform reset request header.
 - Destructive confirm requires the exact typed phrase.
 - Confirm requires the database target from the dry-run preview; if host/name/source changes, reset fails.
-- Reset fails if no admin user would remain.
+- Hard reset fails if `RESET_PRESERVE_ADMIN_EMAILS` is empty, if no matching admin/super_admin would remain, or if more than one admin would remain without `RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS=true`.
+- The default hard reset policy requires exactly one preserved user row: the configured admin.
 - Reset writes audit rows before and after confirmed execution; the start audit row is preserved while audit logs are cleared.
 - Storage references are inspected before reset, storage write/read/delete health is checked, and deletion failures are reported.
 

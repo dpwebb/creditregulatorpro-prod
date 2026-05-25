@@ -57,9 +57,16 @@ const resetResult: PlatformResetResult = {
   database: runtime.database,
   preservedSubsystems: ["admin users", "legal references", "parser mappings"],
   preservedTables: ["statute", "parser_field_mapping"],
+  adminPreservation: {
+    configuredAdminEmails: ["admin@example.test"],
+    allowMultiplePreservedAdmins: false,
+    preservedAdminCount: 1,
+    preservedAdminEmails: ["admin@example.test"],
+    requiresExactlyOneAdmin: true,
+  },
   userPlan: {
     usersTableMissing: false,
-    preservedUsers: [{ id: 1, email: "admin@example.test", role: "admin", reason: "admin_role" }],
+    preservedUsers: [{ id: 1, email: "admin@example.test", role: "admin", reason: "configured_admin_email" }],
     deletedUsers: [{ id: 2, email: "test@example.test", role: "user", reason: "non_canonical_admin_user" }],
     preservedCount: 1,
     deletedCount: 1,
@@ -238,7 +245,7 @@ describe("admin platform reset endpoints", () => {
   });
 
   it("fails closed when reset would leave no admin user", async () => {
-    mocks.runReset.mockRejectedValueOnce(new Error("Platform reset would leave no preserved admin/service user rows."));
+    mocks.runReset.mockRejectedValueOnce(new Error("Hard platform reset would leave zero admins from RESET_PRESERVE_ADMIN_EMAILS."));
 
     const response = await confirmPlatformReset(jsonRequest("/_api/admin/platform-reset/confirm", {
       mode: "hard",
@@ -248,11 +255,29 @@ describe("admin platform reset endpoints", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toMatch(/no preserved admin/i);
+    expect(body.error).toMatch(/zero admins/i);
     expect(mocks.dbInsertInto).toHaveBeenCalledTimes(2);
     expect(mocks.dbValues).toHaveBeenLastCalledWith(expect.objectContaining({
       status: "FAILURE",
-      errorMessage: expect.stringMatching(/no preserved admin/i),
+      errorMessage: expect.stringMatching(/zero admins/i),
+    }));
+  });
+
+  it("fails closed when reset would preserve more than one admin", async () => {
+    mocks.runReset.mockRejectedValueOnce(new Error("Hard platform reset would preserve more than one admin."));
+
+    const response = await confirmPlatformReset(jsonRequest("/_api/admin/platform-reset/confirm", {
+      mode: "hard",
+      confirmation: PLATFORM_RESET_CONFIRMATION_PHRASE,
+      expectedDatabase: runtime.database,
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/more than one admin/i);
+    expect(mocks.dbValues).toHaveBeenLastCalledWith(expect.objectContaining({
+      status: "FAILURE",
+      errorMessage: expect.stringMatching(/more than one admin/i),
     }));
   });
 

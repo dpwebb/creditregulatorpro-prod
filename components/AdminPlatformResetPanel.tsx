@@ -268,6 +268,15 @@ export function AdminPlatformResetPanel() {
               <span className={styles.metaLabel}>Storage provider</span>
               <span className={styles.metaValue}>{activeResult.storage?.provider.provider ?? "unknown"}</span>
             </div>
+            {activeResult.adminPreservation ? (
+              <div>
+                <span className={styles.metaLabel}>Preserved admins</span>
+                <span className={styles.metaValue}>
+                  {activeResult.adminPreservation.preservedAdminCount.toLocaleString()}
+                  {activeResult.adminPreservation.requiresExactlyOneAdmin ? " / exactly one required" : ""}
+                </span>
+              </div>
+            ) : null}
           </section>
 
           {isProduction ? (

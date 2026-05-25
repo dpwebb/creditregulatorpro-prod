@@ -18,6 +18,13 @@ type PlatformResetDryRun = {
     database: { source: string; host: string; port: string; database: string };
     preservedSubsystems: string[];
     preservedTables: string[];
+    adminPreservation?: {
+      configuredAdminEmails: string[];
+      allowMultiplePreservedAdmins: boolean;
+      preservedAdminCount: number;
+      preservedAdminEmails: string[];
+      requiresExactlyOneAdmin: boolean;
+    };
     rowsByTable: Array<{ table?: string; count?: number; skipped?: boolean; action?: string }>;
     userPlan: {
       preservedCount: number;
@@ -145,8 +152,13 @@ function assertDryRunPayload(payload: PlatformResetDryRun): void {
   if (!payload.result.database.host || !payload.result.database.database) {
     throw new Error("Platform reset dry-run did not report database host/name.");
   }
-  if (payload.result.userPlan.preservedCount < 1) {
-    throw new Error("Platform reset dry-run would leave no preserved admin/service users.");
+  if (payload.result.adminPreservation?.preservedAdminCount !== 1) {
+    throw new Error(
+      `Platform reset dry-run must preserve exactly one configured admin; got ${payload.result.adminPreservation?.preservedAdminCount ?? "unknown"}.`,
+    );
+  }
+  if (payload.result.userPlan.preservedCount !== 1) {
+    throw new Error(`Platform reset dry-run must preserve exactly one user row; got ${payload.result.userPlan.preservedCount}.`);
   }
   if (!payload.result.rowsByTable.some((row) => row.table === "users")) {
     throw new Error("Hard reset preview did not include users table scope.");
@@ -251,6 +263,7 @@ async function main() {
           rowsMatched: apiPayload.result.totalRowsMatched,
           usersToDelete: apiPayload.result.userPlan.deletedCount,
           usersToPreserve: apiPayload.result.userPlan.preservedCount,
+          preservedAdmins: apiPayload.result.adminPreservation?.preservedAdminCount ?? 0,
           storageProvider: apiPayload.result.storage?.provider.provider ?? "unknown",
           storageReferences: apiPayload.result.storage?.references.totalReferences ?? 0,
           storageReadFailedNotFound: apiPayload.result.storage?.references.notFoundReferences.length ?? 0,

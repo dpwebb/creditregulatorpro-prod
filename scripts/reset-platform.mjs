@@ -11,8 +11,6 @@ const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const ENVIRONMENT_KEYS = ["CRP_ENV", "APP_ENV", "FLOOT_ENV", "DEPLOYMENT_ENV", "ENVIRONMENT", "VERCEL_ENV"];
 const DATABASE_URL_KEYS = ["FLOOT_DATABASE_URL", "DATABASE_URL", "DATABASE_PRIVATE_URL", "POSTGRES_URL", "CRP_DATABASE_URL"];
 const ADMIN_PRESERVE_ROLES = ["admin", "super_admin"];
-const SERVICE_PRESERVE_ROLES = ["system", "service"];
-const HARD_PRESERVE_ROLES = [...ADMIN_PRESERVE_ROLES, ...SERVICE_PRESERVE_ROLES];
 const LOCAL_NODE_ENV_VALUES = new Set(["development", "dev", "test"]);
 const USER_REPORT_LIMIT = 200;
 export const PLATFORM_RESET_CONFIRMATION_PHRASE = "RESET STAGING PLATFORM";
@@ -21,7 +19,7 @@ export const PRESERVED_SUBSYSTEMS = [
   "migrations and version metadata",
   "laws, regulations, statutes, obligations, rule definitions, and legal references",
   "parser mappings, parser training/corrections, parser rules, known entities, and canonical extraction intelligence",
-  "admin users and admin password records",
+  "exactly one configured admin/super_admin user and its password record in hard mode",
   "system settings, feature flags, and deterministic OCR/runtime configuration",
   "supported bureau and licensed collection agency reference mappings",
   "letter templates and platform content/configuration",
@@ -232,11 +230,9 @@ function buildAllowedEmailPredicate(emails) {
 
 export function buildPreservedUserPredicate(scope = "soft", preserveAdminEmails = []) {
   if (scope === "soft") return "true";
-  const roles = HARD_PRESERVE_ROLES;
-  const clauses = [rolePredicate(roles)];
   const emailPredicate = buildAllowedEmailPredicate(preserveAdminEmails);
-  if (emailPredicate) clauses.push(emailPredicate);
-  return clauses.join(" or ");
+  if (!emailPredicate) return "false";
+  return `(${rolePredicate(ADMIN_PRESERVE_ROLES)}) and (${emailPredicate})`;
 }
 
 export function buildDeletedUserPredicate(scope = "soft", preserveAdminEmails = []) {
@@ -569,9 +565,45 @@ async function runUpdate(sql, statement) {
   return { table: statement.table, column: statement.column, skipped: false, count: Number(rows[0]?.count ?? 0), action: statement.action };
 }
 
-async function resolveAdminUser(sql) {
+function allowMultiplePreservedAdminsFromEnv(env = process.env) {
+  return String(env.RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS ?? "").trim().toLowerCase() === "true";
+}
+
+export function validateCanonicalAdminPreservationSummary({
+  scope = "soft",
+  usersTableMissing = false,
+  preserveAdminEmails = [],
+  preservedAdminCount = 0,
+  preservedUserCount = 0,
+  allowMultiplePreservedAdmins = false,
+} = {}) {
+  if (scope !== "hard") return;
+  if (usersTableMissing) fail("Hard platform reset requires a users table to preserve exactly one admin.");
+  if (normalizeEmailList(preserveAdminEmails).length < 1) {
+    fail("Hard platform reset requires RESET_PRESERVE_ADMIN_EMAILS to identify exactly one admin email.");
+  }
+  if (preservedAdminCount < 1) {
+    fail("Hard platform reset would leave zero admins from RESET_PRESERVE_ADMIN_EMAILS.");
+  }
+  if (preservedAdminCount > 1 && !allowMultiplePreservedAdmins) {
+    fail(
+      "Hard platform reset would preserve more than one admin; configure exactly one RESET_PRESERVE_ADMIN_EMAILS value or set RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS=true.",
+    );
+  }
+  if (!allowMultiplePreservedAdmins && preservedUserCount !== 1) {
+    fail(`Hard platform reset must preserve exactly one user row; planned preserved users=${preservedUserCount}.`);
+  }
+  if (allowMultiplePreservedAdmins && preservedUserCount !== preservedAdminCount) {
+    fail("Hard platform reset would preserve non-admin or non-allowlisted user rows.");
+  }
+}
+
+async function resolveAdminUsers(sql, preserveAdminEmails = []) {
   if (!(await tableExists(sql, "users"))) return null;
-  const predicate = rolePredicate(ADMIN_PRESERVE_ROLES);
+  const emailPredicate = buildAllowedEmailPredicate(preserveAdminEmails);
+  const predicate = emailPredicate
+    ? `(${rolePredicate(ADMIN_PRESERVE_ROLES)}) and (${emailPredicate})`
+    : rolePredicate(ADMIN_PRESERVE_ROLES);
   const rows = await sql.unsafe(`
     select id::bigint as id, email, role::text as role
     from public.users
@@ -579,27 +611,28 @@ async function resolveAdminUser(sql) {
     order by
       case when lower(coalesce(role::text, '')) in (${ADMIN_PRESERVE_ROLES.map(sqlStringLiteral).join(", ")}) then 0 else 1 end,
       id asc
-    limit 1
   `);
-  return rows[0] ? { id: Number(rows[0].id), email: rows[0].email, role: rows[0].role } : null;
+  return rows.map((row) => ({ id: Number(row.id), email: row.email, role: row.role }));
 }
 
-async function assertAdminAccessRows(sql) {
-  const admin = await resolveAdminUser(sql);
-  if (!admin) fail("Platform reset requires at least one admin user before and after reset.");
+async function assertAdminAccessRows(sql, preserveAdminEmails = []) {
+  const admins = await resolveAdminUsers(sql, preserveAdminEmails);
+  if (!admins || admins.length < 1) fail("Platform reset requires at least one preserved admin user before and after reset.");
 
   if (await tableExists(sql, "user_passwords")) {
-    const rows = await sql`
-      select count(*)::int as count
-      from public.user_passwords
-      where user_id = ${admin.id}
-    `;
-    if (Number(rows[0]?.count ?? 0) < 1) {
-      fail(`Admin user ${admin.email} has no user_passwords row; refusing reset because admin login may not work.`);
+    for (const admin of admins) {
+      const rows = await sql`
+        select count(*)::int as count
+        from public.user_passwords
+        where user_id = ${admin.id}
+      `;
+      if (Number(rows[0]?.count ?? 0) < 1) {
+        fail(`Admin user ${admin.email} has no user_passwords row; refusing reset because admin login may not work.`);
+      }
     }
   }
 
-  return admin;
+  return admins;
 }
 
 async function userReferenceUpdates(sql, resetSteps, deleteUserWhere, preserveAdminEmails) {
@@ -697,12 +730,11 @@ function userReason(user, scope, preserveAdminEmails, preserved) {
   const email = String(user.email ?? "").toLowerCase();
   if (preserved) {
     if (scope === "soft") return "soft_mode_preserves_users";
-    if (ADMIN_PRESERVE_ROLES.includes(role)) return "admin_role";
-    if (SERVICE_PRESERVE_ROLES.includes(role)) return "service_or_system_role";
-    if (preserveAdminEmails.includes(email)) return "explicit_allowlist";
+    if (ADMIN_PRESERVE_ROLES.includes(role) && preserveAdminEmails.includes(email)) return "configured_admin_email";
     return "preserved_by_predicate";
   }
-  return scope === "hard" ? "non_canonical_admin_user" : "non_admin_operational_user";
+  if (scope === "hard" && ADMIN_PRESERVE_ROLES.includes(role)) return "admin_not_in_reset_allowlist";
+  return scope === "hard" ? "non_preserved_user" : "non_admin_operational_user";
 }
 
 function serializeUserRow(row, scope, preserveAdminEmails, preserved) {
@@ -753,6 +785,30 @@ async function buildUserPlan(sql, plan) {
     preservedCount: Number(preservedCountRows[0]?.count ?? 0),
     deletedCount: Number(deletedCountRows[0]?.count ?? 0),
     reportLimit: USER_REPORT_LIMIT,
+  };
+}
+
+async function buildAdminPreservationPlan(sql, plan, userPlan, allowMultiplePreservedAdmins) {
+  const empty = {
+    configuredAdminEmails: plan.preserveAdminEmails,
+    allowMultiplePreservedAdmins,
+    preservedAdminCount: 0,
+    preservedAdminEmails: [],
+    requiresExactlyOneAdmin: plan.scope === "hard" && !allowMultiplePreservedAdmins,
+  };
+  if (plan.scope !== "hard" || userPlan.usersTableMissing) return empty;
+  const emailPredicate = buildAllowedEmailPredicate(plan.preserveAdminEmails);
+  if (!emailPredicate || !(await tableExists(sql, "users"))) return empty;
+  const rows = await sql.unsafe(`
+    select id::bigint as id, email, role::text as role
+    from public.users
+    where (${rolePredicate(ADMIN_PRESERVE_ROLES)}) and (${emailPredicate})
+    order by lower(email), id asc
+  `);
+  return {
+    ...empty,
+    preservedAdminCount: rows.length,
+    preservedAdminEmails: rows.map((row) => String(row.email ?? "").toLowerCase()),
   };
 }
 
@@ -1031,6 +1087,8 @@ async function runValidation({
   baseUrl,
   requireHttpValidation,
   preserveAdminEmails,
+  resetScope,
+  allowMultiplePreservedAdmins,
   deletedUserEmails,
   deletedUserPredicate,
   storageHealth,
@@ -1046,14 +1104,36 @@ async function runValidation({
   }
 
   try {
-    const admin = await assertAdminAccessRows(sql, preserveAdminEmails);
-    checks.push({ name: "admin_login_rows", status: "pass", detail: `admin=${admin.email}` });
+    const admins = await assertAdminAccessRows(sql, resetScope === "hard" ? preserveAdminEmails : []);
+    const adminEmails = admins.map((admin) => admin.email).join(", ");
+    checks.push({ name: "preserved_admin_login_rows", status: "pass", detail: `admin=${adminEmails}` });
   } catch (error) {
-    checks.push({ name: "admin_login_rows", status: "fail", detail: error instanceof Error ? error.message : String(error) });
+    checks.push({ name: "preserved_admin_login_rows", status: "fail", detail: error instanceof Error ? error.message : String(error) });
   }
 
   const deletedEmails = normalizeEmailList(deletedUserEmails ?? []);
   const usersTableExists = await tableExists(sql, "users");
+  if (usersTableExists && resetScope === "hard") {
+    const adminRows = await sql.unsafe(`
+      select count(*)::int as count
+      from public.users
+      where ${rolePredicate(ADMIN_PRESERVE_ROLES)}
+    `);
+    const userRows = await sql`select count(*)::int as count from public.users`;
+    const adminCount = Number(adminRows[0]?.count ?? 0);
+    const userCount = Number(userRows[0]?.count ?? 0);
+    checks.push({
+      name: "remaining_admin_user_count",
+      status: allowMultiplePreservedAdmins ? (adminCount >= 1 ? "pass" : "fail") : (adminCount === 1 ? "pass" : "fail"),
+      detail: `admins=${adminCount}`,
+    });
+    checks.push({
+      name: "remaining_user_count",
+      status: allowMultiplePreservedAdmins ? (userCount === adminCount ? "pass" : "fail") : (userCount === 1 ? "pass" : "fail"),
+      detail: `users=${userCount}`,
+    });
+  }
+
   if (deletedEmails.length > 0 && usersTableExists) {
     const emailList = sqlInList(deletedEmails);
     const remainingRows = await sql.unsafe(`select count(*)::int as count from public.users where lower(email) in (${emailList})`);
@@ -1190,8 +1270,13 @@ async function runReset(options, env = process.env) {
 
   const dryRun = options.execution === "dry-run";
   if (!dryRun && !options.confirm) fail("Destructive platform reset requires --confirm.");
+  const preserveAdminEmails = normalizeEmailList(
+    options.preserveAdminEmails ?? parseEmailAllowlist(env.RESET_PRESERVE_ADMIN_EMAILS || ""),
+  );
+  const allowMultiplePreservedAdmins =
+    options.allowMultiplePreservedAdmins === true || allowMultiplePreservedAdminsFromEnv(env);
   const plan = buildResetPlan(options.resetScope, {
-    preserveAdminEmails: options.preserveAdminEmails,
+    preserveAdminEmails,
     preserveAuditLogIds: options.preserveAuditLogIds,
   });
   const rootDir = process.cwd();
@@ -1199,10 +1284,16 @@ async function runReset(options, env = process.env) {
 
   try {
     const userPlan = await buildUserPlan(sql, plan);
-    await assertAdminAccessRows(sql, plan.preserveAdminEmails);
-    if (!userPlan.usersTableMissing && userPlan.preservedCount < 1) {
-      fail("Platform reset would leave no preserved admin/service user rows.");
-    }
+    const adminPreservation = await buildAdminPreservationPlan(sql, plan, userPlan, allowMultiplePreservedAdmins);
+    validateCanonicalAdminPreservationSummary({
+      scope: plan.scope,
+      usersTableMissing: userPlan.usersTableMissing,
+      preserveAdminEmails: plan.preserveAdminEmails,
+      preservedAdminCount: adminPreservation.preservedAdminCount,
+      preservedUserCount: userPlan.preservedCount,
+      allowMultiplePreservedAdmins,
+    });
+    await assertAdminAccessRows(sql, plan.scope === "hard" ? plan.preserveAdminEmails : []);
     const updateStatements = [
       { table: "report_artifact", column: "tradeline_id", action: "nullify_report_artifact_tradeline_back_reference" },
     ];
@@ -1276,6 +1367,8 @@ async function runReset(options, env = process.env) {
         baseUrl: options.baseUrl,
         requireHttpValidation: options.requireHttpValidation,
         preserveAdminEmails: plan.preserveAdminEmails,
+        resetScope: plan.scope,
+        allowMultiplePreservedAdmins,
         deletedUserEmails: userPlan.deletedUsers.map((user) => user.email),
         deletedUserPredicate: plan.userDeletePredicate,
         storageHealth,
@@ -1300,6 +1393,7 @@ async function runReset(options, env = process.env) {
       },
       preservedSubsystems: plan.preservedSubsystems,
       preservedTables: plan.preservedTables,
+      adminPreservation,
       userPlan,
       updateResults,
       rowsByTable: tableResults,
@@ -1333,10 +1427,10 @@ function printHelp() {
     "  --dry-run                    Preview soft reset by default.",
     "  --preview-hard               Preview hard reset without deleting data.",
     "  --soft                       Delete operational data while preserving all users.",
-    "  --hard                       Delete operational data and users except admin, super_admin, service, and system users.",
+    "  --hard                       Delete operational data and users except configured admin/super_admin email.",
     "  --confirm                    Required with --soft or --hard.",
     "  --confirm-env <local|staging> Required environment confirmation.",
-    "  --preserve-admin-email <email> Preserve an explicit admin email; repeatable. Also reads RESET_PRESERVE_ADMIN_EMAILS.",
+    "  --preserve-admin-email <email> Preserve an explicit admin email in hard mode. Also reads RESET_PRESERVE_ADMIN_EMAILS.",
     "  --base-url <url>             App URL for post-reset endpoint probes; default http://localhost:5175.",
     "  --require-http-validation    Fail validation if app/endpoint probes are unreachable.",
     "  --json                       Print machine-readable JSON.",
@@ -1357,6 +1451,14 @@ function printHuman(result) {
   }
   console.log("");
   console.log("Users:");
+  if (result.adminPreservation) {
+    console.log(
+      `- preserved admin policy: admins=${result.adminPreservation.preservedAdminCount} exact_one=${result.adminPreservation.requiresExactlyOneAdmin}`,
+    );
+    if (result.adminPreservation.configuredAdminEmails.length > 0) {
+      console.log(`  - configured: ${result.adminPreservation.configuredAdminEmails.join(", ")}`);
+    }
+  }
   if (result.userPlan.usersTableMissing) {
     console.log("- users table missing");
   } else {
