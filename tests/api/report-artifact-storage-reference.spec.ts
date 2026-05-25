@@ -625,6 +625,40 @@ describe("report artifact raw PDF storage references", () => {
     await expect(response.json()).resolves.toEqual({ artifacts: [], total: 0 });
   });
 
+  it("does not mark a listed artifact missing when derived storage aliases are absent", async () => {
+    queueResults(
+      { firstOrThrow: { total: "1" } },
+      {
+        execute: [{
+          id: 9906,
+          artifactType: "credit_report",
+          reportDate: new Date("2026-05-20T00:00:00.000Z"),
+          metro2Version: null,
+          sha256: "alias-fallback-sha",
+          createdAt: new Date("2026-05-20T00:00:00.000Z"),
+          userId: 42,
+          organizationId: null,
+          region: "CA",
+          tradelineId: null,
+          crrgYear: null,
+          expiresAt: null,
+          validationRulesApplied: null,
+          processingStatus: "completed",
+          tradelineAccountNumber: null,
+          tradelineAccountType: null,
+          linkedAccountCount: "0",
+          bureauName: null,
+        }],
+      },
+    );
+
+    const response = await listReportArtifacts(getRequest("/_api/report-artifact/list"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.artifacts[0]).toMatchObject({ id: 9906, storageStatus: "available" });
+  });
+
   it("rejects unauthenticated report artifact list requests", async () => {
     mocks.getServerUserSession.mockRejectedValueOnce(new NotAuthenticatedError());
 

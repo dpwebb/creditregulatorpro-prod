@@ -91,7 +91,7 @@ export async function getReportArtifactListStorageAvailability(input: {
   hasStorageReference: boolean | null | undefined;
   storageObjectName: string | null | undefined;
 }): Promise<ReportArtifactStorageAvailability> {
-  if (!input.hasStorageReference) {
+  if (input.hasStorageReference === false) {
     return {
       status: "missing",
       objectName: null,
