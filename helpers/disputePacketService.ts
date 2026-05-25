@@ -1208,7 +1208,6 @@ export function resolvePacketCreditorObligationTestId(selectedIssueIds: number[]
 function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit_bureau"): DisputePacketCandidate {
   const details = parseDetails(row.issueTechnicalDetails);
   const evidenceReference = evidenceReferenceForRow(row, details);
-  const fieldName = fieldFromDetails(details);
   const creditorCollectorName =
     packetType === "collection_agency"
       ? firstKnownText([row.collectionAgencyName, row.creditorName, row.originalCreditorName]) ?? "Collection agency"
@@ -1232,11 +1231,7 @@ function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit
       row.accountNumber,
     ),
     evidenceReference,
-    requestedAction: actionForIssue(issueTypeForRow(row), packetType, {
-      disputedField: fieldName ? formatPacketFieldLabel(fieldName) : null,
-      violationCategory: row.issueViolationCategory,
-      disputeVector: row.issueDisputeVector,
-    }),
+    requestedAction: actionForIssue(issueTypeForRow(row), packetType),
     needsManualReview: evidenceReference === "Needs manual review",
     reportDate: toPacketDate(row.reportDate),
   };
@@ -1351,11 +1346,7 @@ export function buildConsumerDisputedItemInput(
     findingReason,
     findingRecommendedAction: row.issueRecommendedAction,
     evidenceReference,
-    requestedAction: actionForIssue(issueType, packetType, {
-      disputedField: displayFieldName,
-      violationCategory: row.issueViolationCategory,
-      disputeVector: row.issueDisputeVector,
-    }),
+    requestedAction: actionForIssue(issueType, packetType),
     narrative,
   };
 }
