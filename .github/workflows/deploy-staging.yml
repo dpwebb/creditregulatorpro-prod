@@ -204,6 +204,7 @@ jobs:
         env:
           STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY != '' && secrets.STAGING_SSH_PRIVATE_KEY || secrets.STAGING_SSH_KEY }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
           STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
           STAGING_SSH_HOST_KEY_SHA256: ${{ secrets.STAGING_SSH_HOST_KEY_SHA256 || vars.STAGING_SSH_HOST_KEY_SHA256 || '' }}
         run: |
@@ -338,6 +339,26 @@ jobs:
             fi
             return 1
           }
+
+          collect_staging_known_hosts_with_ssh_tofu() {
+            local target_file="$1"
+            if [ -n "${STAGING_SSH_HOST_KEY_SHA256:-}" ]; then
+              return 1
+            fi
+            : > "$target_file"
+            if ssh \
+              -i ~/.ssh/staging_deploy_key \
+              -p "$STAGING_SSH_PORT" \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=accept-new \
+              -o UserKnownHostsFile="$target_file" \
+              "$STAGING_USER@$STAGING_HOST" true >/dev/null 2>&1 && [ -s "$target_file" ]; then
+              echo "Staging SSH host key recorded with authenticated staging-only TOFU fallback."
+              return 0
+            fi
+            return 1
+          }
           for attempt in 1 2 3 4 5 6 7 8; do
             if scan_staging_known_hosts "$known_hosts_tmp"; then
               verify_staging_ssh_host_key_if_configured "$known_hosts_tmp"
@@ -348,6 +369,10 @@ jobs:
             echo "Staging SSH host key scan attempt ${attempt}/8 failed; retrying."
             sleep 10
           done
+          if [ -n "$known_hosts_tmp" ] && collect_staging_known_hosts_with_ssh_tofu "$known_hosts_tmp"; then
+            cat "$known_hosts_tmp" >> ~/.ssh/known_hosts
+            known_hosts_tmp=""
+          fi
           if [ -n "$known_hosts_tmp" ]; then
             echo "Failed to collect staging SSH host key after retries. Confirm STAGING_HOST/STAGING_SSH_PORT and network ACLs; deploy did not start."
             exit 1

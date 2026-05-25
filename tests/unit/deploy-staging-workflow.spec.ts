@@ -75,7 +75,7 @@ describe("staging deploy workflow health gate", () => {
     expect(source).toContain("Staging deploy evidence: target_sha=${TARGET_SHA} checked_out_sha=${deployed_sha} compose_file=docker-compose.yml.");
   });
 
-  it("retries staging SSH host-key collection without falling back to unchecked deploy", () => {
+  it("retries staging SSH host-key collection and limits TOFU fallback to unpinned staging", () => {
     const source = workflowSource();
     const prepareSshBlock = source.match(/- name: Prepare SSH[\s\S]*?\n      - name: Deploy selected commit/)?.[0] ?? "";
 
@@ -93,7 +93,11 @@ describe("staging deploy workflow health gate", () => {
     expect(prepareSshBlock).toContain("Staging SSH host key scan attempt ${attempt}/8 failed; retrying.");
     expect(prepareSshBlock).toContain("Failed to collect staging SSH host key after retries.");
     expect(prepareSshBlock).toContain("deploy did not start");
-    expect(prepareSshBlock).not.toMatch(/StrictHostKeyChecking=(?:no|accept-new)/);
+    expect(prepareSshBlock).toContain("collect_staging_known_hosts_with_ssh_tofu() {");
+    expect(prepareSshBlock).toContain('if [ -n "${STAGING_SSH_HOST_KEY_SHA256:-}" ]; then');
+    expect(prepareSshBlock).toContain("-o StrictHostKeyChecking=accept-new");
+    expect(prepareSshBlock).toContain('STAGING_USER: ${{ secrets.STAGING_USER }}');
+    expect(prepareSshBlock).not.toMatch(/StrictHostKeyChecking=no/);
     expect(prepareSshBlock).not.toMatch(/ssh .* \|\| true/);
   });
 
