@@ -1,4 +1,5 @@
 import type { ViolationCategory, ValidationSeverity } from "./schema";
+import { accountBoundSourceText } from "./reportFactSource";
 
 export interface DetectedViolation {
   violationCategory: ViolationCategory;
@@ -18,10 +19,6 @@ export interface TradelineForCollectionCheck {
   accountType?: string | null;
   sourceText?: string | null;
   notes?: string | null;
-}
-
-function sourceTextWithoutLegendDefinitions(sourceText: string): string {
-  return sourceText.replace(/\bLEGEND\s*:[\s\S]*$/i, " ");
 }
 
 export function isEffectivelyCollectionAccount(tradeline: TradelineForCollectionCheck): boolean {
@@ -46,7 +43,7 @@ export function isEffectivelyCollectionAccount(tradeline: TradelineForCollection
     return true;
   }
 
-  const sourceEvidence = sourceTextWithoutLegendDefinitions(
+  const sourceEvidence = accountBoundSourceText(
     `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase(),
   );
   if (

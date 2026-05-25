@@ -17,6 +17,7 @@ import {
   sanitizeCreditorName,
 } from "./tradelineBasicInfoExtractors";
 import { extractDateAssignedToCollection } from "./tradelineDateExtractors";
+import { accountBoundStatusText } from "./reportFactSource";
 
 /**
  * Parses an individual Tradeline account block deterministically.
@@ -384,9 +385,11 @@ export function parseAccount(accHtml: string) {
     }
   }
 
-  const rawStatus = legend || status;
+  const rawStatus = accountBoundStatusText(status) || null;
   let finalStatus = rawStatus;
   if (rawStatus) {
+    const hasStatusCode = (value: string, code: string): boolean =>
+      new RegExp(`(?:^|[^A-Z0-9])${code}(?:[^A-Z0-9]|$)`, "i").test(value);
     let parts = rawStatus.split(',').map(p => p.trim());
     parts = parts.filter(p => !p.toLowerCase().includes('x-unknown'));
     if (parts.length > 0) {
@@ -394,10 +397,10 @@ export function parseAccount(accHtml: string) {
       let maxPriority = 0;
       for (const p of parts) {
         let priority = 0;
-        if (/WO|CHARGE\s*OFF/i.test(p)) priority = 4;
-        else if (/CO/i.test(p)) priority = 3;
-        else if (/TC/i.test(p)) priority = 2;
-        else if (/CG/i.test(p)) priority = 1;
+        if (hasStatusCode(p, "WO") || /CHARGE\s*OFF|WRITE[-\s]?OFF|BAD\s+DEBT/i.test(p)) priority = 4;
+        else if (hasStatusCode(p, "CO")) priority = 3;
+        else if (hasStatusCode(p, "TC")) priority = 2;
+        else if (hasStatusCode(p, "CG")) priority = 1;
         
         if (priority > maxPriority) {
           maxPriority = priority;
@@ -430,21 +433,26 @@ export function parseAccount(accHtml: string) {
   if (paymentHistoryDetails.length > 0 && paymentHistoryDetails[0].mop) {
     mop = paymentHistoryDetails[0].mop.trim();
   } else if (finalStatus) {
-    if (/CG|WO|CO|charge\s*off|bad\s*debt|R9|I9|09|collection/i.test(finalStatus)) {
+    const hasStatusCode = (code: string): boolean =>
+      new RegExp(`(?:^|[^A-Z0-9])${code}(?:[^A-Z0-9]|$)`, "i").test(finalStatus);
+    if (
+      ["CG", "WO", "CO", "R9", "I9", "09"].some(hasStatusCode) ||
+      /charge\s*off|bad\s*debt|collection/i.test(finalStatus)
+    ) {
       mop = "9";
-    } else if (/R8|I8|08|repossession/i.test(finalStatus)) {
+    } else if (["R8", "I8", "08"].some(hasStatusCode) || /repossession/i.test(finalStatus)) {
       mop = "8";
-    } else if (/R7|I7|07/i.test(finalStatus)) {
+    } else if (["R7", "I7", "07"].some(hasStatusCode)) {
       mop = "7";
-    } else if (/R5|I5|05/i.test(finalStatus)) {
+    } else if (["R5", "I5", "05"].some(hasStatusCode)) {
       mop = "5";
-    } else if (/R4|I4|04/i.test(finalStatus)) {
+    } else if (["R4", "I4", "04"].some(hasStatusCode)) {
       mop = "4";
-    } else if (/R3|I3|03/i.test(finalStatus)) {
+    } else if (["R3", "I3", "03"].some(hasStatusCode)) {
       mop = "3";
-    } else if (/R2|I2|02/i.test(finalStatus)) {
+    } else if (["R2", "I2", "02"].some(hasStatusCode)) {
       mop = "2";
-    } else if (/R1|I1|01|AC|CZ|current|pays/i.test(finalStatus)) {
+    } else if (["R1", "I1", "01", "AC", "CZ"].some(hasStatusCode) || /current|pays/i.test(finalStatus)) {
       mop = "1";
     }
   }

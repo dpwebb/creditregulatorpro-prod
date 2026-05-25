@@ -159,4 +159,84 @@ describe("formal violation eligibility boundary", () => {
       }),
     );
   });
+
+  it("does not treat missing account number as a formal violation without explicit authority", () => {
+    const eligibility = classifyDetectedViolationEligibility(
+      enrichDetectedViolationRuleEvidence(
+        violation({
+          confidenceScore: 96,
+          technicalDetails: {
+            fieldName: "accountNumber",
+            reportArtifactId: 77,
+            textSnippet: "Account number not shown.",
+            regulationIds: ["PIPEDA_4_6"],
+          },
+        }),
+      ),
+    );
+
+    expect(eligibility).toEqual(
+      expect.objectContaining({
+        formalViolationEligible: false,
+        legalConclusionAllowed: false,
+        explicitAuthorityMapped: false,
+      }),
+    );
+    expect(eligibility.reasonCodes).toContain("NO_EXPLICIT_STATUTORY_AUTHORITY");
+  });
+
+  it("keeps missing collection agency name as a dispute basis unless exact authority supports a formal finding", () => {
+    const eligibility = classifyDetectedViolationEligibility(
+      enrichDetectedViolationRuleEvidence(
+        violation({
+          confidenceScore: 97,
+          technicalDetails: {
+            fieldName: "collectionAgencyName",
+            reportArtifactId: 77,
+            textSnippet: "Collection agency name not shown.",
+            regulationIds: ["PIPEDA_4_6"],
+          },
+        }),
+      ),
+    );
+
+    expect(eligibility).toEqual(
+      expect.objectContaining({
+        formalViolationEligible: false,
+        legalConclusionAllowed: false,
+        explicitAuthorityMapped: false,
+      }),
+    );
+    expect(["dispute_basis", "verification_issue"]).toContain(eligibility.findingKind);
+  });
+
+  it("blocks parser-ambiguous facts from formal violation eligibility", () => {
+    const eligibility = classifyDetectedViolationEligibility(
+      enrichDetectedViolationRuleEvidence(
+        violation({
+          violationCategory: "BANKRUPTCY_DISCHARGE_VIOLATION",
+          confidenceScore: 98,
+          technicalDetails: {
+            bankruptcyRecordId: 5,
+            fieldName: "bankruptcyStatus",
+            reportArtifactId: 77,
+            textSnippet: "Potential bankruptcy status.",
+            regulationIds: ["BIA_S178_2"],
+            extractionConfidenceGate: {
+              status: "parser_uncertain",
+            },
+          },
+        }),
+      ),
+    );
+
+    expect(eligibility).toEqual(
+      expect.objectContaining({
+        findingKind: "manual_review_only",
+        formalViolationEligible: false,
+        legalConclusionAllowed: false,
+      }),
+    );
+    expect(eligibility.reasonCodes).toContain("PARSER_OR_USER_REVIEW_REQUIRED");
+  });
 });

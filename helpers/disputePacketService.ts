@@ -357,9 +357,9 @@ function issueTypeForRow(
   details: Record<string, unknown> = parseDetails(row.issueTechnicalDetails),
 ): string {
   return firstKnownText([
+    consumerIssueIntentFromDetails(details),
     row.issueDisputeVector,
     row.issueViolationCategory,
-    consumerIssueIntentFromDetails(details),
   ]) ?? "reporting_issue";
 }
 

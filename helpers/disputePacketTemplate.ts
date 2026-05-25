@@ -853,8 +853,6 @@ function buildNarrativeLetterBlock(item: SimpleDisputedItem, packet: SimpleDispu
   pushSection(lines, "Verification requested:", narrative.verificationRequests);
   pushSection(lines, "Requested remedies:", narrative.requestedRemedies);
   pushSection(lines, "Evidence references:", narrative.evidenceReferences);
-  pushSection(lines, "Readiness warnings:", narrative.readinessWarnings);
-  pushSection(lines, "Readiness blockers:", narrative.readinessBlockers);
 
   if (lines.length === 0) {
     return [

@@ -3,13 +3,10 @@ import type { Tradeline } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
 import { isEffectivelyCollectionAccount } from "./complianceDetectorTypes";
 import { regulationRegistry } from "./regulationRegistry";
-
-function sourceTextWithoutLegendDefinitions(sourceText: string): string {
-  return sourceText.replace(/\bLEGEND\s*:[\s\S]*$/i, " ");
-}
+import { EVIDENCE_ROLES, FACT_SOURCE_KINDS, accountBoundSourceText } from "./reportFactSource";
 
 function hasNarrativeCode(sourceText: string, code: string): boolean {
-  const accountNarrativeText = sourceTextWithoutLegendDefinitions(sourceText);
+  const accountNarrativeText = accountBoundSourceText(sourceText);
   const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`(?:^|[^A-Z0-9])${escaped}(?:[^A-Z0-9]|$)`).test(accountNarrativeText);
 }
@@ -21,6 +18,8 @@ function hasReportedTermsInSource(sourceText: string): boolean {
 function baseSegmentDetails(details: Record<string, any>): Record<string, any> {
   return {
     ruleName: "BASE_SEGMENT_REQUIRED",
+    triggerFactSourceKind: details.triggerFactSourceKind ?? FACT_SOURCE_KINDS.ACCOUNT_BOUND_FIELD,
+    triggerEvidenceRole: details.triggerEvidenceRole ?? EVIDENCE_ROLES.TRIGGER_EVIDENCE,
     ...details,
   };
 }
@@ -37,7 +36,7 @@ export async function detectMetro2FieldViolations(
   const isCollection = isEffectivelyCollectionAccount(tradeline);
   const sourceTextRaw = String((tradeline as any).sourceText || "");
   const sourceText = sourceTextRaw.toUpperCase();
-  const accountNarrativeText = sourceTextWithoutLegendDefinitions(sourceText);
+  const accountNarrativeText = accountBoundSourceText(sourceText);
   const hasWriteOffNarrative =
     hasNarrativeCode(sourceText, "WO") ||
     accountNarrativeText.includes("BAD DEBT WRITE-OFF") ||
@@ -124,6 +123,11 @@ export async function detectMetro2FieldViolations(
           hasDateAssignedToCollection: !!tradeline.dateAssignedToCollection,
           hasChargeOffDate: !!tradeline.chargeOffDate,
           narrativeCodes: hasWriteOffNarrative ? ["WO"] : [],
+          triggerFactSourceKind: hasWriteOffNarrative
+            ? FACT_SOURCE_KINDS.ACCOUNT_APPLIED_CODE
+            : FACT_SOURCE_KINDS.ACCOUNT_BOUND_FIELD,
+          supportFactSourceKind: hasWriteOffNarrative ? FACT_SOURCE_KINDS.GLOBAL_LEGEND_DEFINITION : undefined,
+          supportEvidenceRole: hasWriteOffNarrative ? EVIDENCE_ROLES.INTERPRETIVE_SUPPORT : undefined,
           textSnippet: hasWriteOffNarrative ? "WO-Bad debt write-off" : undefined,
           regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
         }),
@@ -147,6 +151,11 @@ export async function detectMetro2FieldViolations(
           amountPastDue: pastDue,
           isCollectionAccount: true,
           narrativeCodes: hasCollectionTurnoverNarrative ? ["TC"] : [],
+          triggerFactSourceKind: hasCollectionTurnoverNarrative
+            ? FACT_SOURCE_KINDS.ACCOUNT_APPLIED_CODE
+            : FACT_SOURCE_KINDS.ACCOUNT_BOUND_FIELD,
+          supportFactSourceKind: hasCollectionTurnoverNarrative ? FACT_SOURCE_KINDS.GLOBAL_LEGEND_DEFINITION : undefined,
+          supportEvidenceRole: hasCollectionTurnoverNarrative ? EVIDENCE_ROLES.INTERPRETIVE_SUPPORT : undefined,
           textSnippet: hasCollectionTurnoverNarrative ? "TC-Third party collection/account turned over to collection agency" : undefined,
           regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
         }),
@@ -408,6 +417,11 @@ export async function detectMetro2FieldViolations(
           ? ["PIPEDA_4_6", ...collectionAssignmentDateRequirementIds]
           : ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
         narrativeCodes: hasCollectionTurnoverNarrative ? ["TC"] : [],
+        triggerFactSourceKind: hasCollectionTurnoverNarrative
+          ? FACT_SOURCE_KINDS.ACCOUNT_APPLIED_CODE
+          : FACT_SOURCE_KINDS.ACCOUNT_BOUND_FIELD,
+        supportFactSourceKind: hasCollectionTurnoverNarrative ? FACT_SOURCE_KINDS.GLOBAL_LEGEND_DEFINITION : undefined,
+        supportEvidenceRole: hasCollectionTurnoverNarrative ? EVIDENCE_ROLES.INTERPRETIVE_SUPPORT : undefined,
         textSnippet: hasCollectionTurnoverNarrative ? "TC-Third party collection/account turned over to collection agency" : undefined,
       }),
       recommendedAction: hasSpecificAssignmentDateRequirement
@@ -432,6 +446,11 @@ export async function detectMetro2FieldViolations(
         reportedAs: "Missing",
         isCollectionAccount: true,
         narrativeCodes: hasCollectionTurnoverNarrative ? ["TC"] : [],
+        triggerFactSourceKind: hasCollectionTurnoverNarrative
+          ? FACT_SOURCE_KINDS.ACCOUNT_APPLIED_CODE
+          : FACT_SOURCE_KINDS.ACCOUNT_BOUND_FIELD,
+        supportFactSourceKind: hasCollectionTurnoverNarrative ? FACT_SOURCE_KINDS.GLOBAL_LEGEND_DEFINITION : undefined,
+        supportEvidenceRole: hasCollectionTurnoverNarrative ? EVIDENCE_ROLES.INTERPRETIVE_SUPPORT : undefined,
         textSnippet: hasCollectionTurnoverNarrative ? "TC-Third party collection/account turned over to collection agency" : undefined,
         regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
       }),
@@ -517,6 +536,11 @@ export async function detectMetro2FieldViolations(
         reportedAs: "Missing",
         accountStatus: tradeline.status,
         narrativeCodes: hasWriteOffNarrative ? ["WO"] : [],
+        triggerFactSourceKind: hasWriteOffNarrative
+          ? FACT_SOURCE_KINDS.ACCOUNT_APPLIED_CODE
+          : FACT_SOURCE_KINDS.ACCOUNT_BOUND_FIELD,
+        supportFactSourceKind: hasWriteOffNarrative ? FACT_SOURCE_KINDS.GLOBAL_LEGEND_DEFINITION : undefined,
+        supportEvidenceRole: hasWriteOffNarrative ? EVIDENCE_ROLES.INTERPRETIVE_SUPPORT : undefined,
         textSnippet: hasWriteOffNarrative ? "WO-Bad debt write-off" : undefined,
         regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
       }),
@@ -540,6 +564,9 @@ export async function detectMetro2FieldViolations(
         reportedAs: "Missing",
         accountStatus: tradeline.status,
         narrativeCodes: ["CZ"],
+        triggerFactSourceKind: FACT_SOURCE_KINDS.ACCOUNT_APPLIED_CODE,
+        supportFactSourceKind: FACT_SOURCE_KINDS.GLOBAL_LEGEND_DEFINITION,
+        supportEvidenceRole: EVIDENCE_ROLES.INTERPRETIVE_SUPPORT,
         textSnippet: "CZ-Closed at consumer's request",
         regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
       }),
