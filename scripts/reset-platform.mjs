@@ -636,7 +636,8 @@ async function assertAdminAccessRows(sql, preserveAdminEmails = []) {
 }
 
 async function userReferenceUpdates(sql, resetSteps, deleteUserWhere, preserveAdminEmails) {
-  const admin = await resolveAdminUser(sql, preserveAdminEmails);
+  const admins = await resolveAdminUsers(sql, preserveAdminEmails);
+  const admin = admins?.[0] ?? null;
   if (!admin) fail("Reset requires an admin user to preserve/reassign protected references.");
 
   const refs = await sql`
