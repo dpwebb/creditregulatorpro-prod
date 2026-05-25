@@ -8,9 +8,7 @@ import {
   Building2, 
   Landmark, 
   Gavel,
-  ArrowRight,
-  Scale,
-  Target
+  ArrowRight
 } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
@@ -24,15 +22,13 @@ import styles from "./UploadScanSummary.module.css";
 interface UploadScanSummaryProps {
   data: OutputType;
   isLoading?: boolean;
-  artifactId: number;
 }
 
 const PERSISTED_PROBLEMS_ROUTE = "/my-accounts?tab=problems";
 
 export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({ 
   data, 
-  isLoading,
-  artifactId 
+  isLoading
 }) => {
   if (isLoading) {
     return <UploadScanSummarySkeleton />;

@@ -9,6 +9,8 @@ const REVIEW_ONLY_VALIDATION_STATUSES = new Set([
   "NEEDS_USER_REVIEW",
 ]);
 
+// Accounts summary display only. This must not become packet readiness,
+// violation truth, or Problems/detail filtering.
 export function isVisibleAccountFinding(input: AccountFindingVisibilityInput): boolean {
   const userStatus = (input.userStatus ?? "active").trim().toLowerCase();
   if (userStatus !== "active") return false;

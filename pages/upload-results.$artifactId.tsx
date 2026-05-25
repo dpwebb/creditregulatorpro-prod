@@ -88,7 +88,6 @@ export default function UploadResultsPage() {
             )}
             <UploadScanSummary 
               data={data} 
-              artifactId={parsedId} 
             />
           </>
         ) : null}

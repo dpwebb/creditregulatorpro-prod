@@ -15,6 +15,10 @@ import { TradelineWithDetails } from "../endpoints/tradeline/list_GET.schema";
 import { ScoredTradeline } from "../helpers/ocrQueries";
 import styles from "./upload-review.$artifactId.module.css";
 
+// Legacy artifact review uses the old client-side scanner. Persisted upload
+// findings remain sourced from creditorObligationTest via upload results,
+// Accounts, Problems, and packet readiness flows.
+
 // Compatible interface for the scanner, as we are constructing this from DB records
 interface ScannableTradeline {
   id?: number;
