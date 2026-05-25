@@ -268,11 +268,23 @@ export class FlootOAuthProvider implements OAuthProviderInterface {
       );
     }
 
+    const providerEmailVerified =
+      userInfo.email_verified === false ||
+      userInfo.emailVerified === false ||
+      userInfo.verified_email === false
+        ? false
+        : userInfo.email_verified === true ||
+            userInfo.emailVerified === true ||
+            userInfo.verified_email === true
+          ? true
+          : true;
+
     const mappedData: StandardUserData = {
       email: userInfo.email,
       displayName: userInfo.name || userInfo.email.split("@")[0], // Fallback to email prefix if no name
       avatarUrl: userInfo.picture || null, // Support avatar URL if provided
       providerUserId: userInfo.id,
+      emailVerified: providerEmailVerified,
     };
 
     return mappedData;

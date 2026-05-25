@@ -58,6 +58,7 @@ const mocks = vi.hoisted(() => {
     logLogin: vi.fn(),
     logLoginFailed: vi.fn(),
     logLogout: vi.fn(),
+    logAudit: vi.fn(),
     listRegulationReconciliationCandidates: vi.fn(),
     listRuntimeBridgeMappings: vi.fn(),
     loggerInfo: vi.fn(),
@@ -97,6 +98,7 @@ vi.mock("../../helpers/auditLogger", () => ({
   logLogin: mocks.logLogin,
   logLoginFailed: mocks.logLoginFailed,
   logLogout: mocks.logLogout,
+  logAudit: mocks.logAudit,
 }));
 
 vi.mock("../../helpers/regulationReconciliationCandidateService", () => ({
@@ -247,6 +249,12 @@ function valuesFor(table: string) {
     .map((operation) => operation.args[0]);
 }
 
+function setFor(table: string) {
+  return mocks.operations
+    .filter((operation) => operation.table === table && operation.method === "set")
+    .map((operation) => operation.args[0]);
+}
+
 function whereValues(column: string) {
   return mocks.operations
     .filter((operation) => operation.method === "where" && operation.args[0] === column)
@@ -320,6 +328,7 @@ beforeEach(() => {
   mocks.logLogin.mockResolvedValue({ success: true });
   mocks.logLoginFailed.mockResolvedValue({ success: true });
   mocks.logLogout.mockResolvedValue({ success: true });
+  mocks.logAudit.mockResolvedValue({ success: true });
   mocks.listRegulationReconciliationCandidates.mockResolvedValue([]);
   mocks.listRuntimeBridgeMappings.mockResolvedValue([]);
 });
@@ -374,6 +383,72 @@ describe("auth/session/logout lifecycle endpoints", () => {
     expect(setCookie).toContain("HttpOnly");
     const rawCookieValue = setCookie?.split(";")[0]?.split("=")[1] ?? "";
     expect(JSON.stringify(body)).not.toContain(rawCookieValue);
+    expectNoSecretLeak(body);
+  });
+
+  it("reconciles stale unverified password-login state when a completed verification token exists", async () => {
+    queueResults(
+      { first: { failedCount: 0, lastFailedAt: null } },
+      { execute: [syntheticDbUser({ emailVerified: false })] },
+      {},
+      {},
+      {},
+      { first: { id: 7001 } },
+      { first: { id: 9001 } },
+      { execute: [{ id: 10 }] },
+      { first: { value: "terms-v1" } },
+    );
+
+    const response = await loginWithPassword(
+      postRequest("/_api/auth/login_with_password", {
+        email: "synthetic.user@example.invalid",
+        password: "SYNTHETIC_PASSWORD_INPUT_SHOULD_NOT_APPEAR",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.user.emailVerified).toBe(true);
+    expect(setFor("users")).toContainEqual({ emailVerified: true });
+    expect(mocks.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "UPDATE",
+        entityType: "USER_ACCOUNT",
+        entityId: 10,
+        details: expect.objectContaining({
+          event: "email_verification_reconciled",
+          source: "password_login",
+          canonicalField: "users.emailVerified",
+        }),
+      }),
+    );
+    expectNoSecretLeak(body);
+  });
+
+  it("keeps unverified password-login users unverified when no completed verification exists", async () => {
+    queueResults(
+      { first: { failedCount: 0, lastFailedAt: null } },
+      { execute: [syntheticDbUser({ emailVerified: false })] },
+      {},
+      {},
+      {},
+      { first: { id: 7001 } },
+      { first: null },
+      { first: { value: "terms-v1" } },
+    );
+
+    const response = await loginWithPassword(
+      postRequest("/_api/auth/login_with_password", {
+        email: "synthetic.user@example.invalid",
+        password: "SYNTHETIC_PASSWORD_INPUT_SHOULD_NOT_APPEAR",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.user.emailVerified).toBe(false);
+    expect(setFor("users")).toEqual([]);
+    expect(mocks.logAudit).not.toHaveBeenCalled();
     expectNoSecretLeak(body);
   });
 

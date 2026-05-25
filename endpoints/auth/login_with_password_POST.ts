@@ -13,6 +13,7 @@ import { User } from "../../helpers/User";
 import { logLogin, logLoginFailed } from "../../helpers/auditLogger";
 import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
 import { logger } from "../../helpers/logger";
+import { reconcileEmailVerifiedFromVerifiedToken } from "../../helpers/emailVerificationState";
 
 // Configuration constants
 const RATE_LIMIT_CONFIG = {
@@ -273,6 +274,12 @@ export async function handle(request: Request) {
 
     // Success case - session was already created in transaction
     const user = result.user;
+    const emailVerificationState = await reconcileEmailVerifiedFromVerifiedToken({
+      userId: user.id,
+      currentEmailVerified: user.emailVerified,
+      source: "password_login",
+      request,
+    });
 
     // Fetch current terms version from system_settings
     const termsVersionSetting = await db
@@ -292,7 +299,7 @@ export async function handle(request: Request) {
       email: user.email,
       avatarUrl: user.avatarUrl,
       displayName: user.displayName,
-      emailVerified: user.emailVerified ?? false,
+      emailVerified: emailVerificationState.emailVerified,
       organizationId: user.organizationId,
       role: user.role,
       subscriptionPlan: user.subscriptionPlan ?? null,

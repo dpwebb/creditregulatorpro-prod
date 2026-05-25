@@ -4,9 +4,14 @@ import { postVerifyEmail } from "../endpoints/auth/verify_email_POST.schema";
 import { AUTH_QUERY_KEY } from "./useAuth";
 
 export const useRequestVerificationEmail = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async () => {
       return await postRequestVerificationEmail({});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY });
     },
   });
 };

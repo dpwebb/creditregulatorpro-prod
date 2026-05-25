@@ -13,6 +13,7 @@ import {
 } from "../../helpers/OAuthProvider";
 import { getOAuthProvider } from "../../helpers/getOAuthProvider";
 import { schema } from "./oauth_callback_GET.schema";
+import { logAudit } from "../../helpers/auditLogger";
 import crypto from "crypto";
 import { ZodError } from "zod";
 
@@ -330,7 +331,7 @@ export async function handle(request: Request) {
     let user;
     const existingUsers = await db
       .selectFrom("users")
-      .select(["id", "email", "displayName", "role", "avatarUrl"])
+      .select(["id", "email", "displayName", "role", "avatarUrl", "emailVerified"])
       .where("email", "=", mappedUserData.email)
       .limit(1)
       .execute();
@@ -419,15 +420,45 @@ export async function handle(request: Request) {
           .execute();
       }
 
-      // Update user display name and avatar if needed (users table has no updatedAt)
+      const shouldMarkEmailVerified =
+        mappedUserData.emailVerified === true && user.emailVerified !== true;
+      const updatedAvatarUrl = user.avatarUrl || mappedUserData.avatarUrl || null;
+
+      // Update user display name, avatar, and trusted provider verification if needed.
       await db
         .updateTable("users")
         .set({
           displayName: mappedUserData.displayName,
-          avatarUrl: user.avatarUrl || mappedUserData.avatarUrl || null,
+          avatarUrl: updatedAvatarUrl,
+          ...(shouldMarkEmailVerified ? { emailVerified: true } : {}),
         })
         .where("id", "=", user.id)
         .execute();
+
+      if (shouldMarkEmailVerified) {
+        await logAudit({
+          action: "UPDATE",
+          entityType: "USER_ACCOUNT",
+          entityId: user.id,
+          userId: user.id,
+          status: "SUCCESS",
+          request,
+          details: {
+            event: "email_verification_reconciled",
+            source: "oauth_callback",
+            canonicalField: "users.emailVerified",
+            previousEmailVerified: false,
+            emailVerified: true,
+          },
+        });
+      }
+
+      user = {
+        ...user,
+        displayName: mappedUserData.displayName,
+        avatarUrl: updatedAvatarUrl,
+        emailVerified: shouldMarkEmailVerified ? true : user.emailVerified,
+      };
 
       // Backfill userAccount row for existing users if missing
       const existingUserAccount = await db
@@ -480,7 +511,7 @@ export async function handle(request: Request) {
           displayName: mappedUserData.displayName,
           avatarUrl: mappedUserData.avatarUrl || null,
           role: "user",
-          emailVerified: true,
+          emailVerified: mappedUserData.emailVerified === true,
         })
         .returning(["id", "email", "displayName", "role", "avatarUrl"])
         .execute();

@@ -3,6 +3,7 @@ import { schema } from "./establish_session_POST.schema";
 import { setServerSession } from "../../helpers/getSetServerSession";
 import { User } from "../../helpers/User";
 import { randomBytes } from "crypto";
+import { reconcileEmailVerifiedFromVerifiedToken } from "../../helpers/emailVerificationState";
 
 export async function handle(request: Request) {
   try {
@@ -63,6 +64,13 @@ export async function handle(request: Request) {
       return Response.json({ error: "User not found" }, { status: 400 });
     }
 
+    const emailVerificationState = await reconcileEmailVerifiedFromVerifiedToken({
+      userId: user.id,
+      currentEmailVerified: user.emailVerified,
+      source: "establish_session",
+      request,
+    });
+
     // Backfill userAccount row if missing
     const existingUserAccount = await db
       .selectFrom("userAccount")
@@ -121,7 +129,7 @@ export async function handle(request: Request) {
       email: user.email,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      emailVerified: user.emailVerified ?? false,
+      emailVerified: emailVerificationState.emailVerified,
       organizationId: user.organizationId,
       role: user.role,
       subscriptionPlan: user.subscriptionPlan ?? null,

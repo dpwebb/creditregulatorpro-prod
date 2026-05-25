@@ -8,11 +8,28 @@ import { sendGridEmail } from "../../helpers/sendGridEmail";
 import { getAppBaseUrl } from "../../helpers/getAppBaseUrl";
 import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
 import { logger } from "../../helpers/logger";
+import { reconcileEmailVerifiedFromVerifiedToken } from "../../helpers/emailVerificationState";
 
 export async function handle(request: Request) {
   try {
     await assertOriginAllowed(request);
     const { user } = await getServerUserSession(request);
+
+    const emailVerificationState = await reconcileEmailVerifiedFromVerifiedToken({
+      userId: user.id,
+      currentEmailVerified: user.emailVerified,
+      source: "request_verification_email",
+      request,
+    });
+
+    if (emailVerificationState.emailVerified) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Email is already verified.",
+        } satisfies OutputType)
+      );
+    }
 
     // Rate limiting: 3 requests per hour
     const rateLimit = await checkRateLimit(

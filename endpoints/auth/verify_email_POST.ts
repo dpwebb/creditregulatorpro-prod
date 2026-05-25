@@ -1,6 +1,8 @@
 import { schema, OutputType } from "./verify_email_POST.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { logAudit } from "../../helpers/auditLogger";
+import { reconcileEmailVerifiedFromVerifiedToken } from "../../helpers/emailVerificationState";
 // handleEndpointError already imported above
 
 export async function handle(request: Request) {
@@ -22,10 +24,17 @@ export async function handle(request: Request) {
     }
 
     if (tokenRecord.verified) {
-      return new Response(
-        JSON.stringify({ error: "Email is already verified." }),
-        { status: 400 }
-      );
+      await reconcileEmailVerifiedFromVerifiedToken({
+        userId: tokenRecord.userId,
+        currentEmailVerified: false,
+        source: "verify_email_token_replay",
+        request,
+      });
+
+      return Response.json({
+        success: true,
+        message: "Email successfully verified.",
+      } satisfies OutputType);
     }
 
     if (new Date() > new Date(tokenRecord.expiresAt)) {
@@ -50,12 +59,25 @@ export async function handle(request: Request) {
         .execute();
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Email successfully verified.",
-      } satisfies OutputType)
-    );
+    await logAudit({
+      action: "UPDATE",
+      entityType: "USER_ACCOUNT",
+      entityId: tokenRecord.userId,
+      userId: tokenRecord.userId,
+      status: "SUCCESS",
+      request,
+      details: {
+        event: "email_verified",
+        source: "verification_token",
+        canonicalField: "users.emailVerified",
+        emailVerified: true,
+      },
+    });
+
+    return Response.json({
+      success: true,
+      message: "Email successfully verified.",
+    } satisfies OutputType);
   } catch (error) {
     console.error("verify_email error:", error);
     return handleEndpointError(error);

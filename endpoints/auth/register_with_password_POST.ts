@@ -104,6 +104,7 @@ export async function handle(request: Request) {
           displayName,
           role: "user", // Default role
           organizationId: null, // Default for individual users
+          emailVerified: false,
         })
         .returning(["id", "email", "displayName", "organizationId", "emailVerified", "createdAt"])
         .execute();

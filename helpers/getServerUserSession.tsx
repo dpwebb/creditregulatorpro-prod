@@ -9,6 +9,7 @@ import {
   SessionExpirationSeconds,
 } from "./getSetServerSession";
 import { shouldTouchSessionLastAccessed } from "./runtimeTuningConfig";
+import { reconcileEmailVerifiedFromVerifiedToken } from "./emailVerificationState";
 
 function coerceLastAccessedDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -64,6 +65,12 @@ export async function getServerUserSession(request: Request) {
 
   const result = results[0];
   const isAdminOrSupport = result.role === "admin" || result.role === "support";
+  const emailVerificationState = await reconcileEmailVerifiedFromVerifiedToken({
+    userId: result.id,
+    currentEmailVerified: result.emailVerified,
+    source: "session_hydration",
+    request,
+  });
 
   const termsAcceptedAt = isAdminOrSupport
     ? new Date(0).toISOString()
@@ -82,7 +89,7 @@ export async function getServerUserSession(request: Request) {
     displayName: result.displayName,
     avatarUrl: result.avatarUrl,
     organizationId: result.organizationId,
-    emailVerified: result.emailVerified ?? false,
+    emailVerified: emailVerificationState.emailVerified,
     role: result.role,
     subscriptionPlan: isAdminOrSupport ? null : ((result.subscriptionPlan as SubscriptionPlan | null) ?? null),
     subscriptionStatus: isAdminOrSupport ? null : ((result.subscriptionStatus as SubscriptionStatus | null) ?? null),
