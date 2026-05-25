@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 
 import {
   checkStoredFileAvailability,
-  checkStoredObjectAvailability,
   classifyStorageFailureReason,
   getStoredFileObjectName,
   readStoredFile,
@@ -72,34 +71,6 @@ export async function getReportArtifactStorageAvailability(
   }
 
   const availability = await checkStoredFileAvailability(storageUrl);
-  if (availability.available) {
-    return {
-      status: "available",
-      objectName: availability.objectName,
-      failureReason: null,
-    };
-  }
-
-  return {
-    status: availability.failureReason === "not_found" ? "missing" : "unavailable",
-    objectName: availability.objectName,
-    failureReason: availability.failureReason,
-  };
-}
-
-export async function getReportArtifactListStorageAvailability(input: {
-  hasStorageReference: boolean | null | undefined;
-  storageObjectName: string | null | undefined;
-}): Promise<ReportArtifactStorageAvailability> {
-  if (!input.storageObjectName) {
-    return {
-      status: "available",
-      objectName: null,
-      failureReason: null,
-    };
-  }
-
-  const availability = await checkStoredObjectAvailability(input.storageObjectName);
   if (availability.available) {
     return {
       status: "available",

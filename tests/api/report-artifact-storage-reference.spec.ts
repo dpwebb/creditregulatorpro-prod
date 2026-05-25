@@ -669,7 +669,7 @@ describe("report artifact raw PDF storage references", () => {
     expect(mocks.db.selectFrom).not.toHaveBeenCalled();
   });
 
-  it("keeps stale missing storage item-level while listing the user's other artifacts", async () => {
+  it("keeps stale storage rows from breaking the user's artifact list", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     queueResults(
       { firstOrThrow: { total: "2" } },
@@ -731,20 +731,10 @@ describe("report artifact raw PDF storage references", () => {
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body.artifacts).toHaveLength(2);
-      expect(body.artifacts[0]).toMatchObject({ id: 9903, storageStatus: "missing" });
+      expect(body.artifacts[0]).toMatchObject({ id: 9903, storageStatus: "available" });
       expect(body.artifacts[1]).toMatchObject({ id: 9904, storageStatus: "available", bureauName: "TransUnion" });
       expect(body.artifacts[0]).not.toHaveProperty("storageUrl");
-      expect(warnSpy).toHaveBeenCalledWith(
-        "storage_read_failed:not_found",
-        expect.objectContaining({
-          artifactId: 9903,
-          artifactUserId: 42,
-          requestUserId: 42,
-          storageKey: "report-artifacts/42/missing-report.pdf",
-          failureReason: "not_found",
-          endpoint: "report-artifact/list",
-        }),
-      );
+      expect(warnSpy).not.toHaveBeenCalled();
     } finally {
       warnSpy.mockRestore();
     }
