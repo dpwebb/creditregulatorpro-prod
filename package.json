@@ -49,6 +49,8 @@
     "response:worker-orchestrate": "tsx scripts/response-processing-worker-orchestrator.ts",
     "response:lifecycle": "tsx scripts/response-processing-lifecycle.ts",
     "cleanup:test-data": "node scripts/cleanup-test-data.mjs",
+    "reset:platform": "node scripts/reset-platform.mjs",
+    "seed:minimal": "tsx scripts/bootstrap-local-auth-schema.ts",
     "response:queue-load-check": "tsx scripts/response-processing-queue-load-check.ts",
     "response:orchestration-check": "tsx scripts/response-processing-orchestration-check.ts",
     "response:soak-check": "tsx scripts/response-processing-soak-check.ts",
