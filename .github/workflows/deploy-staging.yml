@@ -653,7 +653,7 @@ jobs:
                 components/Auth*|components/ProtectedRoute*|components/ProfileRequiredRoute*|components/RoleBadge*|components/Admin*|components/KBAdmin*|pages/admin-*|pages/login*|pages/register*|pages/reset*|pages/oauth*|App.tsx)
                   return 0
                   ;;
-                scripts/staging-auth-*|scripts/staging-outcome-*|scripts/staging-response-*|scripts/response-*|scripts/bootstrap-local-auth-schema.ts|scripts/bootstrap-local-app-fixtures.ts|scripts/localAdminAuth.ts)
+                  scripts/staging-auth-*|scripts/staging-outcome-*|scripts/staging-response-*|scripts/response-*|scripts/reset-platform*|scripts/staging-admin-platform-reset-smoke.ts|scripts/bootstrap-local-auth-schema.ts|scripts/bootstrap-local-app-fixtures.ts|scripts/localAdminAuth.ts)
                   return 0
                   ;;
                 migrations/*|scripts/migration-*|scripts/check-migrations.mjs|scripts/migration-gate.mjs)

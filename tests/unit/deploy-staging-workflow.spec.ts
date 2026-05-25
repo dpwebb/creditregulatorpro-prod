@@ -141,7 +141,7 @@ describe("staging deploy workflow health gate", () => {
     expect(source).toContain("helpers/response*|helpers/Response*|helpers/outcome*|helpers/Outcome*");
     expect(source).toContain("components/Auth*|components/ProtectedRoute*|components/ProfileRequiredRoute*|components/RoleBadge*");
     expect(source).toContain("components/Admin*|components/KBAdmin*|pages/admin-*");
-    expect(source).toContain("scripts/staging-auth-*|scripts/staging-outcome-*|scripts/staging-response-*|scripts/response-*");
+    expect(source).toContain("scripts/staging-auth-*|scripts/staging-outcome-*|scripts/staging-response-*|scripts/response-*|scripts/reset-platform*|scripts/staging-admin-platform-reset-smoke.ts");
     expect(source).toContain("migrations/*|scripts/migration-*|scripts/check-migrations.mjs|scripts/migration-gate.mjs");
     expect(source).not.toContain("changed file requires full response smoke coverage");
   });
