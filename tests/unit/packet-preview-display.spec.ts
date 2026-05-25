@@ -74,12 +74,12 @@ describe("packet preview display content", () => {
     expect(combined).toContain("Creditor/Reporter: Rogers Communications");
     expect(combined).toContain("Account Number: Account number not shown on report");
     expect(combined).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(combined).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(combined).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(pdfLetterText).toContain("Subject: Dispute of Credit Report Information");
     expect(pdfLetterText).toContain("Creditor/Reporter: Rogers Communications");
     expect(pdfLetterText).toContain("Account Number: Account number not shown on report");
     expect(pdfLetterText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(pdfLetterText).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(pdfLetterText).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(pdfLetterText).not.toContain("Requested action:");
     expect(preview.attachmentChecklist.length).toBeGreaterThan(0);
     expect(preview.evidenceSummary.length).toBeGreaterThan(0);

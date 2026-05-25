@@ -191,8 +191,8 @@ const getProcessingStatusDetail = (stage: string) => {
 };
 
 const getProcessingStatusNote = (stage: string) => {
-  if (stage === "queued") {
-    return "You can leave this page. Results will appear in your account when ready.";
+  if (stage === "queued" || stage === "running" || stage === "retry_scheduled" || stage === "failed") {
+    return stage === "queued" ? "You can leave this page. Results will appear in your account when ready." : "This may take a few moments.";
   }
   return null;
 };
@@ -483,17 +483,6 @@ const getProgressIncrement = (currentPercent: number) => {
   if (currentPercent < 90) return 0.45;
   return 0.2;
 };
-
-export function nextStatusCheckCountdownSeconds(input: {
-  nextStatusCheckAt: number | null;
-  statusClockNow: number;
-  intervalMs?: number;
-}): number | null {
-  if (!input.nextStatusCheckAt) return null;
-  const intervalSeconds = Math.ceil((input.intervalMs ?? STATUS_AUTO_REFRESH_INTERVAL_MS) / 1000);
-  const secondsRemaining = Math.ceil((input.nextStatusCheckAt - input.statusClockNow) / 1000);
-  return Math.max(0, Math.min(intervalSeconds, secondsRemaining));
-}
 
 export default function UploadPage() {
   
@@ -817,7 +806,7 @@ export default function UploadPage() {
   }, [applyQueuedProcessingUpdate, displayedProgress, markProcessingSuccess]);
 
   useEffect(() => {
-    if (!isProcessingActive || !uploadProgress || isWaitingForAnalysis) {
+    if (!isProcessingActive || !uploadProgress) {
       setDisplayedProgress(uploadProgress?.percent ?? 0);
       slowProgressTickRef.current = null;
       return;
@@ -857,7 +846,7 @@ export default function UploadPage() {
     }, 700);
 
     return () => window.clearInterval(intervalId);
-  }, [isProcessingActive, isWaitingForAnalysis, uploadProgress]);
+  }, [isProcessingActive, uploadProgress]);
 
   useEffect(() => {
     if (!queuedProcessing || !isQueuedProcessingActive(queuedProcessing.queueStatus)) {
@@ -1465,10 +1454,9 @@ export default function UploadPage() {
               uploadedAt={uploadReceivedAt}
               lastCheckedAt={lastStatusCheckedAt}
               nextCheckInSeconds={
-                nextStatusCheckCountdownSeconds({
-                  nextStatusCheckAt,
-                  statusClockNow,
-                })
+                nextStatusCheckAt
+                  ? Math.max(0, Math.ceil((nextStatusCheckAt - statusClockNow) / 1000))
+                  : null
               }
               manualStatusMessage={manualStatusMessage}
               completionSummary={completionSummary}

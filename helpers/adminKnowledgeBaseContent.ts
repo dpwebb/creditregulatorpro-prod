@@ -333,7 +333,7 @@ export const platformFunctionGroups: readonly PlatformFunctionGroup[] = [
     items: [
       "45+ violation categories scanned by configured detectors.",
       "Bureau-specific compliance detectors for reporting format, balance, status, temporal, and date logic.",
-      "Creditor and furnisher detectors for chronology conflicts, unverifiable debt records, generic responses, and related risks.",
+      "Creditor and furnisher detectors for reaging, phantom debt, rubber stamp, and related risks.",
       "Collector-specific detectors for licensing, fees, limitation revival, and duplicate reporting.",
       "Cross-entity discrepancy detection.",
       "Dynamic scanning rules from explicit deterministic admin definitions.",

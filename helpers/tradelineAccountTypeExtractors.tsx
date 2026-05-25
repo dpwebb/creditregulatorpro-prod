@@ -2,7 +2,6 @@
  * Account type and status extractors for tradeline parsing.
  * Handles account types, status codes, responsibility, ECOA codes, etc.
  */
-import { stripGlobalLegendDefinitions } from "./reportFactSource";
 
 /**
  * Extracts the account type from a tradeline section.
@@ -83,7 +82,7 @@ function resolveTransUnionNarrativeStatus(code: string, text: string): string | 
  * Handles Canadian rating codes (R1-R9, etc.), descriptive statuses, and TransUnion narrative codes.
  */
 export function extractStatus(text: string): string | null {
-  const searchText = stripGlobalLegendDefinitions(text);
+  const searchText = text.replace(/\bLegend\s*:[\s\S]*$/i, "");
   const patterns = [
     // TransUnion narrative codes in payment history: "WO / CG" or "AC"
     /\b(AC|WO|CG|TC|CZ|CO|RP|LS|BK)(?:\s*\/\s*[A-Z]{2})?\b/,

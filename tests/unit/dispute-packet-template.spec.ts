@@ -8,11 +8,7 @@ import {
 import { evaluatePacketReadinessForIssues } from "../../helpers/disputePacketService";
 
 const forbiddenConsumerPacketOutput =
-  /raw reference|review basis|reference ids|tradeline|artifact|report artifact|source report|field:|rule id|metadata|documentation chain|Documentation Chain Failure|Verification Integrity Failure|Regulatory Reference|Chain Integrity Concern|Metadata concern|correction pathway|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
-
-function words(value: string): number {
-  return value.trim().split(/\s+/).filter(Boolean).length;
-}
+  /raw reference|tradeline|artifact|report artifact|source report|field:|rule id|metadata|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|PAYMENT_HISTORY_REVIEW|applicable reporting requirements from credit report item|applicable reporting reference from credit report item|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 describe("simple dispute packet template", () => {
   it("builds a neutral credit bureau packet without direct furnisher instructions", () => {
@@ -70,7 +66,7 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Creditor/Reporter: Sample Bank");
     expect(letterBody).toContain("Account Number: Account ending 9012");
     expect(letterBody).toContain("Reported Balance: $900");
-    expect(letterBody).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
+    expect(letterBody).toContain("Specific dispute reason: The balance shown for Sample Bank does not match my payment records.");
     expect(letterBody).toContain("The balance being reported does not appear accurate based on my records.");
     expect(letterBody).toContain("Please investigate this item and update my credit file accordingly.");
     expect(letterBody).toContain("Sincerely,");
@@ -115,44 +111,9 @@ describe("simple dispute packet template", () => {
 
     const letterBody = buildConsumerDisputePacketLetterText(packet);
 
-    expect(letterBody).toContain("Specific dispute reason: The account dates being reported do not appear consistent with the account history.");
+    expect(letterBody).toContain("Specific dispute reason: I dispute the Date last reported information for Sample Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
     expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 2.");
     expect(letterBody).not.toContain("Specific dispute reason: Raw reference");
-    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
-  });
-
-  it("maps internal analytic labels to consumer dispute intent", () => {
-    const packet = buildSimpleDisputePacketContent({
-      packetType: "credit_bureau",
-      reportType: "TransUnion credit report",
-      reportDate: "2026-04-15",
-      recipient: {
-        type: "credit_bureau",
-        name: "TransUnion Canada",
-        address: ["Consumer Relations"],
-      },
-      consumer: {
-        name: "Test Consumer",
-        address: ["1 Main St"],
-      },
-      disputedItems: [
-        {
-          creditorCollectorName: "Sample Bank",
-          accountNumber: "123456789012",
-          disputedField: "originalCreditorName",
-          reportedValue: "Not shown",
-          expectedValue: "Not known",
-          issueType: "DOCUMENTATION_CHAIN_FAILURE",
-          findingReason: "Documentation Chain Failure; Regulatory Reference PIPEDA_4_6; Chain Integrity Concern; Metadata concern.",
-          evidenceReference: "Source report page 2",
-        },
-      ],
-    });
-
-    const letterBody = buildConsumerDisputePacketLetterText(packet);
-
-    expect(packet.disputedItems[0].issueType).toBe("Unsupported reporting");
-    expect(letterBody).toContain("Account reviewed: Sample Bank: Unsupported reporting");
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
@@ -221,109 +182,6 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
     expect(letterBody).toContain("Requested bureau action: Please investigate the account status and correct it, or remove the item if it cannot be verified.");
     expect(letterBody).toContain("Requested bureau action: Please investigate the reported date information and correct it, or remove the item if it cannot be verified.");
-    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
-  });
-
-  it("renders distinct concise narratives from canonical dispute intents", () => {
-    const packet = buildSimpleDisputePacketContent({
-      packetType: "credit_bureau",
-      reportType: "TransUnion credit report",
-      recipient: {
-        type: "credit_bureau",
-        name: "TransUnion Canada",
-        address: ["Consumer Relations"],
-      },
-      consumer: {
-        name: "Test Consumer",
-        address: ["1 Main St"],
-      },
-      disputedItems: [
-        {
-          creditorCollectorName: "Sample Collections",
-          accountNumber: null,
-          disputedField: "collectionAgencyName",
-          reportedValue: "Not shown",
-          expectedValue: "Not known",
-          issueType: "MISSING_COLLECTION_AGENCY_NAME",
-          evidenceReference: "Source report page 2",
-        },
-        {
-          creditorCollectorName: "Sample Bank",
-          accountNumber: "123456789012",
-          disputedField: "paymentHistory",
-          reportedValue: "30 days late",
-          expectedValue: "Paid as agreed",
-          issueType: "PAYMENT_HISTORY_CONFLICT",
-          evidenceReference: "Source report page 3",
-        },
-        {
-          creditorCollectorName: "Old Account",
-          accountNumber: "999988887777",
-          disputedField: "lastReportedDate",
-          reportedValue: "2012-08-21",
-          expectedValue: "Not known",
-          issueType: "DATE_OBSOLESCENCE",
-          evidenceReference: "Source report page 4",
-        },
-      ],
-    });
-
-    const letterBody = buildConsumerDisputePacketLetterText(packet);
-    const reasons = letterBody
-      .split("\n")
-      .filter((line) => line.startsWith("Specific dispute reason: "))
-      .map((line) => line.replace("Specific dispute reason: ", ""));
-
-    expect(reasons).toEqual([
-      "I cannot verify who is reporting or collecting this account because identifying information is incomplete.",
-      "The payment history being reported does not appear to match my records.",
-      "This account appears to remain on my credit file beyond the appropriate reporting period.",
-    ]);
-    expect(reasons.every((reason) => words(reason) <= 18)).toBe(true);
-    expect(packet.disputedItems.map((item) => item.requestedAction)).toEqual([
-      "verify collection details",
-      "correct payment history",
-      "update stale information",
-    ]);
-    expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Company reporting the account on page 2.");
-    expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Payment History on page 3.");
-    expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 4.");
-    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
-  });
-
-  it("keeps non-violation dispute signals investigatory without statutory conclusions", () => {
-    const packet = buildSimpleDisputePacketContent({
-      packetType: "credit_bureau",
-      reportType: "Equifax credit report",
-      recipient: {
-        type: "credit_bureau",
-        name: "Equifax Canada",
-        address: ["National Consumer Relations"],
-      },
-      consumer: {
-        name: "Test Consumer",
-        address: ["1 Main St"],
-      },
-      disputedItems: [
-        {
-          creditorCollectorName: "Sample Bank",
-          accountNumber: "123456789012",
-          disputedField: "originalCreditorName",
-          reportedValue: "Not shown",
-          expectedValue: "Not known",
-          issueType: "UNSUPPORTED_REPORTING",
-          findingReason: "Review basis: documentation chain failure; reference ids PIPEDA_4_6; metadata concern.",
-          evidenceReference: "Source report page 5",
-        },
-      ],
-    });
-
-    const letterBody = buildConsumerDisputePacketLetterText(packet);
-
-    expect(letterBody).toContain("Specific dispute reason: I am asking the bureau to verify that this account is supported by records before it continues to be reported.");
-    expect(letterBody).toContain("Requested bureau action: Please remove this information if the records supporting it cannot be verified.");
-    expect(letterBody).toContain("Evidence or mismatch reference: Relevant report section for Company reporting the account on page 5.");
-    expect(letterBody).not.toMatch(/statutory violation|legal violation|confirmed violation|violates?|breach of law/i);
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
@@ -412,7 +270,7 @@ describe("simple dispute packet template", () => {
     const letterBody = buildConsumerDisputePacketLetterText(packet);
 
     expect(packet.disputedItems[0].narrative?.verificationRequests).toEqual(["Verify the account status."]);
-    expect(letterBody).toContain("The account status being reported does not appear to match the account records.");
+    expect(letterBody).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(letterBody.match(/Verify the account status\./g) ?? []).toHaveLength(0);
     expect(letterBody.match(/Correct any inaccurate or incomplete information\./g) ?? []).toHaveLength(0);
     expect(letterBody).not.toContain("Reason for dispute:");
@@ -447,13 +305,13 @@ describe("simple dispute packet template", () => {
     });
 
     expect(packet.title).toBe("Collection Agency Clarification/Dispute Packet");
-    expect(packet.disputedItems[0].requestedAction).toBe("verify collection details");
+    expect(packet.disputedItems[0].requestedAction).toBe("clarify collection authority/details");
     expect(packet.openingParagraph).toMatch(/credit report/i);
     const letterBody = buildConsumerDisputePacketLetterText(packet);
 
     expect(letterBody).toContain("Requested action:");
     expect(letterBody).toContain(
-      "Please verify the account details and supporting records",
+      "Please provide documentation showing your authority to collect or report this account",
     );
     expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
@@ -577,7 +435,7 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Date last reported");
     expect(letterBody).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
     expect(letterBody).toContain("Account Number: Account number not shown on report");
-    expect(letterBody).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
+    expect(letterBody).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(letterBody).toContain("Please investigate this item");
     expect(letterBody).not.toContain("TransUnion report artifact");
     expect(letterBody).not.toContain("Requested result: Verify the correct information");

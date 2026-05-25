@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   updateStatus: vi.fn(),
   buildPacketPreview: vi.fn(),
   createPacket: vi.fn(),
-  readinessByIssueId: {} as Record<number, any>,
   showSuccess: vi.fn(),
   showError: vi.fn(),
   responseDocuments: [] as any[],
@@ -28,24 +27,6 @@ vi.mock("../../helpers/packetQueries", () => ({
   usePacketRecommendations: (packetType: string) => ({
     data: { recommendations: mocks.recommendationsByType[packetType] ?? [] },
     isFetching: false,
-  }),
-  usePacketReadiness: (input: { selectedIssueIds: number[] }) => ({
-    data: mocks.readinessByIssueId[input.selectedIssueIds[0]] ?? {
-      packetReady: false,
-      blockers: [
-        {
-          findingId: input.selectedIssueIds[0],
-          code: "MISSING_REQUIRED_EVIDENCE",
-          message: "Required source-report evidence is missing for this finding.",
-        },
-      ],
-      warnings: [],
-      eligibleFindingIds: [],
-      ineligibleFindingIds: input.selectedIssueIds,
-      reasonCodes: ["MISSING_REQUIRED_EVIDENCE"],
-    },
-    isFetching: false,
-    error: null,
   }),
   useBuildPacketPreview: () => ({
     mutateAsync: mocks.buildPacketPreview,
@@ -159,7 +140,6 @@ beforeEach(() => {
     credit_bureau: [candidate(42), candidate(43, "Cedar Loan")],
     collection_agency: [],
   };
-  mocks.readinessByIssueId = {};
   mocks.responseDocuments = [];
 });
 
@@ -305,7 +285,7 @@ describe("packet create dialog routing", () => {
     expect(previewText).toContain("Creditor/Reporter: Rogers Communications");
     expect(previewText).toContain("Account Number: Account number not shown on report");
     expect(previewText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(previewText).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(previewText).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(previewText).toContain("Evidence summary");
     expect(previewText).toContain("Attachment checklist");
     expect(previewText).not.toContain("Rogers Communications: LasReportedDate - verify and provide basis");
@@ -316,48 +296,23 @@ describe("packet create dialog routing", () => {
     renderPacketsPage("/packets?create=true&issueId=99");
 
     expect(await screen.findByText("Create Letter for Selected Problem")).toBeInTheDocument();
-    expect(await screen.findByText("This problem needs review before a letter can be created.")).toBeInTheDocument();
-    expect(screen.getByText(/Source-report evidence needs to be linked to this problem/i)).toBeInTheDocument();
-    expect(screen.getByText(/You or support can review the account details/i)).toBeInTheDocument();
-    expect(screen.getByText(/Open the account, confirm the report section that supports the problem, then verify the problem/i)).toBeInTheDocument();
-    expect(screen.queryByText(/readiness blockers|packet-ready/i)).not.toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "This finding is not packet-ready yet. Review the readiness blockers before creating a packet.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Maple Bank Visa/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Cedar Loan/i)).not.toBeInTheDocument();
-  });
-
-  it("explains who reviews extraction issues without exposing internal reason codes", async () => {
-    mocks.readinessByIssueId[99] = {
-      packetReady: false,
-      blockers: [
-        {
-          findingId: 99,
-          code: "PARSER_UNCERTAIN",
-          message: "Parser-uncertain findings need parser review before packet creation.",
-        },
-      ],
-      warnings: [],
-      eligibleFindingIds: [],
-      ineligibleFindingIds: [99],
-      reasonCodes: ["PARSER_UNCERTAIN"],
-    };
-
-    renderPacketsPage("/packets?create=true&issueId=99");
-
-    expect(await screen.findByText("Create Letter for Selected Problem")).toBeInTheDocument();
-    expect(screen.getByText(/The report text extraction needs review/i)).toBeInTheDocument();
-    expect(screen.getByText(/Support needs to review the extracted account details/i)).toBeInTheDocument();
-    expect(screen.getByText(/Support corrects or approves the extracted details/i)).toBeInTheDocument();
-    expect(screen.queryByText(/PARSER_UNCERTAIN|parser-uncertain|packet creation/i)).not.toBeInTheDocument();
   });
 
   it("does not render the response timeline when no response records exist", () => {
     renderPacketsPage("/packets");
 
-    expect(screen.queryByRole("region", { name: /dispute replies/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Replies will appear/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: /response timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Recorded responses will appear/i)).not.toBeInTheDocument();
   });
 
-  it("renders response replies with plain-language review guidance", () => {
+  it("renders response timeline only for existing response records with uncertainty visible", () => {
     mocks.responseDocuments = [
       {
         id: 77,
@@ -373,12 +328,10 @@ describe("packet create dialog routing", () => {
 
     renderPacketsPage("/packets");
 
-    expect(screen.getByRole("region", { name: /dispute replies/i })).toBeInTheDocument();
-    expect(screen.getByText("Replies Received")).toBeInTheDocument();
-    expect(screen.getByText("Response needs review")).toBeInTheDocument();
-    expect(screen.getByText("Needs review")).toBeInTheDocument();
-    expect(screen.getByText("Bureau email reply")).toBeInTheDocument();
-    expect(screen.getByText(/Support will review it, or it can be compared with a newer credit report/i)).toBeInTheDocument();
-    expect(screen.queryByText(/83% confidence|Intake classification only|deterministic|safe comparison|admin review/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /response timeline/i })).toBeInTheDocument();
+    expect(screen.getByText("Response says item remains")).toBeInTheDocument();
+    expect(screen.getByText("83% confidence")).toBeInTheDocument();
+    expect(screen.getByText("Intake classification only")).toBeInTheDocument();
+    expect(screen.getByText(/unresolved and will stay in review/i)).toBeInTheDocument();
   });
 });

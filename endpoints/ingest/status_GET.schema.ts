@@ -4,7 +4,6 @@ import type {
   IngestUploadQueueStatus,
   IngestUploadStatus,
 } from "../../helpers/ingestUploadStatusPresenter";
-import type { ReportFindingDiagnosticSummary } from "../../helpers/reportFindingDiagnostics";
 
 export const schema = z.object({
   artifactId: z.coerce.number().int().positive(),
@@ -27,7 +26,6 @@ export type OutputType = {
   canCheckStatus: boolean;
   retryAt: string | null;
   checkedAt: string;
-  diagnosticSummary?: ReportFindingDiagnosticSummary;
 };
 
 export const getIngestProcessingStatus = async (

@@ -6,7 +6,6 @@ import {
   usePacketList,
   useDeletePacket,
   usePacketRecommendations,
-  usePacketReadiness,
 } from "../helpers/packetQueries";
 import { useUpdatePacketStatus } from "../helpers/useUpdatePacketStatus";
 import { Button } from "../components/Button";
@@ -35,11 +34,7 @@ import { useResponseDocuments } from "../helpers/responseDocumentQueries";
 import type { OutputType as ResponseListOutput } from "../endpoints/responses/list_GET.schema";
 import { Link, useSearchParams } from "react-router-dom";
 import type { DisputePacketType } from "../helpers/disputePacketTemplate";
-import type {
-  DisputePacketCandidate,
-  PacketReadinessReasonCode,
-  PacketReadinessResult,
-} from "../helpers/disputePacketService";
+import type { DisputePacketCandidate } from "../helpers/disputePacketService";
 import type { SimpleDisputePacketContent } from "../helpers/disputePacketTemplate";
 import { buildPacketPreviewDisplayContent, type PacketPreviewDisplayContent } from "../helpers/packetPreviewDisplay";
 import styles from "./packets.module.css";
@@ -49,99 +44,6 @@ export function parseInitialPacketIssueId(searchParams: URLSearchParams): number
   if (issueIdParam === null) return null;
   const parsedIssueId = Number(issueIdParam);
   return Number.isInteger(parsedIssueId) && parsedIssueId > 0 ? parsedIssueId : null;
-}
-
-type PacketReviewStep = {
-  needed: string;
-  reviewer: string;
-  completion: string;
-};
-
-const DEFAULT_PACKET_REVIEW_STEP: PacketReviewStep = {
-  needed: "This problem needs review before a letter can be created.",
-  reviewer: "You or support can review the account details.",
-  completion: "Open the account details, confirm the source-report evidence supports the problem, then verify the problem.",
-};
-
-function packetReviewStepForReason(code: PacketReadinessReasonCode | string | null | undefined): PacketReviewStep {
-  switch (code) {
-    case "MISSING_REQUIRED_EVIDENCE":
-      return {
-        needed: "Source-report evidence needs to be linked to this problem.",
-        reviewer: "You or support can review the account details.",
-        completion: "Open the account, confirm the report section that supports the problem, then verify the problem.",
-      };
-    case "NEEDS_USER_REVIEW":
-    case "MANUAL_REVIEW_REQUIRED":
-      return {
-        needed: "The problem needs to be confirmed before a letter is created.",
-        reviewer: "You can review it; support can help if the evidence is unclear.",
-        completion: "Review the source-report evidence and verify the problem, or dismiss it if it is not correct.",
-      };
-    case "PARSER_UNCERTAIN":
-    case "EXTRACTION_CONFIDENCE_NOT_READY":
-      return {
-        needed: "The report text extraction needs review.",
-        reviewer: "Support needs to review the extracted account details.",
-        completion: "Support corrects or approves the extracted details, then the problem can be verified for letter creation.",
-      };
-    case "PACKET_TYPE_UNAVAILABLE":
-    case "COLLECTION_AGENCY_REQUIRED":
-    case "RECIPIENT_BUREAU_MISMATCH":
-      return {
-        needed: "This letter type does not match the selected problem.",
-        reviewer: "No evidence review is needed.",
-        completion: "Switch to the matching letter type or select a different problem.",
-      };
-    case "DISMISSED_FINDING":
-      return {
-        needed: "This problem was dismissed.",
-        reviewer: "You or support can review whether it should be restored.",
-        completion: "Restore and verify the problem before creating a letter.",
-      };
-    case "FINDING_NOT_FOUND":
-    case "UNAUTHORIZED_FINDING":
-      return {
-        needed: "This problem is not available for your account.",
-        reviewer: "Support can review access if you believe this is wrong.",
-        completion: "Return to the account page and choose an active problem, or contact support.",
-      };
-    case "MIXED_OWNER_SELECTION":
-    case "MIXED_TRADELINE_SELECTION":
-    case "MIXED_BUREAU_SELECTION":
-      return {
-        needed: "The selected problems cannot be combined in one letter.",
-        reviewer: "No evidence review is needed.",
-        completion: "Create one letter per account, person, and bureau.",
-      };
-    case "WEAK_PACKET_NARRATIVE":
-      return {
-        needed: "The letter reason needs a clearer plain-language explanation.",
-        reviewer: "Support can review the problem description.",
-        completion: "Update the problem description so the letter can clearly explain what should be investigated.",
-      };
-    default:
-      return DEFAULT_PACKET_REVIEW_STEP;
-  }
-}
-
-function packetReviewStepsForReadiness(readiness: PacketReadinessResult | undefined): PacketReviewStep[] {
-  const codes = [
-    ...(readiness?.blockers ?? []).map((blocker) => blocker.code),
-    ...(readiness?.reasonCodes ?? []),
-  ];
-  const steps = codes.map(packetReviewStepForReason);
-  const uniqueSteps: PacketReviewStep[] = [];
-  const seen = new Set<string>();
-
-  for (const step of steps) {
-    const key = `${step.needed}|${step.reviewer}|${step.completion}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    uniqueSteps.push(step);
-  }
-
-  return uniqueSteps.length > 0 ? uniqueSteps : [DEFAULT_PACKET_REVIEW_STEP];
 }
 
 type ResponseTimelineItem = ResponseListOutput["responses"][number];
@@ -176,49 +78,20 @@ function PacketRecipientFacingPreview({ content }: { content: PacketPreviewDispl
   );
 }
 
-function responseDocumentLabel(value: string | null | undefined): string {
-  const normalized = value?.toLowerCase() ?? "";
-  if (normalized.includes("bureau") && normalized.includes("email")) return "Bureau email reply";
-  if (normalized.includes("bureau")) return "Bureau reply";
-  if (normalized.includes("collector") || normalized.includes("collection")) return "Collector reply";
-  if (normalized.includes("creditor") || normalized.includes("furnisher")) return "Creditor reply";
-  return "Reply received";
+function formatResponseEnum(value: string | null | undefined): string {
+  if (!value) return "Unknown";
+  return value.replace(/_/g, " ");
 }
 
 function responseOutcomeLabel(response: ResponseTimelineItem): string {
-  if (response.latestRequiresManualReview) return "Response needs review";
-  if (response.latestClassification === "verified_deleted") return "They report the item was deleted";
-  if (response.latestClassification === "updated") return "They report the item was updated";
-  if (response.latestClassification === "remains") return "They say the item remains";
-  if (response.latestClassification === "unable_to_verify") return "They say they could not verify it";
-  if (response.latestClassification === "frivolous") return "They questioned the dispute";
-  if (response.latestClassification === "duplicate") return "They marked the dispute as duplicate";
-  if (response.latestClassification === "suspicious_non_compliant") return "Response needs support review";
-  return "Reply received";
-}
-
-function responseNextStepText(response: ResponseTimelineItem): string {
-  if (response.latestRequiresManualReview) {
-    return "We received this reply, but it has not been matched to a clear outcome yet. Support will review it, or it can be compared with a newer credit report before the next step is recommended.";
-  }
-
-  if (response.latestClassification === "verified_deleted" || response.latestClassification === "updated") {
-    return "Review the reply and your current credit report to confirm the change appears correctly.";
-  }
-
-  if (response.latestClassification === "remains") {
-    return "Review the reply against your records. If the item still looks wrong, support can help decide the next step.";
-  }
-
-  if (response.latestClassification === "unable_to_verify") {
-    return "Review the reply and your current credit report to confirm whether the item was removed or corrected.";
-  }
-
-  if (response.latestClassification === "frivolous" || response.latestClassification === "duplicate") {
-    return "Review this reply before sending anything else; support can help decide whether a follow-up is useful.";
-  }
-
-  return "The reply has been recorded for review.";
+  if (response.latestClassification === "verified_deleted") return "Response claims deletion or removal";
+  if (response.latestClassification === "updated") return "Response claims update";
+  if (response.latestClassification === "remains") return "Response says item remains";
+  if (response.latestClassification === "unable_to_verify") return "Response says unable to verify";
+  if (response.latestClassification === "frivolous") return "Response asserts frivolous dispute";
+  if (response.latestClassification === "duplicate") return "Response asserts duplicate dispute";
+  if (response.latestClassification === "suspicious_non_compliant") return "Needs compliance review";
+  return "Manual review needed";
 }
 
 function ResponseTimelinePanel({
@@ -232,12 +105,12 @@ function ResponseTimelinePanel({
 }) {
   if (isError) {
     return (
-      <section className={styles.responseTimelinePanel} aria-label="Dispute replies">
+      <section className={styles.responseTimelinePanel} aria-label="Response timeline">
         <div className={styles.responseTimelineHeader}>
           <AlertCircle size={18} />
           <div>
-            <h2>Replies Received</h2>
-            <p>Unable to load recent replies.</p>
+            <h2>Response Timeline</h2>
+            <p>Unable to load recent response history.</p>
           </div>
         </div>
       </section>
@@ -245,19 +118,19 @@ function ResponseTimelinePanel({
   }
 
   return (
-    <section className={styles.responseTimelinePanel} aria-label="Dispute replies">
+    <section className={styles.responseTimelinePanel} aria-label="Response timeline">
       <div className={styles.responseTimelineHeader}>
         <FileCheck size={18} />
         <div>
-          <h2>Replies Received</h2>
-          <p>Replies from bureaus, creditors, or collectors appear here after they are captured.</p>
+          <h2>Response Timeline</h2>
+          <p>Recent bureau, creditor, and collector responses linked to your dispute work.</p>
         </div>
       </div>
 
       {isLoading ? (
         <Skeleton className={styles.responseTimelineSkeleton} />
       ) : responses.length === 0 ? (
-        <div className={styles.responseTimelineEmpty}>Replies will appear here after they are captured.</div>
+        <div className={styles.responseTimelineEmpty}>Recorded responses will appear here after they are captured.</div>
       ) : (
         <div className={styles.responseTimelineList}>
           {responses.map((response) => (
@@ -265,15 +138,21 @@ function ResponseTimelinePanel({
               <div className={styles.responseTimelineTop}>
                 <strong>{responseOutcomeLabel(response)}</strong>
                 <Badge variant={response.latestRequiresManualReview ? "warning" : "info"}>
-                  {response.latestRequiresManualReview ? "Needs review" : "Recorded"}
+                  {formatResponseEnum(response.latestExtractionSource)}
                 </Badge>
               </div>
               <div className={styles.responseTimelineMeta}>
                 <span>{formatDateTime(response.responseReceivedAt)}</span>
-                <span>{responseDocumentLabel(response.responseDocumentType)}</span>
+                <span>{formatResponseEnum(response.responseDocumentType)}</span>
+                <span>{Math.round(Number(response.latestClassificationConfidence ?? 0) * 100)}% confidence</span>
+                <span>Intake classification only</span>
                 {response.packetId ? <span>Letter #{response.packetId}</span> : null}
               </div>
-              <p><strong>Next step:</strong> {responseNextStepText(response)}</p>
+              <p>
+                {response.latestRequiresManualReview
+                  ? "This response is unresolved and will stay in review until a safe comparison or admin review supports the next step."
+                  : "This response was classified deterministically. Packet readiness still waits for the normal evidence comparison path."}
+              </p>
             </article>
           ))}
         </div>
@@ -511,7 +390,7 @@ export default function PacketsPage() {
             <>
               <strong>Packet readiness and PDF rendering follow limited beta constraints.</strong>
               <span>
-                {FRONTEND_LIMITED_BETA_READINESS.notReady} Letter creation stays gated by verified source-report evidence and readiness review rules.
+                {FRONTEND_LIMITED_BETA_READINESS.notReady} Packet creation stays gated by verified source-report evidence and readiness blockers.
               </span>
               <span>
                 Packet PDFs may render on first open/download and reuse cached output when packet content is unchanged; render/download failures remain visible here and in operator dashboard metrics.
@@ -521,7 +400,7 @@ export default function PacketsPage() {
             <>
               <strong>Your letters are ready to review under limited beta safeguards.</strong>
               <span>
-                Letters can be created only for problems with verified source-report evidence.
+                Packet creation stays gated by verified source-report evidence and readiness blockers.
               </span>
               <span>
                 Open a letter to review it, then download, print, or send it when you are satisfied with the contents.
@@ -898,28 +777,6 @@ function CreatePacketDialog({
     return Object.keys(cleaned).length > 0 ? cleaned : undefined;
   };
 
-  const originatingReadinessInput = React.useMemo(() => ({
-    packetType,
-    selectedIssueIds: initialIssueId ? [initialIssueId] : [],
-    recipient: normalizedRecipient(),
-  }), [
-    initialIssueId,
-    packetType,
-    recipient.addressLine1,
-    recipient.addressLine2,
-    recipient.city,
-    recipient.name,
-    recipient.postalCode,
-    recipient.province,
-  ]);
-  const originatingReadiness = usePacketReadiness(originatingReadinessInput, {
-    enabled: open && initialIssueReadinessMessage && !!initialIssueId,
-  });
-  const originatingReviewSteps = React.useMemo(
-    () => packetReviewStepsForReadiness(originatingReadiness.data),
-    [originatingReadiness.data],
-  );
-
   const buildInput = () => ({
     packetType,
     selectedIssueIds: isOriginatingIssueMode && originatingCandidate
@@ -964,7 +821,7 @@ function CreatePacketDialog({
           <DialogDescription>
             {isOriginatingIssueMode
               ? "Create one letter for this problem only, preview it if needed, then generate the PDF."
-              : "Select report problems that are ready for a letter, preview the plain-language packet if needed, then generate the PDF."}
+              : "Select packet-ready report findings, preview the plain-language packet if needed, then generate the PDF."}
           </DialogDescription>
         </DialogHeader>
 
@@ -1043,28 +900,13 @@ function CreatePacketDialog({
               <h3>{isOriginatingIssueMode ? "Selected Problem" : "Disputed Items"}</h3>
               <span>
                 {isOriginatingIssueMode
-                  ? originatingCandidate ? "1 letter" : "Needs review"
+                  ? originatingCandidate ? "1 letter" : "Not ready"
                   : `${selectedIssueIds.size} selected`}
               </span>
             </div>
             {initialIssueReadinessMessage && (
               <div className={styles.originatingFindingNotice}>
-                <p>This problem needs review before a letter can be created.</p>
-                {originatingReadiness.isFetching ? (
-                  <p>Checking what needs review...</p>
-                ) : originatingReadiness.error ? (
-                  <p>Open the account details, confirm the source-report evidence, then try creating the letter again.</p>
-                ) : (
-                  <ul className={styles.originatingReviewList}>
-                    {originatingReviewSteps.map((step) => (
-                      <li key={`${step.needed}-${step.reviewer}`} className={styles.originatingReviewStep}>
-                        <span><strong>What needs review:</strong> {step.needed}</span>
-                        <span><strong>Who reviews it:</strong> {step.reviewer}</span>
-                        <span><strong>How to complete it:</strong> {step.completion}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                This finding is not packet-ready yet. Review the readiness blockers before creating a packet.
               </div>
             )}
             {recommendations.isFetching ? (
@@ -1088,7 +930,7 @@ function CreatePacketDialog({
                 </div>
               ) : null
             ) : candidates.length === 0 ? (
-              <div className={styles.builderState}>No problems are ready for this letter type yet. Try another letter type or review the account details for missing evidence.</div>
+              <div className={styles.builderState}>No packet-ready findings found for this packet type. Review blocked findings before creating a packet.</div>
             ) : (
               <div className={styles.candidateList}>
                 {candidates.map((candidate) => (
@@ -1125,7 +967,7 @@ function CreatePacketDialog({
               <div className={styles.builderState}>
                 {isOriginatingIssueMode
                   ? "Preview this letter, or generate the PDF directly for the selected problem."
-                  : "Select one or more items to preview the letter, or generate the PDF directly from selected problems."}
+                  : "Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings."}
               </div>
             ) : (
               previewDisplay ? (

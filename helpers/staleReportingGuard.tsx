@@ -3,7 +3,6 @@ import {
   isEffectivelyCollectionAccount,
   type TradelineForCollectionCheck,
 } from "./complianceDetectorTypes";
-import { accountBoundSourceText } from "./reportFactSource";
 
 export interface TradelineForStaleReportingGuard extends TradelineForCollectionCheck {
   dateClosed?: Date | string | null;
@@ -86,7 +85,7 @@ export function hasTerminalReportingStatus(
     return true;
   }
 
-  const sourceEvidence = accountBoundSourceText(`${tradeline.sourceText || ""} ${tradeline.notes || ""}`).toUpperCase();
+  const sourceEvidence = `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase();
   if (
     /(?:^|[^A-Z0-9])CZ(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||
     /(?:^|[^A-Z0-9])WO(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||

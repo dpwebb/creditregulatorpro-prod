@@ -32,7 +32,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { USER_PROFILE_QUERY_KEY } from "../helpers/useUserProfile";
 import { getViolationDisplayLabel } from "../helpers/getViolationLabel";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
-import { formatFindingBlockerReasons } from "../helpers/findingReadinessSummary";
 import { summarizeVisibleProblemReviews } from "../helpers/problemReviewVisibility";
 import { useNavigate } from "react-router-dom";
 
@@ -165,8 +164,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     return summarizeVisibleProblemReviews(activeViolations, currentTradeline);
   }, [activeViolations, currentTradeline]);
 
-  const adminDisplayViolations = activeViolations;
-
   const dismissedViolations = useMemo(() => {
     return violations.filter(v => v.userStatus === "dismissed" || v.userStatus === "verified");
   }, [violations]);
@@ -177,9 +174,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   }, [challengesData]);
 
   // Stats
-  const activeIssuesCount = isAdmin
-    ? activeViolations.length
-    : Math.max(visibleProblemReviews.visibleReviewCount, activeViolations.length);
+  const activeIssuesCount = isAdmin ? activeViolations.length : visibleProblemReviews.visibleReviewCount;
   const challengesSentCount = challenges.filter(c => !!c.challengeSentDate).length;
   const responsesReceivedCount = challenges.filter(c => c.state === "RESPONSE_RECORDED").length;
 
@@ -189,6 +184,10 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
 
   const approachingViolation = useMemo(() => {
     return visibleProblemReviews.approachingIssue;
+  }, [visibleProblemReviews]);
+
+  const displayViolations = useMemo(() => {
+    return visibleProblemReviews.displayIssues;
   }, [visibleProblemReviews]);
 
   const solPacket = useMemo(() => {
@@ -231,15 +230,11 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   };
 
   const nonAdminDisplayViolations = visibleProblemReviews.nonAdminDisplayIssues;
-  const nonAdminReviewViolations =
-    nonAdminDisplayViolations.length > 0 ? nonAdminDisplayViolations : activeViolations;
 
-  const topViolation = nonAdminReviewViolations[0];
-  const otherViolations = nonAdminReviewViolations.slice(1);
+  const topViolation = nonAdminDisplayViolations[0];
+  const otherViolations = nonAdminDisplayViolations.slice(1);
   const packetForTopViolation = topViolation ? packetsData?.packets?.find(p => p.creditorObligationTestId === topViolation.id) : null;
   const isTopViolationDisputed = !!(packetForTopViolation && (packetForTopViolation.status?.toUpperCase() === "SENT" || packetForTopViolation.sentDate));
-  const isTopViolationPacketReady = topViolation?.packetReady !== false;
-  const topViolationBlockerReasons = formatFindingBlockerReasons(topViolation?.blockerReasonCodes);
 
   const topViolationTitle = topViolation ? getViolationDisplayLabel(topViolation) : "";
   const topViolationExplanation = topViolation ? getEnrichedExplanation(topViolation) : "";
@@ -321,7 +316,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                   ? "Your dispute letter for this finding has been sent — awaiting bureau response within 30 days."
                   : solPacket 
                     ? "Dispute letter created — review and send it."
-                    : "This debt appears past its reporting-period reference date and should be reviewed for correction or removal if it cannot be verified."}
+                    : "This debt is past its 6-year reporting term and must be removed from your credit report."}
               </p>
             </div>
           </div>
@@ -388,7 +383,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
           </div>
         )}
 
-        {isAdmin && adminDisplayViolations.length > 0 && (
+        {isAdmin && displayViolations.length > 0 && (
           <div className={styles.federalBanner}>
             <Scale size={16} className={styles.federalBannerIcon} />
             <p className={styles.federalBannerText}>
@@ -401,11 +396,11 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
           <div className={styles.approachingCard}>
             <div className={styles.approachingHeader}>
               <Clock className={styles.approachingIcon} size={32} />
-              <h3 className={styles.approachingTitle}>{Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months until reporting-period review</h3>
+              <h3 className={styles.approachingTitle}>{Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months until this account must be removed</h3>
             </div>
             <div className={styles.approachingContent}>
               <p className={styles.approachingText}>
-                This account is approaching the reporting-period review date. In {Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months, ask the bureau to verify whether it should continue to appear.
+                Good news! This account is almost past the time limit. In {Math.max(1, approachingViolation.technicalDetails?.monthsRemaining ?? 1)} months, the credit bureau must take it off your report.
               </p>
               <div className={styles.approachingProgressContainer}>
                 <div className={styles.approachingProgressLabels}>
@@ -418,13 +413,13 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                 />
               </div>
               <p className={styles.approachingAdvice}>
-                <strong>Our advice:</strong> Keep watching this item and request verification if it remains after the reporting-period review date.
+                <strong>Our advice:</strong> Just wait. You don't need to send any letters. When the time is up, it goes away on its own.
               </p>
             </div>
           </div>
         )}
 
-        {activeViolations.length === 0 && !approachingViolation && dismissedViolations.length === 0 ? (
+        {(isAdmin ? displayViolations : nonAdminDisplayViolations).length === 0 && !approachingViolation && dismissedViolations.length === 0 ? (
           <div className={styles.emptyState}>
             <CheckCircle2 size={48} className={styles.successIcon} />
             <h3>No Data Errors Found</h3>
@@ -432,7 +427,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
           </div>
         ) : isAdmin ? (
           <div className={styles.violationList}>
-            {adminDisplayViolations.map((v) => {
+            {displayViolations.map((v) => {
               const packetForThisViolation = packetsData?.packets?.find(
                 p => p.creditorObligationTestId === v.id
               );
@@ -522,11 +517,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                 </div>
                 <div className={styles.fightCardContent}>
                   <p className={styles.fightCardExplanation}>{topViolationExplanation}</p>
-                  {!isTopViolationPacketReady && (
-                    <p className={styles.readinessText}>
-                      {topViolationBlockerReasons.slice(0, 2).join(". ")}
-                    </p>
-                  )}
                 </div>
                 <div className={styles.fightCardFooter}>
                   {topViolationLinked ? (
@@ -535,16 +525,13 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                     <Button 
                       size="lg"
                       onClick={() => packetForTopViolation ? handleViewPacket(topViolation.id) : handleGeneratePacket(topViolation.id)}
-                      disabled={!packetForTopViolation && !isTopViolationPacketReady}
                                             variant={isTopViolationDisputed || packetForTopViolation ? "secondary" : "primary"}
                     >
                                         {isTopViolationDisputed 
                         ? "View Your Letter"
                         : packetForTopViolation
                           ? "Review & Send Letter"
-                          : isTopViolationPacketReady
-                            ? "Create Packet"
-                            : "Needs Review"}
+                          : "Create Packet"}
                     </Button>
                   )}
                 </div>
@@ -561,8 +548,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                     const pForThis = packetsData?.packets?.find(p => p.creditorObligationTestId === v.id);
                     const isDisp = !!(pForThis && (pForThis.status?.toUpperCase() === "SENT" || pForThis.sentDate));
                     const isLinked = v.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
-                    const isPacketReady = v.packetReady !== false;
-                    const blockerReasons = formatFindingBlockerReasons(v.blockerReasonCodes);
                     return (
                       <div key={v.id} className={styles.simpleViolationItem} data-status={isLinked ? "linked" : isDisp ? "sent" : "none"} data-severity={v.severity}>
                         <div className={styles.simpleViolationInfo}>
@@ -577,11 +562,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                             {isDisp && !isLinked && <Badge variant="success">Sent ✓</Badge>}
                           </div>
                           <div className={styles.simpleViolationExplanation}>{getEnrichedExplanation(v)}</div>
-                          {!isPacketReady && (
-                            <div className={styles.readinessTextSmall}>
-                              {blockerReasons.slice(0, 2).join(". ")}
-                            </div>
-                          )}
                         </div>
                         {isLinked ? (
                           <span className={styles.linkedNoticeTextSmall}>Handled via linked account</span>
@@ -590,9 +570,8 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                             size="sm"
                             variant={pForThis ? "default" : "secondary"}
                             onClick={() => pForThis ? handleViewPacket(v.id) : handleGeneratePacket(v.id)}
-                            disabled={!pForThis && !isPacketReady}
                           >
-                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : isPacketReady ? "Create Packet" : "Needs Review"}
+                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Create Packet"}
                           </Button>
                         )}
                       </div>

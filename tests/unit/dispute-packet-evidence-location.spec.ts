@@ -66,12 +66,6 @@ describe("packet evidence location metadata", () => {
         reportedValue: "2012-08-21T00:00:00.000Z",
         expectedValue: "Not known",
         regulationIds: ["PIPEDA_4_5"],
-        findingEligibility: {
-          findingKind: "dispute_basis",
-          consumerDisputeIntent: "INCONSISTENT_BALANCE_REPORTING",
-          formalViolationEligible: false,
-          legalConclusionAllowed: false,
-        },
         deterministicRule: {
           ruleId: "RULE_BALANCE_1",
           evidence: {
@@ -154,7 +148,7 @@ describe("packet evidence location metadata", () => {
     expect(body).toContain("Creditor/Reporter: Sample Bank");
     expect(body).toContain("Account Number: Account number not shown on report");
     expect(body).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(body).toContain("The balance being reported does not appear accurate based on my records.");
+    expect(body).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(body).not.toMatch(/tradeline|artifact|source report #|field:|PIPEDA_|2012-08-21T|lastReportedDate|Account ending reau|Expected:\s*Not known/i);
     expect(packet.metadata.selectedIssueIds).toEqual([111]);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);

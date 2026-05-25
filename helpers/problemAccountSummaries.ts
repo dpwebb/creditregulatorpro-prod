@@ -19,8 +19,6 @@ export type ProblemAccountIssue = ProblemReviewIssue & {
   tradelineOriginalCreditorName?: string | null;
   tradelineIsCollectionAccount?: boolean | null;
   obligationState: string | null;
-  packetReady?: boolean | null;
-  blockerReasonCodes?: string[] | null;
 };
 
 export type ProblemAccountTradeline = {
@@ -55,9 +53,6 @@ export type ProblemAccountSummary = {
   issues: ProblemAccountIssue[];
   issueCount: number;
   highPriorityCount: number;
-  packetReadyCount: number;
-  blockedIssueCount: number;
-  blockerReasonCodes: string[];
   problemLabels: string[];
 };
 
@@ -73,16 +68,6 @@ function uniqueProblemLabels(issues: ProblemAccountIssue[]): string[] {
     if (labels.length >= 3) break;
   }
   return labels;
-}
-
-function uniqueBlockerReasonCodes(issues: ProblemAccountIssue[]): string[] {
-  return Array.from(
-    new Set(
-      issues.flatMap((issue) =>
-        Array.isArray(issue.blockerReasonCodes) ? issue.blockerReasonCodes : [],
-      ),
-    ),
-  );
 }
 
 export function buildProblemAccountSummaries(
@@ -106,18 +91,6 @@ export function buildProblemAccountSummaries(
       const isCollectionAccount =
         issueSeed.tradelineIsCollectionAccount ?? tradeline?.isCollectionAccount ?? null;
       const visibleReviewSummary = summarizeVisibleProblemReviews(accountIssues, tradeline);
-      const packetReadyCount = accountIssues.filter((issue) => issue.packetReady !== false).length;
-      const blockedIssues = accountIssues.filter((issue) =>
-        issue.packetReady === false || (issue.blockerReasonCodes?.length ?? 0) > 0,
-      );
-      const issueCount =
-        visibleReviewSummary.visibleReviewCount > 0
-          ? visibleReviewSummary.visibleReviewCount
-          : accountIssues.length;
-      const issueSetForPriority =
-        visibleReviewSummary.visibleReviewCount > 0
-          ? visibleReviewSummary.visibleReviewIssues
-          : accountIssues;
 
       return {
         tradeline: {
@@ -139,19 +112,16 @@ export function buildProblemAccountSummaries(
           isCollectionAccount,
         },
         issues: accountIssues,
-        issueCount,
-        highPriorityCount: issueSetForPriority.filter((issue) =>
+        issueCount: visibleReviewSummary.visibleReviewCount,
+        highPriorityCount: visibleReviewSummary.visibleReviewIssues.filter((issue) =>
           ["NO_RESPONSE", "INSUFFICIENT_RESPONSE"].includes(issue.obligationState || ""),
         ).length,
-        packetReadyCount,
-        blockedIssueCount: blockedIssues.length,
-        blockerReasonCodes: uniqueBlockerReasonCodes(blockedIssues),
         problemLabels:
           visibleReviewSummary.visibleProblemLabels.length > 0
             ? visibleReviewSummary.visibleProblemLabels
             : uniqueProblemLabels(accountIssues),
       } satisfies ProblemAccountSummary;
     })
-    .filter((summary) => summary.issueCount > 0 || summary.blockedIssueCount > 0)
+    .filter((summary) => summary.issueCount > 0)
     .sort((a, b) => b.issueCount - a.issueCount || a.tradeline.id - b.tradeline.id);
 }

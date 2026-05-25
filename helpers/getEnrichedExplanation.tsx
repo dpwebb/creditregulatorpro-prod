@@ -54,7 +54,7 @@ export const simplifyForUser = (text: string | null | undefined): string => {
     { pattern: /\bDate Assigned (?:To|to) Collection\b/gi, replacement: "date it was sent to collections" },
     { pattern: /\bsource documentation\b/gi, replacement: "proof" },
     { pattern: /\breporting basis\b/gi, replacement: "reason they reported it" },
-    { pattern: /\bcorrection\s+pathway\b/gi, replacement: "correction review" },
+    { pattern: /\bcorrection pathway\b/gi, replacement: "way to fix it" },
     { pattern: /\bclarification request\b/gi, replacement: "letter asking them to explain or fix it" },
     { pattern: /\bpotential inconsistency\b/gi, replacement: "possible mistake" },
     { pattern: /\bdiscrepancy\b/gi, replacement: "difference" },
@@ -130,14 +130,14 @@ export const getEnrichedExplanation = (violation: {
     if (fieldPath === "inquiries_credit_related") {
       return "Your credit report doesn't show who has checked your credit file. The bureau is required to share this with you.";
     } else if (fieldPath === "accounts[].payment_history") {
-      return "Your credit report does not include your payment history for this account. Please ask the bureau to verify whether the payment record is complete.";
+      return "Your credit report doesn't include your payment history for this account. The bureau must show whether you paid on time.";
     } else if (fieldPath.includes("personal_info") || fieldPath.includes("consumer_info")) {
-      return "Your credit report is missing some of your personal details. Please ask the bureau to verify that your personal information is complete and accurate.";
+      return "Your credit report is missing some of your personal details. The bureau must include correct personal information.";
     } else if (fieldPath.includes("public_records")) {
       return "Your credit report doesn't show public records. The bureau is required to include this information.";
     } else {
       const humanized = fieldPath.replace(/[\[\].]/g, ' ').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-      return `Your credit report is missing information (${humanized}). Please ask the bureau to verify whether the report is complete.`;
+      return `Your credit report is missing required information (${humanized}). The bureau must share this with you.`;
     }
   }
 
@@ -162,14 +162,14 @@ export const getEnrichedExplanation = (violation: {
     technicalDetails?.sameAccountNumber &&
     technicalDetails?.accountNumber
   ) {
-    return `This same debt is also being reported by ${technicalDetails.otherAgencyName}. Both listings use account number ${technicalDetails.accountNumber}. The duplicate collection reporting should be verified.`;
+    return `This same debt is also being reported by ${technicalDetails.otherAgencyName}. Both listings use account number ${technicalDetails.accountNumber}. Two collectors can't report the same debt at the same time.`;
   }
 
   if (
     (violationCategory === "MULTIPLE_COLLECTOR_VIOLATION" || violationCategory === "COLLECTOR_DUPLICATE_REPORTING") &&
     technicalDetails?.otherAgencyName
   ) {
-    return `This same debt is also being reported by ${technicalDetails.otherAgencyName}. The collection reporting should be verified to avoid duplicate reporting.`;
+    return `This same debt is also being reported by ${technicalDetails.otherAgencyName}. Two collectors can't report the same debt — only one should.`;
   }
 
     if (violationCategory === "DOCUMENTATION_CHAIN_FAILURE") {
@@ -181,10 +181,10 @@ export const getEnrichedExplanation = (violation: {
       return `The name listed as the original creditor ('${ocName}') looks like a collection agency, not the real company you originally owed money to.`;
     }
     if (technicalDetails?.assignmentDocsFound === 0) {
-      return "The available records do not show the collection agency's ownership or assignment basis for this debt.";
+      return "The collection agency hasn't provided proof that they own or were assigned this debt.";
     }
     if (technicalDetails?.validationReceived === false) {
-      return "The available records do not show a response to the debt validation request within the expected timeframe.";
+      return "The collection agency didn't respond to the debt validation request within 30 days.";
     }
     if (technicalDetails?.missingField === 'originalCreditorName') {
       return "This collection account does not list the original company you owed.";
@@ -197,7 +197,7 @@ export const getEnrichedExplanation = (violation: {
     if (userExplanation) {
       return simplifyForUser(userExplanation);
     }
-    return `${capitalizedEntityName} is missing information needed to verify this account.`;
+    return `${capitalizedEntityName} is missing required information for this account.`;
   }
 
   if (violationCategory === "BALANCE_CALCULATION_VIOLATION") {
@@ -214,7 +214,7 @@ export const getEnrichedExplanation = (violation: {
     if (limitDate && referenceDate) {
       return `This account appears past the reporting time limit. The report date used for the age check is ${referenceDate}, and the expected reporting-limit date is ${limitDate}.`;
     }
-    return "This account appears old enough to require reporting-period review and should be corrected or removed if it cannot be verified.";
+    return "This account appears too old to remain on the credit report and should be reviewed for removal or correction.";
   }
 
   if (violationCategory === "BUREAU_INVESTIGATION_FAILURE") {
@@ -222,7 +222,7 @@ export const getEnrichedExplanation = (violation: {
   }
 
   if (violationCategory === "FURNISHER_REAGING_VIOLATION") {
-    return "The date reported for this account appears to have changed in a way that could affect how long it remains on your report.";
+    return "The company reporting this changed the date of your account to keep it on your report longer.";
   }
 
   if (violationCategory === "COLLECTOR_LICENSE_FAILURE") {

@@ -64,22 +64,6 @@
   font-style: italic;
 }
 
-.readinessNotice {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-  background: color-mix(in srgb, var(--warning) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-3);
-  font-size: 0.875rem;
-  color: var(--foreground);
-}
-
-.readinessNotice span {
-  color: var(--muted-foreground);
-}
-
 .licenseCheckBox {
   background: color-mix(in srgb, var(--info) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--info) 20%, transparent);

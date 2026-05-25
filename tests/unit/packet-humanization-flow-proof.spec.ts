@@ -260,7 +260,7 @@ describe("simulated packet humanization flow proof", () => {
       expect(consumerText).toContain("Date last reported");
       expect(consumerText).toContain("Aug 21, 2012");
       expect(consumerText).toContain("Rogers Communications");
-      expect(consumerText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period.");
+      expect(consumerText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
       expect(consumerText).toContain("Please investigate this item and update my credit file accordingly.");
       expect(consumerText).not.toMatch(/\billegal\b|\btime-barred\b|\bobsolete\b/i);
       expect(consumerText).not.toMatch(forbiddenConsumerTerms);
@@ -292,12 +292,12 @@ describe("simulated packet humanization flow proof", () => {
       reportedValue: "Aug 21, 2012",
       narrative: expect.objectContaining({
         disputeCategory: "POSSIBLE_OBSOLETE_OR_STALE_REPORTING",
-        disputeIntent: "OBSOLETE_REPORTING",
         cautionLevel: "CAUTIOUS",
-        consumerAssertion: "This account appears to remain on my credit file beyond the appropriate reporting period.",
+        consumerAssertion: "I dispute the accuracy, completeness, support, and continued reportability of this item.",
         internalReference: expect.stringContaining("finding:4201"),
         externalReferenceDisplay: "Issue 4201",
         verificationRequests: expect.arrayContaining([
+          "Verify the date last reported.",
           "Verify the date of first delinquency/default if applicable.",
           "Verify the basis for continuing to publish this item on the current report.",
         ]),

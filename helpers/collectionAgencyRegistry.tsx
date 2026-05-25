@@ -160,8 +160,8 @@ export function getRegistryLookupUrl(province: CanadianProvince): string | null 
 }
 
 /**
- * Validates a collection agency name using heuristics that identify reporting identity issues.
- * Agency names are checked for completeness and registry-review signals only.
+ * Validates a collection agency name using heuristics to spot unlicensed or non-compliant debt collectors.
+ * Canadian collection agencies are strictly regulated and typically must operate under their registered corporate name.
  */
 export function validateCollectionAgencyName(agencyName: string, province: CanadianProvince): AgencyValidationResult {
   const flags: string[] = [];
@@ -172,7 +172,7 @@ export function validateCollectionAgencyName(agencyName: string, province: Canad
     return {
       isLikelyLicensed: false,
       confidence: 100,
-      flags: ["Agency name is missing or unknown. Collection reporting identity should be verified."],
+      flags: ["Agency name is missing or unknown. Anonymous collection reporting is a severe violation."],
       licensingRequirements: getProvinceLicensingInfo(province),
     };
   }
@@ -191,7 +191,7 @@ export function validateCollectionAgencyName(agencyName: string, province: Canad
   const genericNames = ["COLLECTION DEPT", "RECOVERY DEPT", "CREDIT SERVICES", "ACCOUNTS RECEIVABLE"];
   for (const generic of genericNames) {
     if (nameUpper.includes(generic) && nameUpper.length < generic.length + 8) {
-      flags.push(`Uses generic or internal-sounding name ("${generic}"). The reporting identity should be verified against available registry or account records.`);
+      flags.push(`Uses generic or internal-sounding name ("${generic}"). Collections must be reported under the exact registered agency name.`);
       isLikelyLicensed = false;
       confidence = 90;
       break;
@@ -200,7 +200,7 @@ export function validateCollectionAgencyName(agencyName: string, province: Canad
 
   // Suspicious formatting (e.g., masking in the name)
   if (/[*X]{3,}/.test(nameUpper)) {
-    flags.push("Name contains masking characters. The collection agency identity should be verified from source records.");
+    flags.push("Name contains masking characters. The identity of a debt collector cannot be hidden from the consumer.");
     isLikelyLicensed = false;
     confidence = 95;
   }

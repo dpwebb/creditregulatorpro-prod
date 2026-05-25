@@ -13,11 +13,6 @@ import type {
   PacketNarrativeCautionLevel,
   PacketNarrativeDisputeCategory,
 } from "./disputePacketTemplate";
-import {
-  canonicalDisputeIntentFor,
-  disputeIntentArchetypeFor,
-  type CanonicalDisputeIntent,
-} from "./disputeIntent";
 
 const MATERIAL_OLD_DATE_YEARS = 6;
 
@@ -284,36 +279,6 @@ function inferDisputeCategory(input: BuildPacketNarrativeInput, displayField: st
   return "UNKNOWN";
 }
 
-function disputeCategoryForIntent(
-  intent: CanonicalDisputeIntent,
-  input: BuildPacketNarrativeInput,
-  displayField: string,
-): PacketNarrativeDisputeCategory {
-  switch (intent) {
-    case "INCOMPLETE_COLLECTION_REPORTING":
-      return "COLLECTION_OR_DEFAULT_STATUS";
-    case "INCONSISTENT_PAYMENT_REPORTING":
-    case "INCONSISTENT_BALANCE_REPORTING":
-    case "INCONSISTENT_STATUS_REPORTING":
-      return "BALANCE_OR_STATUS_ACCURACY";
-    case "DATE_ACCURACY_REVIEW":
-      return "FIELD_ACCURACY";
-    case "OBSOLETE_REPORTING":
-      return "POSSIBLE_OBSOLETE_OR_STALE_REPORTING";
-    case "MISSING_ACCOUNT_IDENTIFIER":
-      return "MISSING_ACCOUNT_IDENTIFIER";
-    case "UNSUPPORTED_REPORTING":
-      return "UNSUPPORTED_REPORTING";
-    case "DUPLICATE_REPORTING":
-      return "DUPLICATE_OR_CONFLICTING_ACCOUNT";
-    case "IDENTITY_OR_OWNERSHIP_MISMATCH":
-      return "IDENTITY_OR_ALIAS_MISMATCH";
-    case "GENERAL_ACCURACY_REVIEW":
-    default:
-      return inferDisputeCategory(input, displayField);
-  }
-}
-
 function cautionLevelFor(
   category: PacketNarrativeDisputeCategory,
   input: BuildPacketNarrativeInput,
@@ -331,23 +296,29 @@ function lowerFirst(value: string): string {
 
 function buildIssueSummary(
   input: BuildPacketNarrativeInput,
-  intent: CanonicalDisputeIntent,
-  _accountName: string,
+  category: PacketNarrativeDisputeCategory,
+  accountName: string,
   displayField: string,
   reportedValue: string,
 ): string {
-  const archetype = disputeIntentArchetypeFor(intent);
-  const base = safeNarrativeText(archetype.consumerNarrative, input.accountNumber);
-  const detail =
-    displayField && reportedValue && reportedValue !== "Information not provided on report"
-      ? safeNarrativeText(`The report shows ${displayField}: ${reportedValue}.`, input.accountNumber)
-      : null;
-
-  if (intent !== "GENERAL_ACCURACY_REVIEW" && detail) {
-    return dedupeNarrativeText([base, detail]).join(" ");
+  if (category === "POSSIBLE_OBSOLETE_OR_STALE_REPORTING") {
+    return safeNarrativeText(
+      `The report shows ${accountName} with ${displayField}: ${reportedValue}. Because this date is materially older than the report date, I am asking the bureau to verify the accuracy, completeness, support, and basis for continuing to publish this item on the current report.`,
+      input.accountNumber,
+    );
   }
 
-  return base;
+  if (category === "MISSING_ACCOUNT_IDENTIFIER") {
+    return safeNarrativeText(
+      `The report shows ${accountName}, but the account number is not shown on the report. I am asking the recipient to verify the account identifier and supporting records before continuing to report the item.`,
+      input.accountNumber,
+    );
+  }
+
+  return safeNarrativeText(
+    `The report shows ${accountName} with ${displayField}: ${reportedValue}. I dispute whether this information is accurate, complete, and supported.`,
+    input.accountNumber,
+  );
 }
 
 function buildFactualBasis(
@@ -386,17 +357,17 @@ function buildFactualBasis(
 function buildVerificationRequests(
   input: BuildPacketNarrativeInput,
   category: PacketNarrativeDisputeCategory,
-  intent: CanonicalDisputeIntent,
   displayField: string,
 ): string[] {
-  const archetype = disputeIntentArchetypeFor(intent);
   const requests = [
     input.packetType === "collection_agency"
       ? "Verify the source records supporting the collection account and the authority to collect or report it."
       : "Verify the source records supporting the account.",
-    intent === "MISSING_ACCOUNT_IDENTIFIER" || isAccountNumberMissing(input.accountNumber)
+    isAccountNumberMissing(input.accountNumber)
       ? "Verify the account identifier or explain why no account number is shown on the report."
       : "Verify the account identifier.",
+    "Verify the account status.",
+    `Verify the ${lowerFirst(displayField)}.`,
   ];
 
   if (category === "POSSIBLE_OBSOLETE_OR_STALE_REPORTING") {
@@ -408,26 +379,16 @@ function buildVerificationRequests(
   }
 
   if (category === "BALANCE_OR_STATUS_ACCURACY") {
-    requests.push(`Verify the ${lowerFirst(displayField)}.`);
+    requests.push("Verify the balance, payment, and status records supporting the reported information.");
   }
-
-  if (intent === "INCOMPLETE_COLLECTION_REPORTING") {
-    requests.push("Verify who is reporting or collecting the account.");
-  }
-
-  if (intent === "UNSUPPORTED_REPORTING") {
-    requests.push("Verify the records supporting the account before it continues to be reported.");
-  }
-
-  requests.push(archetype.bureauActionSentence);
 
   return dedupeNarrativeText(requests.map((value) => safeNarrativeText(value, input.accountNumber)));
 }
 
-function buildRequestedRemedies(category: PacketNarrativeDisputeCategory, intent: CanonicalDisputeIntent): string[] {
-  const archetype = disputeIntentArchetypeFor(intent);
+function buildRequestedRemedies(category: PacketNarrativeDisputeCategory): string[] {
   const remedies = [
-    archetype.bureauActionSentence,
+    "Correct any inaccurate or incomplete information.",
+    "Remove the item if it cannot be verified.",
   ];
 
   if (category === "POSSIBLE_OBSOLETE_OR_STALE_REPORTING") {
@@ -483,15 +444,7 @@ export function buildPacketNarrative(input: BuildPacketNarrativeInput): PacketNa
   const displayField = formatPacketFieldLabel(input.disputedField ?? "Account information");
   const accountName = safeNarrativeText(input.accountName || "Company listed on report", input.accountNumber);
   const reportedValue = formatPacketDisplayValue(displayField, input.reportedValue, input.accountNumber);
-  const intent = canonicalDisputeIntentFor({
-    issueType: input.issueType,
-    disputedField: displayField,
-    disputeCategory: inferDisputeCategory(input, displayField),
-    packetType: input.packetType,
-    accountNumberMissing: isAccountNumberMissing(input.accountNumber),
-    isCollectionAccount: input.isCollectionAccount,
-  });
-  const category = disputeCategoryForIntent(intent, input, displayField);
+  const category = inferDisputeCategory(input, displayField);
   const readinessWarnings = dedupeNarrativeText([
     ...(input.readinessWarnings ?? []),
     isAccountNumberMissing(input.accountNumber)
@@ -509,14 +462,13 @@ export function buildPacketNarrative(input: BuildPacketNarrativeInput): PacketNa
   ].map((value) => value ? safeNarrativeText(value, input.accountNumber) : null));
 
   return {
-    disputeIntent: intent,
     disputeCategory: category,
     cautionLevel: cautionLevelFor(category, { ...input, readinessWarnings, readinessBlockers }),
-    issueSummary: buildIssueSummary(input, intent, accountName, displayField, reportedValue),
+    issueSummary: buildIssueSummary(input, category, accountName, displayField, reportedValue),
     factualBasis: buildFactualBasis(input, accountName, displayField, reportedValue),
-    consumerAssertion: disputeIntentArchetypeFor(intent).consumerNarrative,
-    verificationRequests: buildVerificationRequests(input, category, intent, displayField),
-    requestedRemedies: buildRequestedRemedies(category, intent),
+    consumerAssertion: "I dispute the accuracy, completeness, support, and continued reportability of this item.",
+    verificationRequests: buildVerificationRequests(input, category, displayField),
+    requestedRemedies: buildRequestedRemedies(category),
     evidenceReferences: buildEvidenceReferences(input, accountName, displayField, reportedValue),
     readinessWarnings,
     readinessBlockers,

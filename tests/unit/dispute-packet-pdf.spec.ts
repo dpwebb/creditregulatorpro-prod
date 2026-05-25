@@ -226,6 +226,7 @@ describe("simple dispute packet PDF", () => {
     expect(text).toContain("Date last reported");
     expect(text).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
     expect(text).toContain("Reported Balance: $400");
+    expect(text).toContain("I am disputing this item because the information being reported appears inaccurate or incomplete.");
     expect(text).toContain("The balance being reported does not appear accurate based on my records.");
     expect(text).not.toContain("Disputed Account");
     expect(text).not.toContain("Requested result: Verify the correct information");

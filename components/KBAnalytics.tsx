@@ -73,7 +73,7 @@ export const KBAnalytics = () => {
                 <div className={styles.dimensionCard}>
                   <h4>By Finding Category</h4>
                   <p>
-                    Measures which compliance findings (chronology conflicts, reporting-standard issues,
+                    Measures which compliance findings (temporal manipulation, reporting-standard issues,
                     etc.) lead to successful outcomes.
                   </p>
                   <ul className={styles.metricList}>

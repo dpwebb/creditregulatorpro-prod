@@ -1,7 +1,6 @@
 import { isAfter, isBefore, isValid, parseISO } from "./dateUtils";
 import { ValidationSeverity } from "./schema";
 import { formatCurrency } from "./formatters";
-import { accountBoundStatusText } from "./reportFactSource";
 
 export type ValidationCategory =
   | "DATES"
@@ -192,7 +191,7 @@ const BalanceConsistencyPastDue: Metro2ValidationRule = {
   severity: "ERROR",
   description: "The overdue amount cannot be more than the total balance.",
   validate: (data: any) => {
-    const status = accountBoundStatusText(data.status).toUpperCase();
+    const status = (data.status || "").toUpperCase();
     const accountType = (data.accountType || "").toUpperCase();
     const mop = String(data.mop || data.mannerOfPayment || "");
     
@@ -254,7 +253,7 @@ const BalancePaidZero: Metro2ValidationRule = {
   severity: "ERROR",
   description: "Accounts marked as paid off must have a zero balance.",
   validate: (data: any) => {
-    const status = accountBoundStatusText(data.status).toUpperCase();
+    const status = (data.status || "").toUpperCase();
     const current = getNumeric(data.currentBalance);
     const pastDue = getNumeric(data.amountPastDue);
 

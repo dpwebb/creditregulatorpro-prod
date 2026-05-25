@@ -121,8 +121,6 @@ export function detectIngestWorkerProductionEnvironment(env: NodeJS.ProcessEnv =
   reasons: string[];
 } {
   const reasons: string[] = [];
-  const explicitNonProductionRuntime = [env.CRP_ENV, env.APP_ENV, env.VERCEL_ENV]
-    .some((value) => typeof value === "string" && /\b(?:staging|stage|preview|development|dev|test|local)\b/i.test(value));
   const environmentFields = [
     ["CRP_ENV", env.CRP_ENV],
     ["APP_ENV", env.APP_ENV],
@@ -131,9 +129,6 @@ export function detectIngestWorkerProductionEnvironment(env: NodeJS.ProcessEnv =
   ];
 
   for (const [name, value] of environmentFields) {
-    if (name === "NODE_ENV" && explicitNonProductionRuntime) {
-      continue;
-    }
     if (typeof value === "string" && /\bprod(?:uction)?\b/i.test(value)) {
       reasons.push(`${name}=production-like`);
     }

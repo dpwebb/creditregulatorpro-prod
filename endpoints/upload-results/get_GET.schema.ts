@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { ParserQualityAssessment } from "../../helpers/parserQuality";
-import type { ReportFindingDiagnosticSummary } from "../../helpers/reportFindingDiagnostics";
 
 export const schema = z.object({
   artifactId: z.number(),
@@ -88,7 +87,6 @@ export type OutputType = {
   topFindings: TopFinding[];
   challengeAccessPoints: ChallengeAccessPoint[];
   parserQuality?: ParserQualityAssessment;
-  diagnosticSummary: ReportFindingDiagnosticSummary;
   crossReference?: CrossReference;
   disputeOutcomeSummary?: DisputeOutcomeSummary;
 };

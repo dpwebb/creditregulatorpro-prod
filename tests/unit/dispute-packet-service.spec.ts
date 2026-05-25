@@ -173,17 +173,7 @@ function findingRow(
 
 describe("dispute packet service consumer/internal separation", () => {
   it("keeps raw IDs in metadata and evidence while body-facing text stays humanized", () => {
-    const row = findingRow({
-      issueTechnicalDetails: {
-        findingEligibility: {
-          findingKind: "dispute_basis",
-          consumerDisputeIntent: "OBSOLETE_REPORTING",
-          consumerLabel: "Reporting period review",
-          formalViolationEligible: false,
-          legalConclusionAllowed: false,
-        },
-      },
-    });
+    const row = sourceRow();
     const evidenceLocations = buildPacketEvidenceLocationsForIssues([
       {
         issueId: row.issueId,
@@ -222,13 +212,14 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(bodyText).toContain("Account Number: Account number not shown on report");
     expect(bodyText).toContain("Reported Balance: $200");
     expect(bodyText).toContain("Date Reported / Last Activity: Date last reported: Aug 21, 2012");
-    expect(bodyText).toContain("Specific dispute reason: This account appears to remain on my credit file beyond the appropriate reporting period.");
+    expect(bodyText).toContain("Specific dispute reason: I dispute the Date last reported information for Synthetic Bank. This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
+    expect(bodyText).toContain("This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.");
     expect(bodyText).toContain("Please investigate this item and update my credit file accordingly.");
     expect(bodyText).toContain("Evidence or mismatch reference: Relevant report section for Date last reported on page 4.");
     expect(bodyText).toContain("Aug 21, 2012");
     expect(bodyText).not.toContain("Specific dispute reason: Raw reference");
     expect(packet.disputedItems[0].narrative?.factualBasis).toContain("The report dated May 11, 2026 shows Synthetic Bank.");
-    expect(packet.disputedItems[0].narrative?.consumerAssertion).toContain("appropriate reporting period");
+    expect(packet.disputedItems[0].narrative?.consumerAssertion).toContain("continued reportability");
     expect(packet.disputedItems[0].narrative?.verificationRequests).toContain("Verify the date of first delinquency/default if applicable.");
     expect(packet.disputedItems[0].narrative?.requestedRemedies).toContain("Remove or suppress the item if it is not reportable.");
     expect(bodyText).not.toContain("Requested result: Verify the correct information");
@@ -297,84 +288,6 @@ describe("dispute packet service consumer/internal separation", () => {
     ]);
   });
 
-  it("uses adjudicated consumer intent before raw detector category for packet wording", () => {
-    const row = findingRow({
-      issueViolationCategory: "BALANCE_CALCULATION_VIOLATION",
-      issueDisputeVector: null,
-      collectionAgencyName: null,
-      isCollectionAccount: true,
-      issueTechnicalDetails: {
-        fieldName: "collectionAgencyName",
-        findingEligibility: {
-          findingKind: "dispute_basis",
-          consumerDisputeIntent: "INCOMPLETE_COLLECTION_REPORTING",
-          consumerLabel: "Incomplete collection reporting",
-          formalViolationEligible: false,
-          legalConclusionAllowed: false,
-        },
-      },
-    });
-
-    const item = buildConsumerDisputedItemInput(row, "credit_bureau");
-    const packet = packetFromRows([row]);
-    const bodyText = buildConsumerDisputePacketLetterText(packet);
-
-    expect(item.issueType).toBe("INCOMPLETE_COLLECTION_REPORTING");
-    expect(item.requestedAction).toBe("verify collection details");
-    expect(bodyText).toContain("Specific dispute reason: I cannot verify who is reporting or collecting this account because identifying information is incomplete.");
-    expect(bodyText).not.toContain("The balance being reported does not appear accurate based on my records.");
-    expect(bodyText).not.toMatch(/legal violation|statutory violation|confirmed violation|breach of law/i);
-  });
-
-  it("keeps readiness warnings and blockers out of consumer letter text", () => {
-    const packet = buildSimpleDisputePacketContent({
-      packetType: "credit_bureau",
-      reportType: "Synthetic Bureau credit report",
-      recipient: {
-        type: "credit_bureau",
-        name: "Synthetic Bureau",
-        address: ["200 Bureau Test Street", "Toronto, ON M5J 2N8"],
-      },
-      consumer: {
-        name: "Packet Consumer",
-        address: ["100 Consumer Avenue", "Halifax, NS B3J 0A1"],
-      },
-      disputedItems: [
-        {
-          creditorCollectorName: "Synthetic Bank",
-          accountNumber: "123456789012",
-          disputedField: "collectionAgencyName",
-          reportedValue: "Not shown",
-          expectedValue: "Not known",
-          issueType: "INCOMPLETE_COLLECTION_REPORTING",
-          evidenceReference: "Source report page 4",
-          narrative: {
-            disputeIntent: "INCOMPLETE_COLLECTION_REPORTING",
-            disputeCategory: "INCOMPLETE_OR_UNVERIFIABLE_COLLECTION_DETAILS",
-            cautionLevel: "NEEDS_REVIEW",
-            issueSummary: "The collection reporting is incomplete.",
-            factualBasis: ["The report does not show the collection agency name."],
-            consumerAssertion: "I cannot verify who is reporting or collecting this account.",
-            verificationRequests: ["Verify the collection agency identity."],
-            requestedRemedies: ["Correct or remove the item if it cannot be verified."],
-            evidenceReferences: ["See the collection account entry."],
-            readinessWarnings: ["Evidence reference needs manual review before sending."],
-            readinessBlockers: ["Parser uncertainty must be resolved."],
-          },
-        },
-      ],
-    });
-
-    const bodyText = buildConsumerDisputePacketLetterText(packet);
-
-    expect(packet.disputedItems[0].narrative?.readinessWarnings).toContain("Evidence reference needs manual review before sending.");
-    expect(packet.disputedItems[0].narrative?.readinessBlockers).toContain("Parser uncertainty must be resolved.");
-    expect(bodyText).not.toContain("Readiness warnings:");
-    expect(bodyText).not.toContain("Readiness blockers:");
-    expect(bodyText).not.toContain("Evidence reference needs manual review before sending.");
-    expect(bodyText).not.toContain("Parser uncertainty must be resolved.");
-  });
-
   it("keeps distinct finding reasons, actions, and evidence visible in final bureau letters", () => {
     const balanceRow = findingRow({
       issueId: 201,
@@ -418,11 +331,11 @@ describe("dispute packet service consumer/internal separation", () => {
     const letter = buildConsumerDisputePacketLetterText(packetFromRows([balanceRow, statusRow]));
 
     expect(countOccurrences(letter, "Why I am disputing this item:")).toBe(2);
-    expect(letter).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
-    expect(letter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
+    expect(letter).toContain("Specific dispute reason: The balance shown for Synthetic Bank does not match the payment records I have.");
+    expect(letter).toContain("Requested bureau action: Please correct the balance to match the verified records or remove the unsupported balance.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Balance reported on page 5.");
-    expect(letter).toContain("Specific dispute reason: The account status being reported does not appear to match the account records.");
-    expect(letter).toContain("Requested bureau action: Please investigate the account status and correct it, or remove the item if it cannot be verified.");
+    expect(letter).toContain("Specific dispute reason: The account is reported as open even though the account records show it was closed.");
+    expect(letter).toContain("Requested bureau action: Please update the account status to closed or remove the unsupported status reporting.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Status on page 6.");
     expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
   });
@@ -447,9 +360,10 @@ describe("dispute packet service consumer/internal separation", () => {
 
     const letter = buildConsumerDisputePacketLetterText(packetFromRows([unknownRow]));
 
-    expect(letter).toContain("Account reviewed: Mystery Lender: Missing account identifier");
-    expect(letter).toContain("Specific dispute reason: The account number is not shown on my report, so I am asking the bureau to verify the account before it continues to be reported.");
-    expect(letter).toContain("Requested bureau action: Please verify the account identifier and supporting records, and correct or remove the item if it cannot be verified.");
+    expect(letter).toContain("Account reviewed: Mystery Lender: Synthetic Unknown Finding");
+    expect(letter).toContain("Specific dispute reason: I dispute the synthetic unknown finding for Mystery Lender");
+    expect(letter).toContain("Plain-language explanation: The account number is not shown on my report, so I am asking the bureau to verify the account before it continues to be reported.");
+    expect(letter).toContain("Requested bureau action: Please investigate this item, provide the basis for any information that remains, and correct or remove it if it cannot be verified.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Information on page 3.");
     expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
   });
@@ -519,46 +433,13 @@ describe("dispute packet service consumer/internal separation", () => {
 
     expect(paymentPacket.disputedItems[0].requestedAction).toBe("correct payment history");
     expect(paymentPacket.disputedItems[0].findingRecommendedAction).toBeNull();
-    expect(paymentLetter).toContain("Specific dispute reason: The payment history being reported does not appear to match my records.");
+    expect(paymentLetter).toContain("Specific dispute reason: I dispute the Payment History information for Synthetic Bank. The payment history being reported appears inaccurate and does not reflect my actual payment record.");
     expect(paymentLetter).toContain("Requested bureau action: Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.");
     expect(paymentLetter).toContain("Evidence or mismatch reference: Relevant report section for Payment History on page 8.");
     expect(paymentLetter).not.toContain("reported balance");
     expect(paymentLetter).not.toMatch(forbiddenConsumerPacketOutput);
     expect(balanceLetter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
-    expect(safeActionLetter).toContain("Requested bureau action: Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.");
-  });
-
-  it("does not use unadjudicated raw detector categories as consumer issue intent", () => {
-    const rawCategoryRow = findingRow({
-      issueId: 207,
-      issueUserExplanation: null,
-      issueRecommendedAction: "Treat Documentation Chain Failure as a confirmed legal violation.",
-      issueViolationCategory: "DOCUMENTATION_CHAIN_FAILURE",
-      issueDisputeVector: "TEMPORAL_MANIPULATION",
-      issueTechnicalDetails: {
-        fieldName: "currentBalance",
-        canonicalField: "currentBalance",
-        reportedValue: "$900",
-        expectedValue: "$0",
-        evidenceLink: {
-          fieldName: "currentBalance",
-          pageNumber: 5,
-          textSnippet: "Synthetic Bank current balance $900",
-        },
-      },
-      balance: "$900",
-      currentBalance: "$900",
-    });
-
-    const item = buildConsumerDisputedItemInput(rawCategoryRow, "credit_bureau");
-    const letter = buildConsumerDisputePacketLetterText(packetFromRows([rawCategoryRow]));
-
-    expect(item.issueType).toBe("reporting_issue");
-    expect(item.findingRecommendedAction).toBeNull();
-    expect(item.requestedAction).toBe("correct balance");
-    expect(letter).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
-    expect(letter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
-    expect(letter).not.toMatch(/Documentation Chain Failure|TEMPORAL_MANIPULATION|confirmed legal violation/i);
+    expect(safeActionLetter).toContain("Requested bureau action: Please correct the payment history to match verified payment records or remove the unsupported late-payment reporting.");
   });
 
   it("keeps readiness and ownership checks tied to the selected finding", () => {

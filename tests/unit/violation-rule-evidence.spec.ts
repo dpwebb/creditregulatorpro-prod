@@ -90,16 +90,7 @@ describe("deterministic violation rule evidence", () => {
           },
           adminReviewStatus: "active",
           parserUncertaintyStatus: "unknown",
-          findingEligibility: expect.objectContaining({
-            findingKind: "dispute_basis",
-            formalViolationEligible: false,
-            legalConclusionAllowed: false,
-          }),
-          sourceVersion: "defensibility-metadata-v2",
-        }),
-        findingEligibility: expect.objectContaining({
-          findingKind: "dispute_basis",
-          formalViolationEligible: false,
+          sourceVersion: "defensibility-metadata-v1",
         }),
         regulationReferences: expect.arrayContaining([
           expect.objectContaining({ id: "PIPEDA_4_6" }),
@@ -108,10 +99,12 @@ describe("deterministic violation rule evidence", () => {
     );
   });
 
-  it("does not derive statutory basis from broad review-only registry references", () => {
+  it("derives a deterministic statutory basis from registry references", () => {
     const enriched = enrichDetectedViolationRuleEvidence(violation());
 
-    expect(getDeterministicViolationStatutoryBasis(enriched)).toBeNull();
+    expect(getDeterministicViolationStatutoryBasis(enriched)).toContain(
+      "PIPEDA Schedule 1, Principle 4.6",
+    );
   });
 
   it("does not use private reporting standards as statutory basis text", () => {
@@ -282,23 +275,16 @@ describe("deterministic violation rule evidence", () => {
     expect(ids).toEqual(["PIPEDA_4_6", "METRO2_BASE_SEGMENT"]);
   });
 
-  it("preserves findings whose explicit regulation ids do not resolve to local authority as non-formal dispute signals", () => {
+  it("drops violations whose explicit regulation ids do not resolve to local authority", () => {
     const unsupported = violation({
       technicalDetails: {
         fieldName: "balance",
         regulationIds: ["NOT_A_LOCAL_AUTHORITY"],
       },
     });
-    const findings = filterViolationsWithLocalAuthorityLinks([unsupported, violation()]);
 
     expect(hasBonaFideLocalAuthorityLink(unsupported)).toBe(false);
-    expect(findings).toHaveLength(2);
-    expect(findings[0].technicalDetails?.findingEligibility).toEqual(
-      expect.objectContaining({
-        formalViolationEligible: false,
-        legalConclusionAllowed: false,
-      }),
-    );
+    expect(filterViolationsWithLocalAuthorityLinks([unsupported, violation()])).toHaveLength(1);
   });
 
   it("sanitizes regulation ids to locally resolved authority references", () => {
@@ -317,7 +303,7 @@ describe("deterministic violation rule evidence", () => {
     ]);
   });
 
-  it("preserves missing closed-date review issues without promoting them to formal violations", () => {
+  it("does not surface missing closed-date review issues without field-specific authority", () => {
     const missingClosedDate = violation({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "ERROR",
@@ -340,17 +326,7 @@ describe("deterministic violation rule evidence", () => {
     expect(envelope?.evidence.fieldName).toBe("dateClosed");
     expect(isMissingInformationReviewIssue(missingClosedDate)).toBe(true);
     expect(hasFieldSpecificAuthorityForMissingInformation(missingClosedDate)).toBe(false);
-    expect(filterViolationsWithLocalAuthorityLinks([missingClosedDate])).toEqual([
-      expect.objectContaining({
-        technicalDetails: expect.objectContaining({
-          findingEligibility: expect.objectContaining({
-            findingKind: "verification_issue",
-            formalViolationEligible: false,
-            legalConclusionAllowed: false,
-          }),
-        }),
-      }),
-    ]);
+    expect(filterViolationsWithLocalAuthorityLinks([missingClosedDate])).toEqual([]);
   });
 
   it("keeps Metro2 base-segment required-field findings authority-backed", () => {
@@ -416,7 +392,7 @@ describe("deterministic violation rule evidence", () => {
       province: "ON",
       regulationIds: ["PIPEDA_4_6", "ON_CRA_LEGAL_ACTION_STATUS_FIELD"],
     },
-  ])("preserves missing-field review issues without exact field/account authority as verification issues: $name", (input) => {
+  ])("blocks missing-field review issues without exact field/account authority: $name", (input) => {
     const missingField = violation({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "ERROR",
@@ -434,17 +410,7 @@ describe("deterministic violation rule evidence", () => {
 
     expect(isMissingInformationReviewIssue(missingField)).toBe(true);
     expect(hasFieldSpecificAuthorityForMissingInformation(missingField)).toBe(false);
-    expect(filterViolationsWithLocalAuthorityLinks([missingField])).toEqual([
-      expect.objectContaining({
-        technicalDetails: expect.objectContaining({
-          findingEligibility: expect.objectContaining({
-            findingKind: "verification_issue",
-            formalViolationEligible: false,
-            legalConclusionAllowed: false,
-          }),
-        }),
-      }),
-    ]);
+    expect(filterViolationsWithLocalAuthorityLinks([missingField])).toEqual([]);
   });
 
   it("surfaces missing information only when an exact Canadian field mandate matches the province and record type", () => {
@@ -505,17 +471,7 @@ describe("deterministic violation rule evidence", () => {
 
     expect(isMissingInformationReviewIssue(missingJudgmentCreditor)).toBe(true);
     expect(hasFieldSpecificAuthorityForMissingInformation(missingJudgmentCreditor)).toBe(false);
-    expect(filterViolationsWithLocalAuthorityLinks([missingJudgmentCreditor])).toEqual([
-      expect.objectContaining({
-        technicalDetails: expect.objectContaining({
-          findingEligibility: expect.objectContaining({
-            findingKind: "verification_issue",
-            formalViolationEligible: false,
-            legalConclusionAllowed: false,
-          }),
-        }),
-      }),
-    ]);
+    expect(filterViolationsWithLocalAuthorityLinks([missingJudgmentCreditor])).toEqual([]);
   });
 
   it("does not treat omitted technical values as missing field evidence by themselves", () => {

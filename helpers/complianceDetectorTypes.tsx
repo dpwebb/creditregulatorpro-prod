@@ -1,5 +1,4 @@
 import type { ViolationCategory, ValidationSeverity } from "./schema";
-import { accountBoundSourceText } from "./reportFactSource";
 
 export interface DetectedViolation {
   violationCategory: ViolationCategory;
@@ -43,9 +42,7 @@ export function isEffectivelyCollectionAccount(tradeline: TradelineForCollection
     return true;
   }
 
-  const sourceEvidence = accountBoundSourceText(
-    `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase(),
-  );
+  const sourceEvidence = `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase();
   if (
     /(?:^|[^A-Z0-9])TC(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||
     sourceEvidence.includes("THIRD PARTY COLLECTION") ||

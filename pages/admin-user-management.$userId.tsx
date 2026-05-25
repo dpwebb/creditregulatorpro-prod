@@ -12,7 +12,6 @@ import { Skeleton } from "../components/Skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "../components/Dialog";
 import { Input } from "../components/Input";
 import { getAuditActionLabel } from "../helpers/auditLogDisplay";
-import { canonicalFindingLabelFor } from "../helpers/findingTaxonomy";
 import styles from "./admin-user-management.$userId.module.css";
 
 export default function AdminUserDetail() {
@@ -258,7 +257,7 @@ export default function AdminUserDetail() {
                             </Badge>
                             {p.violationCategory && (
                               <Badge variant="warning" className={styles.actionBadge}>
-                                {canonicalFindingLabelFor(p.violationCategory) ?? p.violationCategory.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                {p.violationCategory.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                               </Badge>
                             )}
                           </div>

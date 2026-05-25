@@ -9,7 +9,6 @@ import {
   postPacketBuild,
   type InputType as PacketBuildInput,
 } from "../endpoints/packet/build_POST.schema";
-import { postPacketValidateReadiness } from "../endpoints/packet/validate-readiness_POST.schema";
 import { postPacketCreate } from "../endpoints/packet/create_POST.schema";
 import type { DisputePacketType } from "./disputePacketTemplate";
 
@@ -51,17 +50,6 @@ export const usePacketRecommendations = (packetType: DisputePacketType) => {
   return useQuery<PacketRecommendOutput>({
     queryKey: ["packet-recommendations", packetType],
     queryFn: () => getPacketRecommend({ packetType, limit: 100 }),
-  });
-};
-
-export const usePacketReadiness = (
-  input: PacketBuildInput,
-  options: { enabled?: boolean } = {},
-) => {
-  return useQuery({
-    queryKey: ["packet-readiness", input.packetType, input.selectedIssueIds, input.recipientBureauId ?? null, input.recipient ?? null],
-    queryFn: () => postPacketValidateReadiness(input),
-    enabled: options.enabled ?? input.selectedIssueIds.length > 0,
   });
 };
 

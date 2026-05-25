@@ -1,9 +1,8 @@
 import type { PacketNarrative, PacketRequestedAction } from "./disputePacketTemplate";
-import { canonicalDisputeIntentFor, disputeIntentArchetypeFor } from "./disputeIntent";
 
 export const PLAIN_DISPUTE_LETTER_REASONS = {
   EXCEEDED_REPORTING_PERIOD:
-    "This account appears to remain on my credit file beyond the appropriate reporting period.",
+    "This account appears to remain on my credit file beyond the appropriate reporting period and should no longer be reported.",
   INCORRECT_BALANCE:
     "The balance being reported does not appear accurate based on my records.",
   DUPLICATE_ACCOUNT:
@@ -13,7 +12,7 @@ export const PLAIN_DISPUTE_LETTER_REASONS = {
   RESOLVED_STATUS_INCORRECT:
     "This account has been resolved, but the reporting does not appear to reflect the current status accurately.",
   INCORRECT_LATE_PAYMENTS:
-    "The payment history being reported does not appear to match my records.",
+    "The payment history being reported appears inaccurate and does not reflect my actual payment record.",
   MIXED_FILE_OR_IDENTITY:
     "This information may belong to another individual and appears to have been placed on my report in error.",
   COLLECTION_INCOMPLETE_OR_INACCURATE:
@@ -51,22 +50,6 @@ function hasAny(value: string, terms: string[]): boolean {
 }
 
 export function disputeLetterReasonKeyFor(input: PlainDisputeLetterReasonInput): PlainDisputeLetterReasonKey {
-  const intent = canonicalDisputeIntentFor({
-    issueType: input.issueType,
-    disputedField: input.disputedField,
-    disputeCategory: input.narrative?.disputeCategory,
-  });
-  if (intent === "OBSOLETE_REPORTING") return "EXCEEDED_REPORTING_PERIOD";
-  if (intent === "INCONSISTENT_BALANCE_REPORTING") return "INCORRECT_BALANCE";
-  if (intent === "DUPLICATE_REPORTING") return "DUPLICATE_ACCOUNT";
-  if (intent === "MISSING_ACCOUNT_IDENTIFIER") return "MISSING_ACCOUNT_IDENTIFIER";
-  if (intent === "IDENTITY_OR_OWNERSHIP_MISMATCH") return "MIXED_FILE_OR_IDENTITY";
-  if (intent === "ACCOUNT_OWNERSHIP_AMBIGUITY") return "MIXED_FILE_OR_IDENTITY";
-  if (intent === "INCONSISTENT_PAYMENT_REPORTING") return "INCORRECT_LATE_PAYMENTS";
-  if (intent === "INCONSISTENT_STATUS_REPORTING") return "RESOLVED_STATUS_INCORRECT";
-  if (intent === "INCOMPLETE_COLLECTION_REPORTING") return "COLLECTION_INCOMPLETE_OR_INACCURATE";
-  if (intent === "UNVERIFIABLE_COLLECTION_IDENTITY") return "COLLECTION_INCOMPLETE_OR_INACCURATE";
-
   const value = haystack(input);
   const fieldValue = String(input.disputedField ?? "").toUpperCase().replace(/[^A-Z0-9]+/g, " ");
   const issueActionFieldValue = [
@@ -146,13 +129,5 @@ export function disputeLetterReasonKeyFor(input: PlainDisputeLetterReasonInput):
 }
 
 export function plainDisputeLetterReasonFor(input: PlainDisputeLetterReasonInput): string {
-  const intent = canonicalDisputeIntentFor({
-    issueType: input.issueType,
-    disputedField: input.disputedField,
-    disputeCategory: input.narrative?.disputeCategory,
-  });
-  if (intent !== "GENERAL_ACCURACY_REVIEW") {
-    return disputeIntentArchetypeFor(intent).consumerNarrative;
-  }
   return PLAIN_DISPUTE_LETTER_REASONS[disputeLetterReasonKeyFor(input)];
 }

@@ -136,14 +136,12 @@ export default function CreditorValidationsPage() {
                   {bureauName} - {items.length} account{items.length !== 1 ? 's' : ''}
                 </h3>
                 <div className={styles.tradelineGrid}>
-                  {items.map(({ tradeline, issueCount, highPriorityCount, blockedIssueCount, blockerReasonCodes, problemLabels }) => (
+                  {items.map(({ tradeline, issueCount, highPriorityCount, problemLabels }) => (
                     <ComplianceTradelineCard
                       key={tradeline.id}
                       tradeline={tradeline}
                       issueCount={issueCount}
                       priorityIssueCount={highPriorityCount}
-                      blockedIssueCount={blockedIssueCount}
-                      blockerReasonCodes={blockerReasonCodes}
                       problemLabels={problemLabels}
                     />
                   ))}

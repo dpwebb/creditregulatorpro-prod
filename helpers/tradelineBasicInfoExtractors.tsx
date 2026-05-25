@@ -2,7 +2,6 @@
  * Basic info extractors for tradeline parsing.
  * Handles account numbers, creditor names, collection accounts, etc.
  */
-import { accountBoundSourceText } from "./reportFactSource";
 
 /**
  * Extracts fields from label-value block format (used in Credit Monitoring PDFs).
@@ -191,12 +190,9 @@ export function extractAccountNumber(text: string): string | null {
 /**
  * Checks if an account is a collection account.
  */
-
 export function extractIsCollectionAccount(text: string): boolean {
-  const accountText = accountBoundSourceText(text);
-
   // Check for collection-related keywords in status
-  if (/Status[\s:]+.*Collection/i.test(accountText)) {
+  if (/Status[\s:]+.*Collection/i.test(text)) {
     return true;
   }
 
@@ -214,13 +210,13 @@ export function extractIsCollectionAccount(text: string): boolean {
   ];
 
   for (const pattern of collectionIndicators) {
-    if (pattern.test(accountText)) {
+    if (pattern.test(text)) {
       return true;
     }
   }
 
   // Check if creditor name contains collection-related terms
-  const creditorMatch = accountText.match(/(?:Creditor|Lender|Institution)[\s:]+([^\n]+)/i);
+  const creditorMatch = text.match(/(?:Creditor|Lender|Institution)[\s:]+([^\n]+)/i);
   if (creditorMatch) {
     const creditorText = creditorMatch[1].toLowerCase();
     const collectionTerms = [
@@ -234,7 +230,7 @@ export function extractIsCollectionAccount(text: string): boolean {
       if (creditorText.includes(term)) {
         // Require STATUS/TYPE confirmation
         const confirmingStatusRegex = /\b(?:collection|charge[ -]?off|written off|bad debt|placed for collection|09|delinquent|past due|in arrears)\b/i;
-        if (confirmingStatusRegex.test(accountText)) {
+        if (confirmingStatusRegex.test(text)) {
           return true;
         }
       }
@@ -249,15 +245,13 @@ export function extractIsCollectionAccount(text: string): boolean {
  * collection agency, even when the agency name itself is not reported.
  */
 export function extractCollectionTurnoverSignal(text: string): boolean {
-  const accountText = accountBoundSourceText(text);
-
   return (
-    /(?:^|[^A-Z])TC\s*[-\/]\s*/i.test(accountText) ||
-    /\bTC\s*-\s*Third\s+party\s+collection\/account\s+turned\s+over\s+to\s+collection\s+agency\b/i.test(accountText) ||
-    /\b(?:sent|turned\s+over|assigned|placed)\s+(?:to|for)\s+collection(?:s|\s+agency)?\b/i.test(accountText) ||
-    /\bacct\.?\s+assigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(accountText) ||
-    /\bassigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(accountText) ||
-    /\bthird[\s-]party\s+collection\b/i.test(accountText)
+    /(?:^|[^A-Z])TC\s*[-\/]\s*/i.test(text) ||
+    /\bTC\s*-\s*Third\s+party\s+collection\/account\s+turned\s+over\s+to\s+collection\s+agency\b/i.test(text) ||
+    /\b(?:sent|turned\s+over|assigned|placed)\s+(?:to|for)\s+collection(?:s|\s+agency)?\b/i.test(text) ||
+    /\bacct\.?\s+assigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(text) ||
+    /\bassigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(text) ||
+    /\bthird[\s-]party\s+collection\b/i.test(text)
   );
 }
 

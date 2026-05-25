@@ -59,16 +59,12 @@ describe("frontend production-readiness UX constraints", () => {
     expect(readinessSource).toContain("policy gate, not a runtime throttle");
   });
 
-  it("keeps packet readiness review language visible while keeping render/cache diagnostics admin-only", () => {
+  it("keeps packet readiness blockers visible while keeping render/cache diagnostics admin-only", () => {
     const packetsSource = source("pages/packets.tsx");
     const packetViewerSource = source("components/PacketViewer.tsx");
     const packetPdfCacheSource = source("helpers/packetPdfCache.ts");
 
-    expect(packetsSource).toContain("needs review before a letter can be created");
-    expect(packetsSource).toContain("Replies from bureaus, creditors, or collectors appear here after they are captured.");
-    expect(packetsSource).not.toContain("readiness blockers");
-    expect(packetsSource).not.toContain("Intake classification only");
-    expect(packetsSource).not.toContain("safe comparison");
+    expect(packetsSource).toContain("Review the readiness blockers before creating a packet");
     expect(packetsSource).toContain("{isAdmin ? (");
     expect(packetsSource).toContain("Packet PDFs may render on first open/download");
     expect(packetsSource).toContain(

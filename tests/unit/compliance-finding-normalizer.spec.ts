@@ -69,7 +69,6 @@ describe("compliance finding normalizer", () => {
 
     expect(normalized.userExplanation).not.toContain("informationit");
     expect(normalized.userExplanation).toContain("review and correct the reported information");
-    expect(normalized.recommendedAction).not.toMatch(/correction pathway/i);
   });
 
   it("explains cross-bureau differences without exposing raw JSON", () => {

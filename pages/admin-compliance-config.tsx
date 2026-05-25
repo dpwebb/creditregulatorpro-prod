@@ -37,18 +37,11 @@ import {
   ViolationCategory,
   ViolationCategoryArrayValues,
 } from "../helpers/schema";
-import {
-  canonicalFindingDescriptionFor,
-  canonicalFindingLabelFor,
-} from "../helpers/findingTaxonomy";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import styles from "./admin-compliance-config.module.css";
 
 // Helper to get user-friendly labels for violation categories
 const getCategoryLabel = (category: ViolationCategory): string => {
-  const canonicalLabel = canonicalFindingLabelFor(category);
-  if (canonicalLabel) return canonicalLabel;
-
   return category
     .split("_")
     .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
@@ -57,9 +50,6 @@ const getCategoryLabel = (category: ViolationCategory): string => {
 
 // Helper to get description for violation categories
 const getCategoryDescription = (category: ViolationCategory): string => {
-  const canonicalDescription = canonicalFindingDescriptionFor(category);
-  if (canonicalDescription) return canonicalDescription;
-
   switch (category) {
     case "ACCOUNT_STATUS_INCONSISTENCY":
       return "Detects conflicting account statuses across bureaus or over time.";
@@ -68,29 +58,29 @@ const getCategoryDescription = (category: ViolationCategory): string => {
     case "BANKRUPTCY_DISCHARGE_VIOLATION":
       return "Flags accounts not properly updated after bankruptcy discharge.";
     case "CREDIT_LIMIT_MANIPULATION":
-      return "Detects credit limit reporting inconsistencies.";
+      return "Detects suspicious changes to credit limits.";
     case "CROSS_BUREAU_INCONSISTENCY":
       return "Finds discrepancies for the same account across different bureaus.";
     case "CROSS_ENTITY_DISCREPANCY":
       return "Identifies mismatches between creditor and bureau data.";
     case "DOCUMENTATION_CHAIN_FAILURE":
-      return "Flags incomplete account support or identifying information.";
+      return "Flags missing or incomplete documentation trails.";
     case "FURNISHER_RESPONSE_QUALITY":
       return "Evaluates the quality and completeness of creditor responses.";
     case "IDENTITY_THEFT_VIOLATION":
-      return "Detects identity or authorization review signals.";
+      return "Detects potential identity theft indicators or mishandling.";
     case "MULTIPLE_COLLECTOR_VIOLATION":
       return "Flags multiple collectors reporting the same debt simultaneously.";
     case "PAYMENT_HISTORY_MANIPULATION":
-      return "Identifies payment history inconsistencies.";
+      return "Identifies suspicious alterations to payment history strings.";
     case "PROCEDURAL_TIMING_VIOLATION":
       return "Detects violations of statutory timing requirements.";
     case "STATUTE_OF_LIMITATIONS":
       return "Flags reporting of debts past the statute of limitations.";
     case "TEMPORAL_MANIPULATION":
-      return "Identifies reporting chronology conflicts in account dates.";
+      return "Identifies manipulation of dates (DOFD, DOLA) to re-age debt.";
     default:
-      return "General compliance finding detector.";
+      return "General compliance violation detector.";
   }
 };
 

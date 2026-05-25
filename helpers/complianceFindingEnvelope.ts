@@ -1,7 +1,6 @@
 import type { Selectable } from "kysely";
 
 import type { DetectedViolation } from "./complianceDetectorTypes";
-import type { FindingConfidenceClass } from "./complianceFindingEligibility";
 import {
   disputeLetterReasonKeyFor,
   plainDisputeLetterReasonFor,
@@ -66,7 +65,6 @@ export interface ComplianceFindingEnvelope<TSource = unknown> {
   actor: ComplianceFindingActor | null;
   category: ViolationCategory | string | null;
   technicalRuleId: string | null;
-  confidenceClass: FindingConfidenceClass | string | null;
   severity: ValidationSeverity | string | null;
   confidenceScore: number | null;
   status: ComplianceFindingStatus;
@@ -286,7 +284,6 @@ function makeEnvelope<TSource>(input: {
   recommendedAction?: unknown;
 }): ComplianceFindingEnvelope<TSource> {
   const technicalDetails = recordOrEmpty(input.technicalDetails);
-  const findingEligibility = recordOrEmpty(technicalDetails.findingEligibility);
   const link = evidenceLink(technicalDetails);
   const ids = evidenceIds(technicalDetails, link);
   const fields = sourceFields(technicalDetails, link);
@@ -317,7 +314,6 @@ function makeEnvelope<TSource>(input: {
     actor: firstText(input.actor, technicalDetails.responsibleEntity) as ComplianceFindingActor | null,
     category: textOrNull(input.category),
     technicalRuleId: technicalRuleId(technicalDetails),
-    confidenceClass: firstText(findingEligibility.confidenceClass, technicalDetails.findingConfidenceClass),
     severity: textOrNull(input.severity),
     confidenceScore: firstNumber(input.confidenceScore),
     status: {
