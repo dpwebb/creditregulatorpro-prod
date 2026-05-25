@@ -1,4 +1,5 @@
 import { db } from "../../../helpers/db";
+import { parseEmailAllowlist } from "../../../scripts/reset-platform.mjs";
 import { BusinessRuleError } from "../../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { ADMIN_PLATFORM_RESET_HEADER } from "./dry-run_POST.schema";
@@ -33,6 +34,17 @@ export function requirePlatformResetRequest(request: Request): void {
   if (!contentType.toLowerCase().includes("application/json")) {
     throw new BusinessRuleError("Platform reset requires a JSON request body.", 400);
   }
+}
+
+export function resolveAdminResetPreserveEmails(adminUser: PlatformResetAdminUser, env = process.env): string[] {
+  const configured = parseEmailAllowlist(env.RESET_PRESERVE_ADMIN_EMAILS || "");
+  if (configured.length > 0) return configured;
+
+  const email = String(adminUser.email ?? "").trim().toLowerCase();
+  if (!email) {
+    throw new BusinessRuleError("Platform reset requires RESET_PRESERVE_ADMIN_EMAILS or an authenticated admin email.", 400);
+  }
+  return [email];
 }
 
 function extractRequestMetadata(request: Request): { ipAddress: string | null; userAgent: string | null } {

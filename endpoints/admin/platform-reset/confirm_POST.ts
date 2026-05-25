@@ -5,6 +5,7 @@ import {
   insertPlatformResetAudit,
   requirePlatformResetAdmin,
   requirePlatformResetRequest,
+  resolveAdminResetPreserveEmails,
   toPlatformResetEndpointError,
   type PlatformResetAdminUser,
 } from "./shared";
@@ -47,6 +48,7 @@ export async function handle(request: Request) {
       confirmEnv: runtime.environment.kind,
       baseUrl: input.baseUrl,
       expectedDatabase: input.expectedDatabase,
+      preserveAdminEmails: resolveAdminResetPreserveEmails(adminUser, process.env),
       preserveAuditLogIds: [startedAuditLogId],
     }, process.env);
     const resetResult = result as unknown as OutputType["result"];

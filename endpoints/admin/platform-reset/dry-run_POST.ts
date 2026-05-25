@@ -4,13 +4,14 @@ import { schema, type OutputType } from "./dry-run_POST.schema";
 import {
   requirePlatformResetAdmin,
   requirePlatformResetRequest,
+  resolveAdminResetPreserveEmails,
   toPlatformResetEndpointError,
 } from "./shared";
 
 export async function handle(request: Request) {
   try {
     requirePlatformResetRequest(request);
-    await requirePlatformResetAdmin(request);
+    const adminUser = await requirePlatformResetAdmin(request);
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
@@ -24,6 +25,7 @@ export async function handle(request: Request) {
       resetScope: input.mode,
       confirmEnv: runtime.environment.kind,
       baseUrl: input.baseUrl,
+      preserveAdminEmails: resolveAdminResetPreserveEmails(adminUser, process.env),
     }, process.env);
 
     const output: OutputType = {

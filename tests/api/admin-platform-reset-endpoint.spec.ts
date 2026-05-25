@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getServerUserSession: vi.fn(),
@@ -16,6 +16,10 @@ vi.mock("../../helpers/getServerUserSession", () => ({
 
 vi.mock("../../scripts/reset-platform.mjs", () => ({
   detectResetRuntimeContext: mocks.detectResetRuntimeContext,
+  parseEmailAllowlist: (value: string | string[] = "") =>
+    (Array.isArray(value) ? value : String(value).split(/[,\s;]+/u))
+      .map((entry) => String(entry).trim().toLowerCase())
+      .filter(Boolean),
   runReset: mocks.runReset,
 }));
 
@@ -135,6 +139,7 @@ function mockAuditIds(...ids: number[]) {
 describe("admin platform reset endpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv("RESET_PRESERVE_ADMIN_EMAILS", "");
     mocks.getServerUserSession.mockResolvedValue({
       user: { id: 10, email: "admin@example.test", role: "admin" },
     });
@@ -144,6 +149,10 @@ describe("admin platform reset endpoints", () => {
       values: mocks.dbValues,
     });
     mockAuditIds(501, 502, 503);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("runs dry-run as admin without deleting or writing reset audit rows", async () => {
@@ -158,6 +167,7 @@ describe("admin platform reset endpoints", () => {
         execution: "dry-run",
         resetScope: "hard",
         confirmEnv: "staging",
+        preserveAdminEmails: ["admin@example.test"],
       }),
       process.env,
     );
@@ -219,7 +229,22 @@ describe("admin platform reset endpoints", () => {
         confirm: true,
         confirmEnv: "staging",
         expectedDatabase: runtime.database,
+        preserveAdminEmails: ["admin@example.test"],
         preserveAuditLogIds: [501],
+      }),
+      process.env,
+    );
+  });
+
+  it("prefers RESET_PRESERVE_ADMIN_EMAILS over the current admin email", async () => {
+    vi.stubEnv("RESET_PRESERVE_ADMIN_EMAILS", "canonical@example.test");
+
+    const response = await dryRunPlatformReset(jsonRequest("/_api/admin/platform-reset/dry-run", { mode: "hard" }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.runReset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preserveAdminEmails: ["canonical@example.test"],
       }),
       process.env,
     );

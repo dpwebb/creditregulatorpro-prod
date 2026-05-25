@@ -40,7 +40,7 @@ pnpm seed:minimal
 
 Soft reset removes operational report, packet, finding, response, queue, parser-run, lifecycle, beta, session/token, audit/log, compliance detection configuration, and generated file data while preserving users.
 
-Hard reset does everything in soft reset, then deletes every user except the configured admin/super_admin account in `RESET_PRESERVE_ADMIN_EMAILS`. References from preserved intelligence tables are nullified or reassigned to the preserved admin where needed.
+Hard reset does everything in soft reset, then deletes every user except the configured admin/super_admin account in `RESET_PRESERVE_ADMIN_EMAILS`. The Admin UI path prefers that variable and falls back to the authenticated admin email when it is unset. References from preserved intelligence tables are nullified or reassigned to the preserved admin where needed.
 
 Set exactly one `RESET_PRESERVE_ADMIN_EMAILS` value or pass one `--preserve-admin-email user@example.com` for hard reset. Hard reset fails when the allowlist is empty, when no matching admin/super_admin exists, or when more than one admin would remain unless `RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS=true` is explicitly configured.
 

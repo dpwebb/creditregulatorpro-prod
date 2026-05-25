@@ -12,7 +12,7 @@ The button is labeled `Reset Platform Test Data`. The UI runs a dry-run preview 
 
 ## Preserved Data
 
-- Exactly one admin/super_admin user whose email is listed in `RESET_PRESERVE_ADMIN_EMAILS`
+- Exactly one admin/super_admin user. The Admin UI prefers `RESET_PRESERVE_ADMIN_EMAILS`; if it is unset, it preserves the authenticated admin running the reset.
 - Migrations and app version metadata
 - Laws, regulations, statutes, obligations, rule definitions, and legal references
 - Parser mappings, parser training/corrections, parser rules, known entities, and canonical extraction intelligence
@@ -44,7 +44,7 @@ Hard mode also deletes every user except the configured preserved admin, plus re
 - Requests must use JSON and include the admin platform reset request header.
 - Destructive confirm requires the exact typed phrase.
 - Confirm requires the database target from the dry-run preview; if host/name/source changes, reset fails.
-- Hard reset fails if `RESET_PRESERVE_ADMIN_EMAILS` is empty, if no matching admin/super_admin would remain, or if more than one admin would remain without `RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS=true`.
+- Hard reset fails if no matching admin/super_admin would remain, or if more than one admin would remain without `RESET_ALLOW_MULTIPLE_PRESERVED_ADMINS=true`.
 - The default hard reset policy requires exactly one preserved user row: the configured admin.
 - Reset writes audit rows before and after confirmed execution; the start audit row is preserved while audit logs are cleared.
 - Storage references are inspected before reset, storage write/read/delete health is checked, and deletion failures are reported.
