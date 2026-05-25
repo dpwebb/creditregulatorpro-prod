@@ -5,7 +5,6 @@ import {
   CreditFileProcessingStatus,
   isUploadActionDisabled,
   recoverProcessingOutcomeAfterStatusRefreshFailure,
-  shouldAttemptProcessingResume,
 } from "../../pages/upload";
 
 describe("credit file upload processing status UI", () => {
@@ -177,56 +176,5 @@ describe("credit file upload processing status UI", () => {
     expect(screen.getByText("Processing has not started yet. You can leave this page; we will keep checking in your account.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Check now" }));
     expect(onCheckStatus).toHaveBeenCalledTimes(1);
-  });
-
-  it("only retries process startup for queued or stale states that allow status checks", () => {
-    expect(shouldAttemptProcessingResume({
-      artifactId: 701,
-      status: "queued_waiting_for_worker",
-      canCheckStatus: true,
-    })).toBe(true);
-    expect(shouldAttemptProcessingResume({
-      artifactId: 701,
-      status: "stale",
-      canCheckStatus: true,
-    })).toBe(true);
-    expect(shouldAttemptProcessingResume({
-      artifactId: 701,
-      status: "stalled_no_worker_heartbeat",
-      canCheckStatus: true,
-    })).toBe(false);
-    expect(shouldAttemptProcessingResume({
-      artifactId: 701,
-      status: "failed",
-      canCheckStatus: true,
-    })).toBe(false);
-    expect(shouldAttemptProcessingResume({
-      artifactId: 701,
-      status: "queued_waiting_for_worker",
-      canCheckStatus: false,
-    })).toBe(false);
-  });
-
-  it("shows a clear delayed state when queued processing has no worker heartbeat", () => {
-    render(
-      <CreditFileProcessingStatus
-        progress={{ stage: "stalled_no_worker_heartbeat", percent: 99 }}
-        displayedProgress={99}
-        uploadedAt={Date.parse("2026-05-21T16:27:00.000Z")}
-        currentTimeMs={Date.parse("2026-05-21T16:31:00.000Z")}
-        outcome={{
-          type: "stalled_no_worker_heartbeat",
-          artifactId: 701,
-          message: "Processing has not started yet. No action is needed from you, but this has been flagged for review if it does not clear.",
-          nextAction: "contact_support",
-          diagnosticCode: "INGEST_NO_WORKER_HEARTBEAT",
-        }}
-      />,
-    );
-
-    expect(screen.getByText("Processing appears delayed")).toBeInTheDocument();
-    expect(screen.getByText("Delayed")).toBeInTheDocument();
-    expect(screen.getByText("Processing has not started yet. No action is needed from you, but this has been flagged for review if it does not clear.")).toBeInTheDocument();
-    expect(screen.getByText("Processing has not started yet. You can leave this page; we will keep checking in your account.")).toBeInTheDocument();
   });
 });

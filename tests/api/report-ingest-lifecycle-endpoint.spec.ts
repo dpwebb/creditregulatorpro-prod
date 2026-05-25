@@ -907,7 +907,6 @@ describe("report ingest lifecycle endpoints", () => {
     const response = await getIngestStatus(getRequest("/_api/ingest/status?artifactId=701"));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe("no-store, max-age=0");
     const body = await response.json();
     expect(body).toEqual(expect.objectContaining({
       ok: true,

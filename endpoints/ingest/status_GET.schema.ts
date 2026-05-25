@@ -36,7 +36,6 @@ export const getIngestProcessingStatus = async (
   const params = new URLSearchParams({ artifactId: String(validatedInput.artifactId) });
   const result = await fetch(`/_api/ingest/status?${params.toString()}`, {
     method: "GET",
-    cache: "no-store",
     ...init,
     headers: {
       "Content-Type": "application/json",

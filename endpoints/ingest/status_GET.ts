@@ -14,12 +14,6 @@ type ProcessArtifactStatusRow = {
   processingStatus: string | null;
 };
 
-const STATUS_JSON_HEADERS = {
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store, max-age=0",
-  Pragma: "no-cache",
-} as const;
-
 export async function handle(request: Request) {
   try {
     const url = new URL(request.url);
@@ -35,11 +29,11 @@ export async function handle(request: Request) {
       .executeTakeFirst() as ProcessArtifactStatusRow | undefined;
 
     if (!artifact) {
-      return new Response(JSON.stringify({ error: "Artifact not found" }), { status: 404, headers: STATUS_JSON_HEADERS });
+      return new Response(JSON.stringify({ error: "Artifact not found" }), { status: 404 });
     }
 
     if (artifact.userId !== user.id) {
-      return new Response(JSON.stringify({ error: "Unauthorized access to artifact" }), { status: 403, headers: STATUS_JSON_HEADERS });
+      return new Response(JSON.stringify({ error: "Unauthorized access to artifact" }), { status: 403 });
     }
 
     let latestJob: Awaited<ReturnType<typeof getLatestIngestProcessingJobForArtifactReadOnly>> = null;
@@ -55,7 +49,7 @@ export async function handle(request: Request) {
       workerLiveness: latestJob ? await getIngestProcessingWorkerLivenessReadOnly({ source: latestJob.source }) : null,
     });
 
-    return new Response(JSON.stringify(view satisfies OutputType), { headers: STATUS_JSON_HEADERS });
+    return new Response(JSON.stringify(view satisfies OutputType));
   } catch (error) {
     return handleEndpointError(error);
   }
