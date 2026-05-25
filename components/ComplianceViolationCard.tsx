@@ -9,6 +9,7 @@ import { ObligationTestWithDetails } from "../endpoints/creditor-validation/list
 import { getViolationDisplayLabel } from "../helpers/getViolationLabel";
 import { getRegulationsForViolation } from "../helpers/violationRegulationMap";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
+import { formatFindingBlockerReasons } from "../helpers/findingReadinessSummary";
 import styles from "./ComplianceViolationCard.module.css";
 
 const PROVINCE_NAMES: Record<string, string> = {
@@ -90,6 +91,8 @@ export const ComplianceViolationCard = ({
   const isPrimaryViolation = violation.violationCategory === "STATUTE_OF_LIMITATIONS";
   const isLicenseFailure = violation.violationCategory === "COLLECTOR_LICENSE_FAILURE";
   const isLinkedDisputed = violation.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
+  const isPacketReady = violation.packetReady !== false;
+  const blockerReasonLabels = formatFindingBlockerReasons(violation.blockerReasonCodes);
   const [isLawsOpen, setIsLawsOpen] = useState(false);
   const authorityTriggerLabel = buildLegalReferenceTriggerLabel(regulations);
 
@@ -159,6 +162,13 @@ export const ComplianceViolationCard = ({
       {isDismissed && dismissReason && (
         <div className={styles.dismissReason}>
           Reason: {dismissReason}
+        </div>
+      )}
+
+      {!isDismissed && !isPacketReady && (
+        <div className={styles.readinessNotice}>
+          <strong>Detected issue, not ready for a letter yet.</strong>
+          <span>{blockerReasonLabels.slice(0, 2).join(". ")}</span>
         </div>
       )}
       
@@ -246,7 +256,9 @@ export const ComplianceViolationCard = ({
           <span className={styles.actionDescription}>
             {isDisputed 
               ? "Your dispute letter has been sent. The bureau has 30 days to respond."
-              : "Send a separate letter for this problem — it works better than combining them."}
+              : !isPacketReady
+                ? "This issue needs review before a letter can be created."
+                : "Send a separate letter for this problem — it works better than combining them."}
           </span>
         </div>
         </div>
@@ -306,11 +318,15 @@ export const ComplianceViolationCard = ({
               size="sm"
               variant="secondary"
               className={styles.actionButton}
-              onClick={onCreatePacket}
-              disabled={!onCreatePacket}
-              title="Create a packet after readiness checks pass"
+              onClick={isPacketReady ? onCreatePacket : undefined}
+              disabled={!onCreatePacket || !isPacketReady}
+              title={
+                isPacketReady
+                  ? "Create a packet after readiness checks pass"
+                  : blockerReasonLabels[0]
+              }
             >
-              Create Packet
+              {isPacketReady ? "Create Packet" : "Needs Review"}
             </Button>
           )}
         </div>

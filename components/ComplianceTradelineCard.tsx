@@ -12,6 +12,7 @@ import {
   hasReportedAccountValue,
   reportedFieldDisplay,
 } from "../helpers/accountDisplayLabels";
+import { formatFindingBlockerReasons } from "../helpers/findingReadinessSummary";
 import styles from "./ComplianceTradelineCard.module.css";
 
 type ComplianceTradelineSummary = {
@@ -30,6 +31,8 @@ interface ComplianceTradelineCardProps {
   tradeline: ComplianceTradelineSummary;
   issueCount: number;
   priorityIssueCount?: number;
+  blockedIssueCount?: number;
+  blockerReasonCodes?: string[];
   problemLabels?: string[];
 }
 
@@ -37,6 +40,8 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
   tradeline,
   issueCount,
   priorityIssueCount = 0,
+  blockedIssueCount = 0,
+  blockerReasonCodes = [],
   problemLabels = [],
 }) => {
   const accountName = accountDisplayName(tradeline.creditorName);
@@ -96,6 +101,12 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
                 {label}
               </span>
             ))}
+          </div>
+        )}
+        {blockedIssueCount > 0 && (
+          <div className={styles.reviewNotice}>
+            <strong>{blockedIssueCount} detected issue{blockedIssueCount !== 1 ? "s" : ""} need review before a letter.</strong>
+            <span>{formatFindingBlockerReasons(blockerReasonCodes).slice(0, 2).join(". ")}</span>
           </div>
         )}
       </div>

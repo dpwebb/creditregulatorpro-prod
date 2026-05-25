@@ -56,6 +56,13 @@ export type ObligationTestWithDetails = Omit<Selectable<CreditorObligationTest>,
   tradelineCollectionAgencyName: string | null;
   tradelineOriginalCreditorName: string | null;
   tradelineIsCollectionAccount: boolean | null;
+  reportArtifactId: number | null;
+  packetReady: boolean;
+  packetReadinessStatus: string;
+  packetReadinessMessage: string;
+  packetReadinessBlockerCode: string | null;
+  evidenceQualityStatus: string;
+  blockerReasonCodes: string[];
 };
 
 export type OutputType = {

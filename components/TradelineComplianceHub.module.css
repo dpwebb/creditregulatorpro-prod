@@ -514,6 +514,13 @@
   line-height: 1.5;
 }
 
+.readinessText {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
 .fightCardFooter {
   display: flex;
   justify-content: flex-end;
@@ -605,6 +612,12 @@
   font-size: 0.8125rem;
   color: var(--muted-foreground);
   word-break: break-word;
+}
+
+.readinessTextSmall {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.35;
 }
 
 .linkedNoticeText {
