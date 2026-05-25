@@ -584,8 +584,8 @@ describe("report artifact raw PDF storage references", () => {
             parsedTradelines: [{ accountNumber: "1234567890123456", rawText: "RAW_REPORT_TEXT" }],
           },
           storageUrl: pdfBase64,
-          hasStorageReference: true,
-          storageObjectName: null,
+          has_storage_reference: true,
+          storage_object_name: null,
           processingStatus: "completed",
           tradelineAccountNumber: "1234567890123456",
           tradelineAccountType: null,
@@ -600,6 +600,8 @@ describe("report artifact raw PDF storage references", () => {
     const listBody = await list.json();
     expect(listBody.artifacts[0]).not.toHaveProperty("storageUrl");
     expect(listBody.artifacts[0]).not.toHaveProperty("data");
+    expect(listBody.artifacts[0]).not.toHaveProperty("has_storage_reference");
+    expect(listBody.artifacts[0]).toHaveProperty("storageStatus", "available");
     expect(listBody.artifacts[0].tradelineAccountNumber).toBe("Account ending 3456");
     expect(JSON.stringify(listBody)).not.toContain(pdfBase64);
     expect(JSON.stringify(listBody)).not.toContain("RAW_REPORT_TEXT");
@@ -654,8 +656,8 @@ describe("report artifact raw PDF storage references", () => {
             expiresAt: null,
             validationRulesApplied: null,
             storageUrl: "local:report-artifacts/42/missing-report.pdf",
-            hasStorageReference: true,
-            storageObjectName: "report-artifacts/42/missing-report.pdf",
+            has_storage_reference: true,
+            storage_object_name: "report-artifacts/42/missing-report.pdf",
             processingStatus: "completed",
             tradelineAccountNumber: null,
             tradelineAccountType: null,

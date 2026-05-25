@@ -91,20 +91,24 @@ export async function handle(request: Request) {
       const {
         storageUrl: _storageUrl,
         hasStorageReference,
+        has_storage_reference: hasStorageReferenceSnake,
         storageObjectName,
+        storage_object_name: storageObjectNameSnake,
         data: _data,
         tradelineAccountNumber,
         ...safeRow
       } = row as typeof row & {
         storageUrl?: string | null;
         hasStorageReference?: boolean | null;
+        has_storage_reference?: boolean | null;
         storageObjectName?: string | null;
+        storage_object_name?: string | null;
         data?: unknown;
         tradelineAccountNumber?: string | null;
       };
       const storageAvailability = await getReportArtifactListStorageAvailability({
-        hasStorageReference,
-        storageObjectName,
+        hasStorageReference: hasStorageReference ?? hasStorageReferenceSnake,
+        storageObjectName: storageObjectName ?? storageObjectNameSnake,
       });
       if (storageAvailability.status !== "available") {
         logger.warn(
