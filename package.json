@@ -10,6 +10,7 @@
     "audit:static": "node scripts/static-audit.mjs",
     "audit:runtime": "node scripts/runtime-audit.mjs",
     "audit:e2e": "tsx scripts/e2e-operational-audit.ts",
+    "audit:resilience": "tsx scripts/resilience-audit.ts",
     "check": "pnpm run validate:release",
     "validate:fast": "node scripts/validation-tier.mjs fast",
     "validate:changed": "node scripts/validation-tier.mjs changed",
