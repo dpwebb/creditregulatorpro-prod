@@ -44,6 +44,7 @@
     "smoke:response-document-ui": "tsx scripts/staging-response-document-ui-smoke.ts",
     "smoke:response-document-admin-review": "tsx scripts/staging-response-document-admin-review-smoke.ts",
     "smoke:response-document-admin-review-ui": "tsx scripts/staging-response-document-admin-review-ui-smoke.ts",
+    "smoke:admin-platform-reset": "tsx scripts/staging-admin-platform-reset-smoke.ts",
     "response:replay": "tsx scripts/response-processing-replay.ts",
     "response:worker": "tsx scripts/response-processing-worker.ts",
     "response:worker-orchestrate": "tsx scripts/response-processing-worker-orchestrator.ts",

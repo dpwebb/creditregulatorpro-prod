@@ -1015,6 +1015,9 @@ jobs:
 
                   export CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_SMOKE=true
                   pnpm run smoke:response-document-admin-review-ui
+
+                  export CRP_ADMIN_PLATFORM_RESET_SMOKE=true
+                  pnpm run smoke:admin-platform-reset
                 '
             }
 

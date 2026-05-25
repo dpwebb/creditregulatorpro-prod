@@ -146,6 +146,13 @@ describe("staging deploy workflow health gate", () => {
     expect(source).not.toContain("changed file requires full response smoke coverage");
   });
 
+  it("validates the admin platform reset UI and dry-run path during staging response-auth smokes", () => {
+    const source = workflowSource();
+
+    expect(source).toContain("export CRP_ADMIN_PLATFORM_RESET_SMOKE=true");
+    expect(source).toContain("pnpm run smoke:admin-platform-reset");
+  });
+
   it("provides an opt-in bounded staging ingest worker orchestration path", () => {
     const source = workflowSource();
 
