@@ -5,6 +5,7 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { findAllCrossBureauPairs } from "../../helpers/crossBureauMatcher";
 import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
+import { isVisibleAccountFinding } from "../../helpers/accountFindingVisibility";
 
 export async function handle(request: Request) {
   try {
@@ -84,6 +85,8 @@ export async function handle(request: Request) {
           'creditorObligationTest.obligationState',
           'creditorObligationTest.violationCategory',
           'creditorObligationTest.responseDeadline',
+          'creditorObligationTest.userStatus',
+          'creditorObligationTest.validationStatus',
         ])
         .where('creditorObligationTest.tradelineId', 'in', allTradelineIds)
         .execute();
@@ -102,6 +105,12 @@ export async function handle(request: Request) {
             accountType: tradeline.accountType,
           })
         ) {
+          continue;
+        }
+        if (!isVisibleAccountFinding({
+          userStatus: v.userStatus,
+          validationStatus: v.validationStatus,
+        })) {
           continue;
         }
 

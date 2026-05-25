@@ -27,6 +27,8 @@ interface UploadScanSummaryProps {
   artifactId: number;
 }
 
+const PERSISTED_PROBLEMS_ROUTE = "/my-accounts?tab=problems";
+
 export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({ 
   data, 
   isLoading,
@@ -251,8 +253,8 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
               ) : (
                 <>
                   <Button asChild variant="primary" size="lg" className={styles.primaryActionBtn}>
-                    <Link to={`/upload-review/${artifactId}`}>
-                      Write a Dispute Letter Now <ArrowRight size={16} />
+                    <Link to={PERSISTED_PROBLEMS_ROUTE}>
+                      Review Problems <ArrowRight size={16} />
                     </Link>
                   </Button>
                   <Button asChild variant="outline">
@@ -296,7 +298,7 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
             ))}
           </div>
           <div className={styles.viewAllLink}>
-            <Link to={`/upload-review/${artifactId}`}>See all problems &rarr;</Link>
+            <Link to={PERSISTED_PROBLEMS_ROUTE}>See all problems &rarr;</Link>
           </div>
         </div>
       )}
@@ -503,7 +505,7 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
                 <h4>Look at New Problems</h4>
                 <p>Review new problems found in this report</p>
                 <Button asChild variant="outline" size="sm">
-                  <Link to={`/upload-review/${artifactId}`}>Review Problems</Link>
+                  <Link to={PERSISTED_PROBLEMS_ROUTE}>Review Problems</Link>
                 </Button>
               </div>
             )}

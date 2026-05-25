@@ -8,6 +8,7 @@ export type IngestProcessingInlineGate = {
 };
 
 const INLINE_FLAG = "CRP_ALLOW_REQUEST_BOUND_INGEST_PROCESSING";
+const DISABLE_FLAG = "CRP_DISABLE_REQUEST_BOUND_INGEST_PROCESSING";
 const ENVIRONMENT_KEYS = [
   "CRP_ENV",
   "APP_ENV",
@@ -34,6 +35,7 @@ export function resolveIngestProcessingRuntimeKind(
   }
 
   const nodeEnv = normalized(env.NODE_ENV);
+  if (normalized(env.CRP_LOCAL_DEV) === "true" && nodeEnv !== "production") return "local";
   if (nodeEnv === "test") return "test";
   if (nodeEnv === "development") return "local";
   if (nodeEnv === "production") return "production";
@@ -46,6 +48,25 @@ export function shouldAllowRequestBoundIngestProcessing(
 ): IngestProcessingInlineGate {
   const runtimeKind = resolveIngestProcessingRuntimeKind(env);
   const explicitFlag = normalized(env[INLINE_FLAG]) === "true";
+  const disabledFlag = normalized(env[DISABLE_FLAG]) === "true";
+
+  if (disabledFlag) {
+    return {
+      allowed: false,
+      runtimeKind,
+      explicitFlag,
+      reason: `${DISABLE_FLAG}=true disables request-bound ingest processing.`,
+    };
+  }
+
+  if (runtimeKind === "local") {
+    return {
+      allowed: true,
+      runtimeKind,
+      explicitFlag,
+      reason: "Local developer runtime allows request-bound ingest processing when no worker is running.",
+    };
+  }
 
   if (!explicitFlag) {
     return {
@@ -56,12 +77,12 @@ export function shouldAllowRequestBoundIngestProcessing(
     };
   }
 
-  if (runtimeKind === "local" || runtimeKind === "test") {
+  if (runtimeKind === "test") {
     return {
       allowed: true,
       runtimeKind,
       explicitFlag,
-      reason: "Explicit local/test request-bound ingest processing flag is enabled.",
+      reason: "Explicit test request-bound ingest processing flag is enabled.",
     };
   }
 
