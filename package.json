@@ -7,6 +7,7 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:unit",
     "lint": "node -e \"console.error('No lint infrastructure is configured in this repo. Use pnpm run typecheck and pnpm run test:unit until a real linter is added.'); process.exit(1)\"",
+    "audit:static": "node scripts/static-audit.mjs",
     "check": "pnpm run validate:release",
     "validate:fast": "node scripts/validation-tier.mjs fast",
     "validate:changed": "node scripts/validation-tier.mjs changed",
