@@ -1,11 +1,12 @@
 import { Helmet } from "react-helmet";
 import * as Tabs from "@radix-ui/react-tabs";
-import { ShieldAlert, FileClock, SearchCheck } from "lucide-react";
+import { ShieldAlert, FileClock, SearchCheck, RotateCcw } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 
 import { useAuth } from "../helpers/useAuth";
 
 import { AuditLogViewer } from "../components/AuditLogViewer";
+import { AdminPlatformResetPanel } from "../components/AdminPlatformResetPanel";
 import { DataRetentionPanel } from "../components/DataRetentionPanel";
 import { SemanticAuditPanel } from "../components/SemanticAuditPanel";
 import { Skeleton } from "../components/Skeleton";
@@ -54,6 +55,10 @@ export default function AdminSecurityPage() {
             <SearchCheck size={16} style={{ marginRight: 8 }} />
             Semantic Audit
           </Tabs.Trigger>
+          <Tabs.Trigger className={styles.tabsTrigger} value="platform-reset">
+            <RotateCcw size={16} style={{ marginRight: 8 }} />
+            Platform Reset
+          </Tabs.Trigger>
         </Tabs.List>
 
         <Tabs.Content className={styles.tabsContent} value="audit-logs">
@@ -66,6 +71,10 @@ export default function AdminSecurityPage() {
 
         <Tabs.Content className={styles.tabsContent} value="semantic-audit">
           <SemanticAuditPanel />
+        </Tabs.Content>
+
+        <Tabs.Content className={styles.tabsContent} value="platform-reset">
+          <AdminPlatformResetPanel />
         </Tabs.Content>
       </Tabs.Root>
     </div>

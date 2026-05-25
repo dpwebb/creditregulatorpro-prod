@@ -1,6 +1,7 @@
 import "../loadEnv.js";
 
-import { rm, readdir, stat } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { access, mkdir, readFile, rm, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,23 +11,24 @@ const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const ENVIRONMENT_KEYS = ["CRP_ENV", "APP_ENV", "FLOOT_ENV", "DEPLOYMENT_ENV", "ENVIRONMENT", "VERCEL_ENV"];
 const DATABASE_URL_KEYS = ["FLOOT_DATABASE_URL", "DATABASE_URL", "DATABASE_PRIVATE_URL", "POSTGRES_URL", "CRP_DATABASE_URL"];
 const ADMIN_PRESERVE_ROLES = ["admin", "super_admin"];
-const SOFT_SERVICE_PRESERVE_ROLES = ["system", "service"];
+const SERVICE_PRESERVE_ROLES = ["system", "service"];
+const HARD_PRESERVE_ROLES = [...ADMIN_PRESERVE_ROLES, ...SERVICE_PRESERVE_ROLES];
 const LOCAL_NODE_ENV_VALUES = new Set(["development", "dev", "test"]);
 const USER_REPORT_LIMIT = 200;
+export const PLATFORM_RESET_CONFIRMATION_PHRASE = "RESET STAGING PLATFORM";
 
 export const PRESERVED_SUBSYSTEMS = [
   "migrations and version metadata",
   "laws, regulations, statutes, obligations, rule definitions, and legal references",
   "parser mappings, parser training/corrections, parser rules, known entities, and canonical extraction intelligence",
   "admin users and admin password records",
-  "system settings, compliance configuration, feature flags, and deterministic OCR/runtime configuration",
+  "system settings, feature flags, and deterministic OCR/runtime configuration",
   "supported bureau and licensed collection agency reference mappings",
   "letter templates and platform content/configuration",
 ];
 
 export const PRESERVED_TABLES = [
   "bureau",
-  "compliance_config",
   "creditor",
   "creditor_validation_requirement",
   "disclosure_requirement",
@@ -70,6 +72,7 @@ const SOFT_RESET_TABLES = [
   "response_worker_orchestration_event",
   "response_worker_orchestration_run",
   "response_processing_lifecycle_event",
+  "compliance_config",
   "ingest_processing_job_event",
   "ingest_processing_job",
   "ingest_processing_worker_heartbeat",
@@ -155,6 +158,13 @@ const RESET_FILE_TARGETS = [
   { id: "upload_cache", relativePath: ".local/upload-cache" },
 ];
 
+const STORAGE_REFERENCE_COLUMNS = [
+  { table: "report_artifact", column: "storage_url", area: "report_artifact" },
+  { table: "evidence_attachment", column: "storage_url", area: "evidence_attachment" },
+  { table: "packet", column: "pdf_storage_url", area: "packet_pdf" },
+  { table: "consumer_identification_document", column: "storage_url", area: "consumer_identification_document" },
+];
+
 const REQUIRED_RULE_TABLES = [
   "system_settings",
   "software_version",
@@ -221,9 +231,8 @@ function buildAllowedEmailPredicate(emails) {
 }
 
 export function buildPreservedUserPredicate(scope = "soft", preserveAdminEmails = []) {
-  const roles = scope === "soft"
-    ? [...ADMIN_PRESERVE_ROLES, ...SOFT_SERVICE_PRESERVE_ROLES]
-    : ADMIN_PRESERVE_ROLES;
+  if (scope === "soft") return "true";
+  const roles = HARD_PRESERVE_ROLES;
   const clauses = [rolePredicate(roles)];
   const emailPredicate = buildAllowedEmailPredicate(preserveAdminEmails);
   if (emailPredicate) clauses.push(emailPredicate);
@@ -401,8 +410,10 @@ export function resolveResetEnvironment(env = process.env, databaseUrl = "") {
   return { kind: "unknown", reason: "Unable to determine local, staging, or production from environment and database target." };
 }
 
-export function assertResetSafety({ environment, confirmEnv }) {
-  if (environment.kind === "production") fail(`Refusing platform reset against production: ${environment.reason}`);
+export function assertResetSafety({ environment, confirmEnv, allowProductionDangerousOverride = false }) {
+  if (environment.kind === "production" && !allowProductionDangerousOverride) {
+    fail(`Refusing platform reset against production: ${environment.reason}`);
+  }
   if (environment.kind === "unknown") fail(`Refusing platform reset because the environment is unknown: ${environment.reason}`);
   if (environment.kind !== confirmEnv) {
     fail(`Environment confirmation mismatch: detected ${environment.kind}, received ${confirmEnv}.`);
@@ -423,17 +434,61 @@ function resolveDatabaseUrl(env = process.env) {
   fail("FLOOT_DATABASE_URL, DATABASE_URL, DATABASE_PRIVATE_URL, POSTGRES_URL, or CRP_DATABASE_URL is required.");
 }
 
+export function detectResetRuntimeContext(env = process.env) {
+  const { key: databaseUrlKey, value: databaseUrl } = resolveDatabaseUrl(env);
+  const database = describeDatabaseTarget(databaseUrl);
+  const environment = resolveResetEnvironment(env, databaseUrl);
+  return {
+    database: {
+      source: databaseUrlKey,
+      host: database.host,
+      port: database.port,
+      database: database.database,
+    },
+    environment,
+    storage: storageProviderSummary(env),
+  };
+}
+
+function assertExpectedDatabaseTarget(actual, expected) {
+  if (!expected) return;
+  const mismatches = [];
+  for (const key of ["source", "host", "database"]) {
+    if (expected[key] && String(expected[key]) !== String(actual[key])) {
+      mismatches.push(`${key}: expected ${expected[key]}, actual ${actual[key]}`);
+    }
+  }
+  if (expected.port && String(expected.port) !== String(actual.port)) {
+    mismatches.push(`port: expected ${expected.port}, actual ${actual.port}`);
+  }
+  if (mismatches.length > 0) {
+    fail(`Platform reset database target changed since dry-run: ${mismatches.join("; ")}`);
+  }
+}
+
+function auditLogWhereClause(preserveAuditLogIds = []) {
+  const ids = preserveAuditLogIds
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+  if (ids.length === 0) return null;
+  return `id not in (${ids.join(", ")})`;
+}
+
 export function buildResetPlan(scope = "soft", options = {}) {
   if (!["soft", "hard"].includes(scope)) fail(`Unsupported reset scope: ${scope}`);
   const preserveAdminEmails = normalizeEmailList(options.preserveAdminEmails ?? []);
+  const preserveAuditLogIds = options.preserveAuditLogIds ?? [];
+  const auditWhere = auditLogWhereClause(preserveAuditLogIds);
   const tableSteps = SOFT_RESET_TABLES.map((table) => ({
     table,
-    where: null,
-    action: "delete_all",
+    where: table === "audit_log" ? auditWhere : null,
+    action: table === "audit_log" && auditWhere ? "delete_all_except_platform_reset_audit" : "delete_all",
     resetIdentity: true,
   }));
 
-  tableSteps.push(...buildUserCleanupTableSteps(scope, preserveAdminEmails));
+  if (scope === "hard") {
+    tableSteps.push(...buildUserCleanupTableSteps(scope, preserveAdminEmails));
+  }
 
   return {
     scope,
@@ -442,9 +497,10 @@ export function buildResetPlan(scope = "soft", options = {}) {
     preservedTables: PRESERVED_TABLES,
     preservedSubsystems: PRESERVED_SUBSYSTEMS,
     preserveAdminEmails,
+    preserveAuditLogIds,
     userPreservePredicate: buildPreservedUserPredicate(scope, preserveAdminEmails),
     userDeletePredicate: buildDeletedUserPredicate(scope, preserveAdminEmails),
-    deletesUsers: true,
+    deletesUsers: scope === "hard",
   };
 }
 
@@ -640,8 +696,9 @@ function userReason(user, scope, preserveAdminEmails, preserved) {
   const role = String(user.role ?? "").toLowerCase();
   const email = String(user.email ?? "").toLowerCase();
   if (preserved) {
+    if (scope === "soft") return "soft_mode_preserves_users";
     if (ADMIN_PRESERVE_ROLES.includes(role)) return "admin_role";
-    if (scope === "soft" && SOFT_SERVICE_PRESERVE_ROLES.includes(role)) return "service_or_system_role";
+    if (SERVICE_PRESERVE_ROLES.includes(role)) return "service_or_system_role";
     if (preserveAdminEmails.includes(email)) return "explicit_allowlist";
     return "preserved_by_predicate";
   }
@@ -710,6 +767,187 @@ async function countOperationalRows(sql, tables) {
     results.push({ table, skipped: false, count: Number(rows[0]?.count ?? 0) });
   }
   return results;
+}
+
+function getStorageRoot(env = process.env) {
+  return path.resolve(
+    process.cwd(),
+    env.LOCAL_DOCUMENT_STORAGE_PATH ||
+      env.DOCUMENT_STORAGE_PATH ||
+      "document-storage",
+  );
+}
+
+function storageProviderSummary(env = process.env) {
+  const configured = env.LOCAL_DOCUMENT_STORAGE_PATH || env.DOCUMENT_STORAGE_PATH || "document-storage";
+  return {
+    provider: "local_file_storage",
+    configuredPath: configured,
+    root: getStorageRoot(env),
+  };
+}
+
+function objectNameFromLocalStorageUrl(storageUrl) {
+  if (typeof storageUrl !== "string" || !storageUrl.startsWith("local:")) return null;
+  const objectName = storageUrl.slice("local:".length);
+  return objectName || null;
+}
+
+function safeStorageObjectPath(storageRoot, objectName) {
+  const normalizedName = objectName.replace(/\\/g, "/");
+  const relativePath = path.normalize(normalizedName);
+  if (
+    path.isAbsolute(relativePath) ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`)
+  ) {
+    fail(`Unsafe storage object path: ${objectName}`);
+  }
+  const fullPath = path.resolve(storageRoot, relativePath);
+  if (fullPath !== storageRoot && !fullPath.startsWith(`${storageRoot}${path.sep}`)) {
+    fail(`Unsafe storage object path: ${objectName}`);
+  }
+  return fullPath;
+}
+
+async function collectStorageReferences(sql, plan) {
+  const references = [];
+  const resetStepByTable = new Map(plan.tableSteps.map((step) => [step.table, step]));
+  for (const ref of STORAGE_REFERENCE_COLUMNS) {
+    const resetStep = resetStepByTable.get(ref.table);
+    if (!resetStep) continue;
+    if (!(await tableExists(sql, ref.table))) continue;
+    if (!(await hasColumn(sql, ref.table, ref.column))) continue;
+    const rowScope = resetStep.where ? `and (${resetStep.where})` : "";
+    const rows = await sql.unsafe(`
+      select ${quoteIdentifier(ref.column)} as storage_url, count(*)::int as count
+      from ${tableRef(ref.table)}
+      where ${quoteIdentifier(ref.column)} is not null
+        and ${quoteIdentifier(ref.column)} <> ''
+        ${rowScope}
+      group by ${quoteIdentifier(ref.column)}
+      order by count(*) desc
+    `);
+    for (const row of rows) {
+      references.push({
+        table: ref.table,
+        column: ref.column,
+        area: ref.area,
+        storageUrl: row.storage_url,
+        count: Number(row.count ?? 0),
+      });
+    }
+  }
+  return references;
+}
+
+async function inspectStorageReferences(references, env = process.env) {
+  const provider = storageProviderSummary(env);
+  const byArea = new Map();
+  const notFound = [];
+  const unsupported = [];
+  const readable = [];
+  const failures = [];
+
+  for (const reference of references) {
+    const current = byArea.get(reference.area) ?? { area: reference.area, references: 0, rows: 0 };
+    current.references += 1;
+    current.rows += reference.count;
+    byArea.set(reference.area, current);
+
+    const objectName = objectNameFromLocalStorageUrl(reference.storageUrl);
+    if (!objectName) {
+      unsupported.push({ ...reference, reason: "unsupported_storage_reference" });
+      continue;
+    }
+
+    try {
+      await access(safeStorageObjectPath(provider.root, objectName));
+      readable.push({ ...reference, objectName });
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        notFound.push({ ...reference, objectName, status: "storage_read_failed:not_found" });
+      } else {
+        failures.push({
+          ...reference,
+          objectName,
+          status: "storage_read_failed",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  return {
+    provider,
+    byArea: Array.from(byArea.values()),
+    totalReferences: references.length,
+    totalRows: references.reduce((sum, reference) => sum + reference.count, 0),
+    localReadable: readable.length,
+    localReferences: readable,
+    unsupportedReferences: unsupported,
+    notFoundReferences: notFound,
+    failedReferences: failures,
+  };
+}
+
+async function runStorageHealthCheck(env = process.env) {
+  const provider = storageProviderSummary(env);
+  const objectName = `.platform-reset-health/${randomUUID()}.txt`;
+  const filePath = safeStorageObjectPath(provider.root, objectName);
+  const payload = Buffer.from(`platform-reset-health:${new Date().toISOString()}`, "utf8");
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, payload);
+  const readBack = await readFile(filePath);
+  if (!readBack.equals(payload)) {
+    throw new Error("Storage health check read did not match written sentinel.");
+  }
+  await unlink(filePath);
+  return {
+    provider: provider.provider,
+    root: provider.root,
+    status: "pass",
+    operations: ["write", "read", "delete"],
+  };
+}
+
+async function deleteInspectedStorageReferences(storageReferences, env = process.env) {
+  const provider = storageProviderSummary(env);
+  const deleted = [];
+  const notFound = [];
+  const failures = [];
+  const unsupported = [];
+
+  for (const reference of storageReferences) {
+    const objectName = objectNameFromLocalStorageUrl(reference.storageUrl);
+    if (!objectName) {
+      unsupported.push({ ...reference, status: "storage_delete_skipped:unsupported_reference" });
+      continue;
+    }
+    try {
+      await unlink(safeStorageObjectPath(provider.root, objectName));
+      deleted.push({ ...reference, objectName, status: "deleted" });
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        notFound.push({ ...reference, objectName, status: "storage_read_failed:not_found" });
+      } else {
+        failures.push({
+          ...reference,
+          objectName,
+          status: "storage_delete_failed",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  return {
+    deletedCount: deleted.length,
+    deleted,
+    notFoundReferences: notFound,
+    unsupportedReferences: unsupported,
+    failedReferences: failures,
+  };
 }
 
 async function resetIdentity(sql, table, dryRun) {
@@ -788,7 +1026,16 @@ async function runFilePlan({ rootDir, targets, dryRun }) {
   return results;
 }
 
-async function runValidation({ sql, baseUrl, requireHttpValidation, preserveAdminEmails, deletedUserEmails, deletedUserPredicate }) {
+async function runValidation({
+  sql,
+  baseUrl,
+  requireHttpValidation,
+  preserveAdminEmails,
+  deletedUserEmails,
+  deletedUserPredicate,
+  storageHealth,
+  storageInspection,
+}) {
   const checks = [];
 
   try {
@@ -859,9 +1106,40 @@ async function runValidation({ sql, baseUrl, requireHttpValidation, preserveAdmi
     });
   }
 
+  for (const table of ["parser_field_mapping", "parser_extraction_rule", "parser_known_entity"]) {
+    if (!(await tableExists(sql, table))) {
+      checks.push({ name: `parser_mappings_load:${table}`, status: "fail", detail: "table missing" });
+      continue;
+    }
+    const rows = await sql.unsafe(`select count(*)::int as count from ${tableRef(table)}`);
+    checks.push({
+      name: `parser_mappings_load:${table}`,
+      status: Number(rows[0]?.count ?? 0) > 0 ? "pass" : "warn",
+      detail: `rows=${Number(rows[0]?.count ?? 0)}`,
+    });
+  }
+
+  if (storageHealth) {
+    checks.push({
+      name: "storage_write_read_delete",
+      status: storageHealth.status === "pass" ? "pass" : "warn",
+      detail: `${storageHealth.provider ?? "storage"} ${storageHealth.status}`,
+    });
+  }
+
+  if (storageInspection) {
+    const staleCount = storageInspection.notFoundReferences.length;
+    checks.push({
+      name: "stale_storage_read_failed_not_found",
+      status: staleCount === 0 ? "pass" : "warn",
+      detail: staleCount === 0 ? "none" : `${staleCount} pre-existing orphaned reference(s) reported`,
+    });
+  }
+
   if (baseUrl) {
     const probes = [
       { name: "app_boots", path: "/", method: "GET" },
+      { name: "admin_pages_render", path: "/admin-security", method: "GET" },
       { name: "ingestion_endpoint_reachable", path: "/_api/ingest/report", method: "POST" },
       { name: "packet_list_endpoint_reachable", path: "/_api/packet/list", method: "GET" },
       { name: "packet_build_endpoint_reachable", path: "/_api/packet/build", method: "POST" },
@@ -896,11 +1174,26 @@ async function runReset(options, env = process.env) {
   const { key: databaseUrlKey, value: databaseUrl } = resolveDatabaseUrl(env);
   const database = describeDatabaseTarget(databaseUrl);
   const environment = resolveResetEnvironment(env, databaseUrl);
-  assertResetSafety({ environment, confirmEnv: options.confirmEnv });
+  const allowProductionDangerousOverride =
+    options.allowProductionDangerousOverride === true &&
+    String(env.RESET_ALLOW_PRODUCTION_PLATFORM_RESET ?? "").toLowerCase() === "true";
+  assertResetSafety({ environment, confirmEnv: options.confirmEnv, allowProductionDangerousOverride });
+  assertExpectedDatabaseTarget(
+    {
+      source: databaseUrlKey,
+      host: database.host,
+      port: database.port,
+      database: database.database,
+    },
+    options.expectedDatabase,
+  );
 
   const dryRun = options.execution === "dry-run";
   if (!dryRun && !options.confirm) fail("Destructive platform reset requires --confirm.");
-  const plan = buildResetPlan(options.resetScope, { preserveAdminEmails: options.preserveAdminEmails });
+  const plan = buildResetPlan(options.resetScope, {
+    preserveAdminEmails: options.preserveAdminEmails,
+    preserveAuditLogIds: options.preserveAuditLogIds,
+  });
   const rootDir = process.cwd();
   const sql = postgres(databaseUrl, { prepare: false, max: 1, onnotice: () => undefined });
 
@@ -916,10 +1209,28 @@ async function runReset(options, env = process.env) {
     const referenceUpdates = plan.deletesUsers
       ? await userReferenceUpdates(sql, plan.tableSteps, plan.userDeletePredicate, plan.preserveAdminEmails)
       : [];
+    const storageReferences = await collectStorageReferences(sql, plan);
+    const storageInspection = await inspectStorageReferences(storageReferences, env);
+    if (storageInspection.failedReferences.length > 0) {
+      fail(`Platform reset storage inspection failed for ${storageInspection.failedReferences.length} reference(s).`);
+    }
 
     let updateResults = [];
     let tableResults = [];
     let identityResults = [];
+    let storageHealth = dryRun
+      ? { status: "not_run_dry_run", reason: "dry-run", provider: storageInspection.provider.provider, root: storageInspection.provider.root }
+      : await runStorageHealthCheck(env);
+    let storageDeletion = dryRun
+      ? {
+        action: "would_delete_local_storage_references",
+        deletedCount: 0,
+        deleted: [],
+        notFoundReferences: storageInspection.notFoundReferences,
+        unsupportedReferences: storageInspection.unsupportedReferences,
+        failedReferences: [],
+      }
+      : null;
 
     if (dryRun) {
       updateResults = [
@@ -951,6 +1262,10 @@ async function runReset(options, env = process.env) {
           if (step.resetIdentity) identityResults.push(await resetIdentity(trx, step.table, false));
         }
       });
+      storageDeletion = await deleteInspectedStorageReferences(storageInspection.localReferences, env);
+      if (storageDeletion.failedReferences.length > 0) {
+        fail(`Platform reset storage deletion failed for ${storageDeletion.failedReferences.length} reference(s).`);
+      }
     }
 
     const fileResults = await runFilePlan({ rootDir, targets: plan.fileTargets, dryRun });
@@ -963,6 +1278,8 @@ async function runReset(options, env = process.env) {
         preserveAdminEmails: plan.preserveAdminEmails,
         deletedUserEmails: userPlan.deletedUsers.map((user) => user.email),
         deletedUserPredicate: plan.userDeletePredicate,
+        storageHealth,
+        storageInspection,
       });
 
     const totalRows = tableResults.reduce((sum, row) => sum + row.count, 0);
@@ -988,6 +1305,12 @@ async function runReset(options, env = process.env) {
       rowsByTable: tableResults,
       identityResults,
       filesByTarget: fileResults,
+      storage: {
+        provider: storageInspection.provider,
+        health: storageHealth,
+        references: storageInspection,
+        deletion: storageDeletion,
+      },
       totalRowsMatched: totalRows,
       totalUpdatesMatched: totalUpdates,
       totalFilesMatched: totalFiles,
@@ -1009,8 +1332,8 @@ function printHelp() {
     "Options:",
     "  --dry-run                    Preview soft reset by default.",
     "  --preview-hard               Preview hard reset without deleting data.",
-    "  --soft                       Delete operational data and non-admin users; preserve admin and service/system users.",
-    "  --hard                       Delete operational data and all users except canonical admins.",
+    "  --soft                       Delete operational data while preserving all users.",
+    "  --hard                       Delete operational data and users except admin, super_admin, service, and system users.",
     "  --confirm                    Required with --soft or --hard.",
     "  --confirm-env <local|staging> Required environment confirmation.",
     "  --preserve-admin-email <email> Preserve an explicit admin email; repeatable. Also reads RESET_PRESERVE_ADMIN_EMAILS.",
@@ -1027,6 +1350,11 @@ function printHuman(result) {
   console.log(`Total matched rows: ${result.totalRowsMatched}`);
   console.log(`Total matched update rows: ${result.totalUpdatesMatched}`);
   console.log(`Total matched files: ${result.totalFilesMatched}`);
+  if (result.storage) {
+    console.log(`Storage: provider=${result.storage.provider.provider} root=${result.storage.provider.root}`);
+    console.log(`Storage references: ${result.storage.references.totalReferences} reference(s), ${result.storage.references.totalRows} row(s)`);
+    console.log(`Storage not found references: ${result.storage.references.notFoundReferences.length}`);
+  }
   console.log("");
   console.log("Users:");
   if (result.userPlan.usersTableMissing) {
@@ -1057,6 +1385,13 @@ function printHuman(result) {
   console.log("Generated files:");
   for (const row of result.filesByTarget) {
     console.log(`- ${row.relativePath}: ${row.fileCount} file(s), ${row.bytes} byte(s)`);
+  }
+  if (result.storage?.deletion) {
+    console.log("");
+    console.log("Storage cleanup:");
+    console.log(`- ${result.storage.deletion.action ?? "delete_local_storage_references"}: ${result.storage.deletion.deletedCount} object(s)`);
+    console.log(`- storage_read_failed:not_found: ${result.storage.deletion.notFoundReferences.length} reference(s)`);
+    console.log(`- unsupported references: ${result.storage.deletion.unsupportedReferences.length}`);
   }
   if (result.validation.length > 0) {
     console.log("");

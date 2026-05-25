@@ -33,6 +33,7 @@
 .tabsList {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
   margin-bottom: var(--spacing-6);
 }

@@ -72,25 +72,38 @@ describe("platform reset script guards", () => {
     expect(targetedTables.has("creditor_obligation_test")).toBe(true);
     expect(targetedTables.has("packet")).toBe(true);
     expect(targetedTables.has("parser_test_run")).toBe(true);
+    expect(targetedTables.has("compliance_config")).toBe(true);
   });
 
-  it("soft and hard resets delete users only after operational data is cleared", () => {
+  it("soft reset preserves users and hard reset deletes users only after operational data is cleared", () => {
     const softPlan = buildResetPlan("soft");
     const softUserStep = softPlan.tableSteps.find((step) => step.table === "users");
-    expect(softUserStep?.where).toContain("not (");
-    expect(softUserStep?.where).toContain("'admin'");
-    expect(softUserStep?.where).toContain("'service'");
+    expect(softPlan.deletesUsers).toBe(false);
+    expect(softUserStep).toBeUndefined();
+    expect(softPlan.userPreservePredicate).toBe("true");
+    expect(softPlan.userDeletePredicate).toBe("not (true)");
 
     const hardUserStep = HARD_RESET_TABLES.find((step) => step.table === "users");
     expect(hardUserStep?.where).toContain("not (");
     expect(hardUserStep?.where).toContain("'admin'");
     expect(hardUserStep?.where).toContain("'super_admin'");
+    expect(hardUserStep?.where).toContain("'service'");
+    expect(hardUserStep?.where).toContain("'system'");
 
     const hardPlan = buildResetPlan("hard");
+    expect(hardPlan.deletesUsers).toBe(true);
     const usersIndex = hardPlan.tableSteps.findIndex((step) => step.table === "users");
     const auditIndex = hardPlan.tableSteps.findIndex((step) => step.table === "audit_log");
     expect(auditIndex).toBeGreaterThanOrEqual(0);
     expect(usersIndex).toBeGreaterThan(auditIndex);
+  });
+
+  it("preserves platform reset audit rows during confirmed reset", () => {
+    const hardPlan = buildResetPlan("hard", { preserveAuditLogIds: [12] });
+    const auditStep = hardPlan.tableSteps.find((step) => step.table === "audit_log");
+    expect(auditStep?.where).toBe("id not in (12)");
+    expect(auditStep?.action).toBe("delete_all_except_platform_reset_audit");
+    expect(hardPlan.preserveAuditLogIds).toEqual([12]);
   });
 
   it("allows explicit preserved admin emails without changing schema roles", () => {

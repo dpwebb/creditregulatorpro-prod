@@ -195,6 +195,8 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
     "endpoints/admin/mock-lifecycle/report_GET.ts",
     "endpoints/admin/mock-lifecycle/run_POST.ts",
     "endpoints/admin/mock-lifecycle/status_GET.ts",
+    "endpoints/admin/platform-reset/confirm_POST.ts",
+    "endpoints/admin/platform-reset/dry-run_POST.ts",
     "endpoints/admin/postal-revenue_GET.ts",
     "endpoints/admin/purge_POST.ts",
     "endpoints/admin/reset-user_POST.ts",
@@ -424,11 +426,11 @@ function expectCategory(handlerFile: string, category: AuthCategory): void {
 }
 
 function hasSessionGuard(source: string): boolean {
-  return /getServerUserSession|getServerSessionOrThrow|resolveUserSession/.test(source);
+  return /getServerUserSession|getServerSessionOrThrow|resolveUserSession|requirePlatformResetAdmin/.test(source);
 }
 
 function hasAdminGuard(source: string): boolean {
-  return /\b[a-zA-Z0-9_]+\.role\s*!==\s*["']admin["']|!\s*isAdmin\([a-zA-Z0-9_]+\)|Admin (?:privileges|access|role|required)|Admin only endpoint|Forbidden: Admin access required/i.test(
+  return /\b[a-zA-Z0-9_]+\.role\s*!==\s*["']admin["']|!\s*isAdmin\([a-zA-Z0-9_]+\)|Admin (?:privileges|access|role|required)|Admin only endpoint|Forbidden: Admin access required|requirePlatformResetAdmin/i.test(
     source
   );
 }
@@ -458,7 +460,7 @@ describe("route auth classification contract", () => {
     expect(unclassifiedHandlers).toEqual([]);
     expect(classifiedHandlers).toEqual(endpointHandlers());
     expect(classifiedHandlers).toEqual(serverRouteHandlers());
-    expect(classifiedHandlers).toHaveLength(288);
+    expect(classifiedHandlers).toHaveLength(290);
   });
 
   it("pins the public route inventory so changes require explicit contract updates", () => {
