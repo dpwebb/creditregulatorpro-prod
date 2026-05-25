@@ -13,7 +13,7 @@ import {
 } from "../../scripts/cleanup-test-data.mjs";
 
 describe("cleanup-test-data script guards", () => {
-  it("defaults to a 10 day dry-run threshold when requested", () => {
+  it("defaults to a 5 day dry-run threshold when requested", () => {
     expect(parseCleanupArgs(["--dry-run"])).toMatchObject({
       dryRun: true,
       confirm: false,
@@ -24,7 +24,7 @@ describe("cleanup-test-data script guards", () => {
   it("requires exactly one execution mode and refuses shorter retention", () => {
     expect(() => parseCleanupArgs([])).toThrow(/exactly one/i);
     expect(() => parseCleanupArgs(["--dry-run", "--confirm"])).toThrow(/exactly one/i);
-    expect(() => parseCleanupArgs(["--dry-run", "--older-than-days", "9"])).toThrow(/10 or greater/i);
+    expect(() => parseCleanupArgs(["--dry-run", "--older-than-days", "4"])).toThrow(/5 or greater/i);
   });
 
   it("preserves records newer than the cutoff even when they are marked", () => {
@@ -49,6 +49,9 @@ describe("cleanup-test-data script guards", () => {
     }, cutoff)).toBe(false);
     expect(isOlderThanCutoff({ updated_at: "2026-05-01T00:00:00.000Z" }, cutoff)).toBe(true);
     expect(hasTestMarker("auth.workflow.abc@example.com")).toBe(true);
+    expect(hasTestMarker("Synthetic Response Auth Smoke")).toBe(true);
+    expect(hasTestMarker("response-auth-smoke-9607e71f-rce6bd18b@example.test")).toBe(true);
+    expect(hasTestMarker("OUTCOME_SMOKE_20260518193736")).toBe(true);
   });
 
   it("refuses production-like execution unless the dangerous override is supplied", () => {
@@ -76,15 +79,24 @@ describe("cleanup-test-data script guards", () => {
     });
   });
 
-  it("does not target findings, packets, rule, parser mapping, migration, or audit tables", () => {
+  it("targets response timeline smoke data without targeting findings, packets, rule, parser mapping, or migration tables", () => {
     const targetedTables = CLEANUP_TARGET_SUMMARY.map((target) => target.table);
 
+    expect(targetedTables).toContain("bureau_response_event");
+    expect(targetedTables).toContain("response_processing_event");
+    expect(targetedTables).toContain("response_admin_review_event");
+    expect(targetedTables).toContain("finding_outcome");
+    expect(targetedTables).toContain("outcome_comparison_run");
+    expect(targetedTables).toContain("audit_log");
+    expect(targetedTables).toContain("users");
     expect(targetedTables).not.toContain("creditor_obligation_test");
     expect(targetedTables).not.toContain("packet");
     expect(targetedTables).not.toContain("dispute_packet_findings");
-    expect(targetedTables).not.toContain("audit_log");
     expect(targetedTables).not.toContain("parser_test_case");
     expect(targetedTables).not.toContain("parser_field_mapping");
     expect(targetedTables).not.toContain("version_migration");
+
+    expect(CLEANUP_TARGET_SUMMARY.find((target) => target.table === "audit_log")?.criteria).toMatch(/response-auth-smoke/);
+    expect(CLEANUP_TARGET_SUMMARY.find((target) => target.id === "response_auth_smoke_user")?.criteria).toMatch(/response-auth-smoke/);
   });
 });

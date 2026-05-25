@@ -3,11 +3,11 @@ import "../loadEnv.js";
 import postgres from "postgres";
 import { fileURLToPath } from "node:url";
 
-export const DEFAULT_RETENTION_DAYS = 10;
-export const MIN_RETENTION_DAYS = 10;
+export const DEFAULT_RETENTION_DAYS = 5;
+export const MIN_RETENTION_DAYS = 5;
 
 export const TEST_MARKER_REGEX =
-  "(^|[^a-z0-9])(test|demo|seed|fixture|mock|synthetic|smoke|parser[-_ ]lab|lifecycle[-_ ]test|beta[-_ ]test|development[-_ ]only|example[.]test|example[.]invalid|auth[.]workflow|ingest[-_ ]queue[-_ ]test|response[-_ ]queue[-_ ]load|response[-_ ]soak|response[-_ ]worker[-_ ]orchestration|outcome[-_ ]smoke)([^a-z0-9]|$)";
+  "(^|[^a-z0-9])(test|demo|seed|fixture|mock|synthetic|smoke|parser[-_ ]lab|lifecycle[-_ ]test|beta[-_ ]test|development[-_ ]only|example[.]test|example[.]invalid|auth[.]workflow|ingest[-_ ]queue[-_ ]test|response[-_ ]auth[-_ ]smoke|response[-_ ]queue[-_ ]load|response[-_ ]soak|response[-_ ]worker[-_ ]orchestration|outcome[-_ ]smoke)([^a-z0-9]|$)";
 
 const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const ENVIRONMENT_KEYS = ["CRP_ENV", "APP_ENV", "FLOOT_ENV", "DEPLOYMENT_ENV", "ENVIRONMENT", "VERCEL_ENV"];
@@ -571,6 +571,548 @@ const targets = [
             coalesce(lifecycle.source, '') ~* ${marker}
             or coalesce(lifecycle.details::text, '') ~* ${marker}
           )
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_admin_review_event",
+    table: "response_admin_review_event",
+    criteria: "Response admin review event is older than cutoff and its parent response timeline row or owner is explicitly test-marked.",
+    count: (sql, cutoff, marker) => sql`
+      select count(*)::int as count
+      from public.response_admin_review_event review
+      join public.bureau_response_event response on response.id = review.response_event_id
+      join public.users user_row on user_row.id = response.user_id
+      where review.created_at < ${cutoff}
+        and coalesce(response.created_at, response.response_received_at) < ${cutoff}
+        and (
+          coalesce(response.response_subject, '') ~* ${marker}
+          or coalesce(response.response_reference_id, '') ~* ${marker}
+          or coalesce(response.response_summary, '') ~* ${marker}
+          or coalesce(response.raw_artifact_metadata::text, '') ~* ${marker}
+          or coalesce(response.normalized_response_metadata::text, '') ~* ${marker}
+          or lower(coalesce(response.response_sender_domain, '')) in ('example.test', 'example.invalid')
+          or (
+            lower(user_row.email) like 'response-auth-smoke-%@example.test'
+            and (
+              lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+              or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+              or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+            )
+          )
+        )
+    `,
+    delete: (sql, cutoff, marker) => sql`
+      with deleted as (
+        delete from public.response_admin_review_event review
+        using public.bureau_response_event response, public.users user_row
+        where response.id = review.response_event_id
+          and user_row.id = response.user_id
+          and review.created_at < ${cutoff}
+          and coalesce(response.created_at, response.response_received_at) < ${cutoff}
+          and (
+            coalesce(response.response_subject, '') ~* ${marker}
+            or coalesce(response.response_reference_id, '') ~* ${marker}
+            or coalesce(response.response_summary, '') ~* ${marker}
+            or coalesce(response.raw_artifact_metadata::text, '') ~* ${marker}
+            or coalesce(response.normalized_response_metadata::text, '') ~* ${marker}
+            or lower(coalesce(response.response_sender_domain, '')) in ('example.test', 'example.invalid')
+            or (
+              lower(user_row.email) like 'response-auth-smoke-%@example.test'
+              and (
+                lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+                or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+                or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+              )
+            )
+          )
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_processing_event",
+    table: "response_processing_event",
+    criteria: "Response processing event is older than cutoff and its parent response timeline row, event metadata, or owner is explicitly test-marked.",
+    count: (sql, cutoff, marker) => sql`
+      select count(*)::int as count
+      from public.response_processing_event event
+      join public.bureau_response_event response on response.id = event.response_event_id
+      join public.users user_row on user_row.id = response.user_id
+      where event.created_at < ${cutoff}
+        and coalesce(response.created_at, response.response_received_at) < ${cutoff}
+        and (
+          coalesce(response.response_subject, '') ~* ${marker}
+          or coalesce(response.response_reference_id, '') ~* ${marker}
+          or coalesce(response.response_summary, '') ~* ${marker}
+          or coalesce(response.raw_artifact_metadata::text, '') ~* ${marker}
+          or coalesce(response.normalized_response_metadata::text, '') ~* ${marker}
+          or coalesce(event.idempotency_key, '') ~* ${marker}
+          or coalesce(event.raw_artifact_metadata::text, '') ~* ${marker}
+          or coalesce(event.normalized_response_metadata::text, '') ~* ${marker}
+          or coalesce(event.deterministic_extraction::text, '') ~* ${marker}
+          or lower(coalesce(response.response_sender_domain, '')) in ('example.test', 'example.invalid')
+          or (
+            lower(user_row.email) like 'response-auth-smoke-%@example.test'
+            and (
+              lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+              or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+              or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+            )
+          )
+        )
+    `,
+    delete: (sql, cutoff, marker) => sql`
+      with deleted as (
+        delete from public.response_processing_event event
+        using public.bureau_response_event response, public.users user_row
+        where response.id = event.response_event_id
+          and user_row.id = response.user_id
+          and event.created_at < ${cutoff}
+          and coalesce(response.created_at, response.response_received_at) < ${cutoff}
+          and (
+            coalesce(response.response_subject, '') ~* ${marker}
+            or coalesce(response.response_reference_id, '') ~* ${marker}
+            or coalesce(response.response_summary, '') ~* ${marker}
+            or coalesce(response.raw_artifact_metadata::text, '') ~* ${marker}
+            or coalesce(response.normalized_response_metadata::text, '') ~* ${marker}
+            or coalesce(event.idempotency_key, '') ~* ${marker}
+            or coalesce(event.raw_artifact_metadata::text, '') ~* ${marker}
+            or coalesce(event.normalized_response_metadata::text, '') ~* ${marker}
+            or coalesce(event.deterministic_extraction::text, '') ~* ${marker}
+            or lower(coalesce(response.response_sender_domain, '')) in ('example.test', 'example.invalid')
+            or (
+              lower(user_row.email) like 'response-auth-smoke-%@example.test'
+              and (
+                lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+                or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+                or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+              )
+            )
+          )
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "bureau_response_event",
+    table: "bureau_response_event",
+    criteria: "Response timeline row is older than cutoff, explicitly test-marked, and has no non-eligible response processing/review children.",
+    count: (sql, cutoff, marker) => sql`
+      select count(*)::int as count
+      from public.bureau_response_event response
+      join public.users user_row on user_row.id = response.user_id
+      where coalesce(response.created_at, response.response_received_at) < ${cutoff}
+        and (
+          coalesce(response.response_subject, '') ~* ${marker}
+          or coalesce(response.response_reference_id, '') ~* ${marker}
+          or coalesce(response.response_summary, '') ~* ${marker}
+          or coalesce(response.raw_artifact_metadata::text, '') ~* ${marker}
+          or coalesce(response.normalized_response_metadata::text, '') ~* ${marker}
+          or lower(coalesce(response.response_sender_domain, '')) in ('example.test', 'example.invalid')
+          or (
+            lower(user_row.email) like 'response-auth-smoke-%@example.test'
+            and (
+              lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+              or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+              or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+            )
+          )
+        )
+        and not exists (
+          select 1
+          from public.response_processing_event event
+          where event.response_event_id = response.id
+            and event.created_at >= ${cutoff}
+        )
+        and not exists (
+          select 1
+          from public.response_admin_review_event review
+          where review.response_event_id = response.id
+            and review.created_at >= ${cutoff}
+        )
+    `,
+    delete: (sql, cutoff, marker) => sql`
+      with deleted as (
+        delete from public.bureau_response_event response
+        using public.users user_row
+        where user_row.id = response.user_id
+          and coalesce(response.created_at, response.response_received_at) < ${cutoff}
+          and (
+            coalesce(response.response_subject, '') ~* ${marker}
+            or coalesce(response.response_reference_id, '') ~* ${marker}
+            or coalesce(response.response_summary, '') ~* ${marker}
+            or coalesce(response.raw_artifact_metadata::text, '') ~* ${marker}
+            or coalesce(response.normalized_response_metadata::text, '') ~* ${marker}
+            or lower(coalesce(response.response_sender_domain, '')) in ('example.test', 'example.invalid')
+            or (
+              lower(user_row.email) like 'response-auth-smoke-%@example.test'
+              and (
+                lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+                or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+                or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+              )
+            )
+          )
+          and not exists (select 1 from public.response_processing_event event where event.response_event_id = response.id)
+          and not exists (select 1 from public.response_admin_review_event review where review.response_event_id = response.id)
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_auth_smoke_finding_outcome",
+    table: "finding_outcome",
+    criteria: "Response-auth-smoke finding outcome is older than cutoff, response-only, unlinked from packet/findings/tradelines, and backed by storage-less synthetic OUTCOME_SMOKE artifacts.",
+    count: (sql, cutoff) => sql`
+      select count(*)::int as count
+      from public.finding_outcome outcome
+      join public.users user_row on user_row.id = outcome.user_id
+      join public.outcome_comparison_run run on run.id = outcome.comparison_run_id
+      where outcome.created_at < ${cutoff}
+        and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+        and (
+          lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+          or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+          or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+        )
+        and run.comparison_scope = 'response_only'
+        and run.packet_id is null
+        and outcome.dispute_packet_id is null
+        and outcome.dispute_packet_finding_id is null
+        and outcome.creditor_obligation_test_id is null
+        and outcome.previous_tradeline_id is null
+        and outcome.later_tradeline_id is null
+        and exists (
+          select 1
+          from public.report_artifact artifact
+          where artifact.id in (run.previous_report_artifact_id, run.later_report_artifact_id)
+            and artifact.storage_url is null
+            and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb
+            and coalesce(artifact.data -> 'syntheticOutcomeSmoke' ->> 'marker', '') ilike 'OUTCOME_SMOKE_%'
+        )
+    `,
+    delete: (sql, cutoff) => sql`
+      with deleted as (
+        delete from public.finding_outcome outcome
+        using public.users user_row, public.outcome_comparison_run run
+        where user_row.id = outcome.user_id
+          and run.id = outcome.comparison_run_id
+          and outcome.created_at < ${cutoff}
+          and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+          and (
+            lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+            or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+            or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+          )
+          and run.comparison_scope = 'response_only'
+          and run.packet_id is null
+          and outcome.dispute_packet_id is null
+          and outcome.dispute_packet_finding_id is null
+          and outcome.creditor_obligation_test_id is null
+          and outcome.previous_tradeline_id is null
+          and outcome.later_tradeline_id is null
+          and exists (
+            select 1
+            from public.report_artifact artifact
+            where artifact.id in (run.previous_report_artifact_id, run.later_report_artifact_id)
+              and artifact.storage_url is null
+              and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb
+              and coalesce(artifact.data -> 'syntheticOutcomeSmoke' ->> 'marker', '') ilike 'OUTCOME_SMOKE_%'
+          )
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_auth_smoke_outcome_comparison_run",
+    table: "outcome_comparison_run",
+    criteria: "Response-auth-smoke outcome comparison run is older than cutoff, response-only, packet-unlinked, backed by storage-less synthetic OUTCOME_SMOKE artifacts, and has no remaining outcome/response children.",
+    count: (sql, cutoff) => sql`
+      select count(*)::int as count
+      from public.outcome_comparison_run run
+      join public.users user_row on user_row.id = run.user_id
+      where run.created_at < ${cutoff}
+        and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+        and (
+          lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+          or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+          or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+        )
+        and run.comparison_scope = 'response_only'
+        and run.packet_id is null
+        and exists (
+          select 1
+          from public.report_artifact artifact
+          where artifact.id in (run.previous_report_artifact_id, run.later_report_artifact_id)
+            and artifact.storage_url is null
+            and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb
+            and coalesce(artifact.data -> 'syntheticOutcomeSmoke' ->> 'marker', '') ilike 'OUTCOME_SMOKE_%'
+        )
+        and not exists (
+          select 1 from public.finding_outcome outcome
+          where outcome.comparison_run_id = run.id
+            and outcome.created_at >= ${cutoff}
+        )
+        and not exists (
+          select 1 from public.bureau_response_event response
+          where response.comparison_run_id = run.id
+            and coalesce(response.created_at, response.response_received_at) >= ${cutoff}
+        )
+        and not exists (
+          select 1 from public.response_processing_event event
+          where event.comparison_run_id = run.id
+            and event.created_at >= ${cutoff}
+        )
+        and not exists (
+          select 1 from public.response_admin_review_event review
+          where review.comparison_run_id = run.id
+            and review.created_at >= ${cutoff}
+        )
+    `,
+    delete: (sql, cutoff) => sql`
+      with deleted as (
+        delete from public.outcome_comparison_run run
+        using public.users user_row
+        where user_row.id = run.user_id
+          and run.created_at < ${cutoff}
+          and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+          and (
+            lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+            or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+            or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+          )
+          and run.comparison_scope = 'response_only'
+          and run.packet_id is null
+          and exists (
+            select 1
+            from public.report_artifact artifact
+            where artifact.id in (run.previous_report_artifact_id, run.later_report_artifact_id)
+              and artifact.storage_url is null
+              and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb
+              and coalesce(artifact.data -> 'syntheticOutcomeSmoke' ->> 'marker', '') ilike 'OUTCOME_SMOKE_%'
+          )
+          and not exists (select 1 from public.finding_outcome outcome where outcome.comparison_run_id = run.id)
+          and not exists (select 1 from public.bureau_response_event response where response.comparison_run_id = run.id)
+          and not exists (select 1 from public.response_processing_event event where event.comparison_run_id = run.id)
+          and not exists (select 1 from public.response_admin_review_event review where review.comparison_run_id = run.id)
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_auth_smoke_report_artifact",
+    table: "report_artifact",
+    criteria: "Report artifact is older than cutoff, storage-less, syntheticOutcomeSmoke marks it synthetic-only/no-real-consumer-data, and owner is a response-auth-smoke example.test user.",
+    count: (sql, cutoff) => sql`
+      select count(*)::int as count
+      from public.report_artifact artifact
+      join public.users user_row on user_row.id = artifact.user_id
+      where artifact.created_at < ${cutoff}
+        and artifact.storage_url is null
+        and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+        and (
+          lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+          or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+          or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+        )
+        and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb
+        and coalesce(artifact.data -> 'syntheticOutcomeSmoke' ->> 'marker', '') ilike 'OUTCOME_SMOKE_%'
+        and not exists (
+          select 1
+          from public.outcome_comparison_run run
+          where artifact.id in (run.previous_report_artifact_id, run.later_report_artifact_id)
+            and run.created_at >= ${cutoff}
+        )
+    `,
+    delete: (sql, cutoff) => sql`
+      with deleted as (
+        delete from public.report_artifact artifact
+        using public.users user_row
+        where user_row.id = artifact.user_id
+          and artifact.created_at < ${cutoff}
+          and artifact.storage_url is null
+          and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+          and (
+            lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+            or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+            or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+          )
+          and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb
+          and coalesce(artifact.data -> 'syntheticOutcomeSmoke' ->> 'marker', '') ilike 'OUTCOME_SMOKE_%'
+          and not exists (
+            select 1
+            from public.outcome_comparison_run run
+            where artifact.id in (run.previous_report_artifact_id, run.later_report_artifact_id)
+          )
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_auth_smoke_audit_log",
+    table: "audit_log",
+    criteria: "Audit row is older than cutoff and belongs to an explicitly marked response-auth-smoke example.test user.",
+    count: (sql, cutoff) => sql`
+      select count(*)::int as count
+      from public.audit_log audit
+      join public.users user_row on user_row.id = audit.user_id
+      where audit.timestamp < ${cutoff}
+        and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+        and (
+          lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+          or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+          or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+        )
+    `,
+    delete: (sql, cutoff) => sql`
+      with deleted as (
+        delete from public.audit_log audit
+        using public.users user_row
+        where user_row.id = audit.user_id
+          and audit.timestamp < ${cutoff}
+          and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+          and (
+            lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+            or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+            or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+          )
+        returning 1
+      )
+      select count(*)::int as count from deleted
+    `,
+  },
+  {
+    id: "response_auth_smoke_user",
+    table: "users",
+    criteria: "User is an older neutralized response-auth-smoke example.test account and has no remaining protected product, admin, parser, regulation, packet, finding, report, response, or audit references.",
+    count: (sql, cutoff) => sql`
+      select count(*)::int as count
+      from public.users user_row
+      where user_row.created_at < ${cutoff}
+        and user_row.role = 'user'
+        and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+        and (
+          lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+          or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+          or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+        )
+        and not exists (select 1 from public.audit_log audit where audit.user_id = user_row.id and audit.timestamp >= ${cutoff})
+        and not exists (select 1 from public.bureau_response_event response where user_row.id in (response.user_id, response.created_by, response.reviewed_by) and coalesce(response.created_at, response.response_received_at) >= ${cutoff})
+        and not exists (select 1 from public.response_processing_event event where user_row.id in (event.user_id, event.created_by) and event.created_at >= ${cutoff})
+        and not exists (select 1 from public.response_admin_review_event review where user_row.id in (review.user_id, review.actor_admin_id, review.created_by) and review.created_at >= ${cutoff})
+        and not exists (select 1 from public.finding_outcome outcome where user_row.id in (outcome.user_id, outcome.reviewed_by) and outcome.created_at >= ${cutoff})
+        and not exists (select 1 from public.outcome_comparison_run run where user_row.id in (run.user_id, run.created_by, run.reviewed_by) and run.created_at >= ${cutoff})
+        and not exists (select 1 from public.report_artifact artifact where artifact.user_id = user_row.id and not (artifact.created_at < ${cutoff} and artifact.storage_url is null and artifact.data @> '{"syntheticOutcomeSmoke":{"syntheticOnly":true,"containsRealConsumerData":false}}'::jsonb))
+        and not exists (select 1 from public.packet packet where packet.user_id = user_row.id)
+        and not exists (select 1 from public.tradeline tradeline where tradeline.user_id = user_row.id)
+        and not exists (select 1 from public.dispute_packet_findings finding where user_row.id in (finding.user_id, finding.created_by))
+        and not exists (select 1 from public.ingest_processing_job job where user_row.id in (job.user_id, job.actor_user_id))
+        and not exists (select 1 from public.ingest_processing_job_event event where event.actor_user_id = user_row.id)
+        and not exists (select 1 from public.response_processing_job job where job.actor_user_id = user_row.id)
+        and not exists (select 1 from public.response_processing_job_event event where event.actor_user_id = user_row.id)
+        and not exists (select 1 from public.response_processing_lifecycle_event lifecycle where lifecycle.actor_user_id = user_row.id)
+        and not exists (select 1 from public.ai_assist_run run where run.user_id = user_row.id)
+        and not exists (select 1 from public.beta_issue_report report where report.user_id = user_row.id)
+        and not exists (select 1 from public.compliance_config config where config.updated_by_user_id = user_row.id)
+        and not exists (select 1 from public.consumer_identification_document document where document.user_id = user_row.id)
+        and not exists (select 1 from public.consumer_signature signature where user_row.id in (signature.user_id, signature.verified_by))
+        and not exists (select 1 from public.dynamic_scanning_rule rule where rule.approved_by = user_row.id)
+        and not exists (select 1 from public.evidence_attachment attachment where attachment.uploaded_by = user_row.id)
+        and not exists (select 1 from public.identity_theft_freeze freeze where freeze.user_id = user_row.id)
+        and not exists (select 1 from public.letter_template template where template.updated_by = user_row.id)
+        and not exists (select 1 from public.obligation_instance instance where instance.user_id = user_row.id)
+        and not exists (select 1 from public.parser_bureau_detection_config config where config.created_by = user_row.id)
+        and not exists (select 1 from public.parser_extraction_rule rule where rule.created_by = user_row.id)
+        and not exists (select 1 from public.parser_field_mapping mapping where mapping.created_by = user_row.id)
+        and not exists (select 1 from public.parser_known_entity entity where entity.created_by = user_row.id)
+        and not exists (select 1 from public.parser_mapping_version version where version.changed_by = user_row.id)
+        and not exists (select 1 from public.parser_rule_candidate candidate where candidate.created_by = user_row.id)
+        and not exists (select 1 from public.parser_test_case test_case where test_case.created_by = user_row.id)
+        and not exists (select 1 from public.parser_test_training_archive archive where archive.created_by_admin_id = user_row.id)
+        and not exists (select 1 from public.postal_transaction tx where tx.user_id = user_row.id)
+        and not exists (select 1 from public.regulation_reconciliation_candidate candidate where user_row.id in (candidate.created_by, candidate.reviewed_by))
+        and not exists (select 1 from public.regulation_registry registry where registry.approved_by = user_row.id)
+        and not exists (select 1 from public.regulation_runtime_bridge_mapping mapping where user_row.id in (mapping.approved_by, mapping.activated_by, mapping.deactivated_by, mapping.rollback_by))
+        and not exists (select 1 from public.regulation_source_scan scan where scan.triggered_by = user_row.id)
+        and not exists (select 1 from public.regulation_update_candidate candidate where candidate.reviewed_by = user_row.id)
+        and not exists (select 1 from public.regulation_violation_mapping mapping where mapping.approved_by = user_row.id)
+        and not exists (select 1 from public.regulatory_notification notification where notification.user_id = user_row.id)
+        and not exists (select 1 from public.software_version version where version.created_by = user_row.id)
+        and not exists (select 1 from public.subscriptions subscription where subscription.user_id = user_row.id)
+        and not exists (select 1 from public.support_ticket ticket where user_row.id in (ticket.user_id, ticket.assigned_agent_id))
+        and not exists (select 1 from public.support_ticket_message message where message.sender_id = user_row.id)
+        and not exists (select 1 from public.system_settings setting where setting.updated_by_user_id = user_row.id)
+        and not exists (select 1 from public.user_account account where account.user_id = user_row.id)
+        and not exists (select 1 from public.violation_correction correction where user_row.id in (correction.created_by_admin_id, correction.finalized_by_admin_id))
+    `,
+    delete: (sql, cutoff) => sql`
+      with deleted as (
+        delete from public.users user_row
+        where user_row.created_at < ${cutoff}
+          and user_row.role = 'user'
+          and lower(user_row.email) like 'response-auth-smoke-%@example.test'
+          and (
+            lower(coalesce(user_row.display_name, '')) = lower(user_row.email)
+            or coalesce(user_row.display_name, '') ilike 'Synthetic Response Auth Smoke%'
+            or lower(coalesce(user_row.display_name, '')) like 'response-auth-smoke-%@example.test'
+          )
+          and not exists (select 1 from public.audit_log audit where audit.user_id = user_row.id)
+          and not exists (select 1 from public.bureau_response_event response where user_row.id in (response.user_id, response.created_by, response.reviewed_by))
+          and not exists (select 1 from public.response_processing_event event where user_row.id in (event.user_id, event.created_by))
+          and not exists (select 1 from public.response_admin_review_event review where user_row.id in (review.user_id, review.actor_admin_id, review.created_by))
+          and not exists (select 1 from public.finding_outcome outcome where user_row.id in (outcome.user_id, outcome.reviewed_by))
+          and not exists (select 1 from public.outcome_comparison_run run where user_row.id in (run.user_id, run.created_by, run.reviewed_by))
+          and not exists (select 1 from public.report_artifact artifact where artifact.user_id = user_row.id)
+          and not exists (select 1 from public.packet packet where packet.user_id = user_row.id)
+          and not exists (select 1 from public.tradeline tradeline where tradeline.user_id = user_row.id)
+          and not exists (select 1 from public.dispute_packet_findings finding where user_row.id in (finding.user_id, finding.created_by))
+          and not exists (select 1 from public.ingest_processing_job job where user_row.id in (job.user_id, job.actor_user_id))
+          and not exists (select 1 from public.ingest_processing_job_event event where event.actor_user_id = user_row.id)
+          and not exists (select 1 from public.response_processing_job job where job.actor_user_id = user_row.id)
+          and not exists (select 1 from public.response_processing_job_event event where event.actor_user_id = user_row.id)
+          and not exists (select 1 from public.response_processing_lifecycle_event lifecycle where lifecycle.actor_user_id = user_row.id)
+          and not exists (select 1 from public.ai_assist_run run where run.user_id = user_row.id)
+          and not exists (select 1 from public.beta_issue_report report where report.user_id = user_row.id)
+          and not exists (select 1 from public.compliance_config config where config.updated_by_user_id = user_row.id)
+          and not exists (select 1 from public.consumer_identification_document document where document.user_id = user_row.id)
+          and not exists (select 1 from public.consumer_signature signature where user_row.id in (signature.user_id, signature.verified_by))
+          and not exists (select 1 from public.dynamic_scanning_rule rule where rule.approved_by = user_row.id)
+          and not exists (select 1 from public.evidence_attachment attachment where attachment.uploaded_by = user_row.id)
+          and not exists (select 1 from public.identity_theft_freeze freeze where freeze.user_id = user_row.id)
+          and not exists (select 1 from public.letter_template template where template.updated_by = user_row.id)
+          and not exists (select 1 from public.obligation_instance instance where instance.user_id = user_row.id)
+          and not exists (select 1 from public.parser_bureau_detection_config config where config.created_by = user_row.id)
+          and not exists (select 1 from public.parser_extraction_rule rule where rule.created_by = user_row.id)
+          and not exists (select 1 from public.parser_field_mapping mapping where mapping.created_by = user_row.id)
+          and not exists (select 1 from public.parser_known_entity entity where entity.created_by = user_row.id)
+          and not exists (select 1 from public.parser_mapping_version version where version.changed_by = user_row.id)
+          and not exists (select 1 from public.parser_rule_candidate candidate where candidate.created_by = user_row.id)
+          and not exists (select 1 from public.parser_test_case test_case where test_case.created_by = user_row.id)
+          and not exists (select 1 from public.parser_test_training_archive archive where archive.created_by_admin_id = user_row.id)
+          and not exists (select 1 from public.postal_transaction tx where tx.user_id = user_row.id)
+          and not exists (select 1 from public.regulation_reconciliation_candidate candidate where user_row.id in (candidate.created_by, candidate.reviewed_by))
+          and not exists (select 1 from public.regulation_registry registry where registry.approved_by = user_row.id)
+          and not exists (select 1 from public.regulation_runtime_bridge_mapping mapping where user_row.id in (mapping.approved_by, mapping.activated_by, mapping.deactivated_by, mapping.rollback_by))
+          and not exists (select 1 from public.regulation_source_scan scan where scan.triggered_by = user_row.id)
+          and not exists (select 1 from public.regulation_update_candidate candidate where candidate.reviewed_by = user_row.id)
+          and not exists (select 1 from public.regulation_violation_mapping mapping where mapping.approved_by = user_row.id)
+          and not exists (select 1 from public.regulatory_notification notification where notification.user_id = user_row.id)
+          and not exists (select 1 from public.software_version version where version.created_by = user_row.id)
+          and not exists (select 1 from public.subscriptions subscription where subscription.user_id = user_row.id)
+          and not exists (select 1 from public.support_ticket ticket where user_row.id in (ticket.user_id, ticket.assigned_agent_id))
+          and not exists (select 1 from public.support_ticket_message message where message.sender_id = user_row.id)
+          and not exists (select 1 from public.system_settings setting where setting.updated_by_user_id = user_row.id)
+          and not exists (select 1 from public.user_account account where account.user_id = user_row.id)
+          and not exists (select 1 from public.violation_correction correction where user_row.id in (correction.created_by_admin_id, correction.finalized_by_admin_id))
         returning 1
       )
       select count(*)::int as count from deleted
