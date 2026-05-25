@@ -403,7 +403,7 @@ export async function buildSyntheticCreditReportPdfBase64(): Promise<string> {
   });
 }
 
-class ApiClient {
+export class ApiClient {
   private cookies = new Map<string, string>();
   readonly apiServerErrors: string[] = [];
 
@@ -445,6 +445,28 @@ class ApiClient {
       this.apiServerErrors.push(`${response.status} ${pathSuffix.split("?")[0]}`);
     }
     return response;
+  }
+
+  setCookieHeader(cookieHeader: string): void {
+    for (const part of cookieHeader.split(";")) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+
+      const separatorIndex = trimmed.indexOf("=");
+      if (separatorIndex <= 0) continue;
+
+      const name = trimmed.slice(0, separatorIndex).trim();
+      const value = trimmed.slice(separatorIndex + 1).trim();
+      const normalizedName = name.toLowerCase();
+      if (
+        !name ||
+        ["domain", "expires", "httponly", "max-age", "path", "samesite", "secure"].includes(normalizedName)
+      ) {
+        continue;
+      }
+
+      this.cookies.set(name, value);
+    }
   }
 
   async sse<T>(
@@ -580,6 +602,19 @@ class ApiClient {
       .join("; ");
   }
 }
+
+export type SmokeBeforeCleanupContext = {
+  api: ApiClient;
+  config: Extract<SmokeConfig, { status: "ready" }>;
+  ownerUserId: number;
+  artifactId: number;
+  selectedIssueId: number | null;
+  ownerPacketId: number | null;
+};
+
+export type SmokeRunOptions = {
+  beforeCleanup?: (context: SmokeBeforeCleanupContext) => Promise<unknown>;
+};
 
 function extractErrorMessage(raw: string): string {
   if (!raw.trim()) return "Unknown error";
@@ -996,7 +1031,10 @@ async function cleanupSyntheticAccount(api: ApiClient, config: Extract<SmokeConf
   };
 }
 
-export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>) {
+export async function runSmoke(
+  config: Extract<SmokeConfig, { status: "ready" }>,
+  options: SmokeRunOptions = {},
+) {
   const api = new ApiClient(config.baseUrl, config.origin);
   const actors: SmokeActor[] = [];
   let registeredUserId: number | null = null;
@@ -1050,6 +1088,17 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
           skipped: true as const,
           reason: "CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET=true was not set.",
         };
+
+    const beforeCleanupProbe = options.beforeCleanup
+      ? await options.beforeCleanup({
+          api,
+          config,
+          ownerUserId: session.user.id,
+          artifactId: upload.artifactId,
+          selectedIssueId: packetReview.packet?.selectedIssueId ?? null,
+          ownerPacketId: packetReview.packet?.packetId ?? null,
+        })
+      : null;
 
     if (api.apiServerErrors.length > 0) {
       throw new Error(`API 5xx responses observed: ${api.apiServerErrors.join(", ")}.`);
@@ -1137,6 +1186,7 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
         userId: actor.userId,
         cleanupStatus: actor.cleanupStatus.status,
       })),
+      beforeCleanupProbe,
       safety: {
         productionHostRefusedByConfig: true,
         syntheticUserSelfDeleted: actors.every((actor) => actor.cleanupStatus.status === "deleted"),
