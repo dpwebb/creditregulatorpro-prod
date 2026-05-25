@@ -1,7 +1,13 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { readStoredFile, uploadFile } from "./gcsStorage";
+import {
+  checkStoredFileAvailability,
+  classifyStorageFailureReason,
+  getStoredFileObjectName,
+  readStoredFile,
+  uploadFile,
+} from "./gcsStorage";
 import { base64PayloadToBuffer, cleanBase64Payload, sha256HexOfBase64Payload } from "./reportBinaryUtils";
 
 export const REPORT_ARTIFACT_STORAGE_OBJECT_PREFIX = "report-artifacts";
@@ -13,6 +19,14 @@ export type StoredReportArtifactPdf = {
   storageProvider: "local";
   objectName: string;
   referenceFormat: "local:report-artifacts/<user-id>/<uuid>-<sha256-prefix>-<filename>";
+};
+
+export type ReportArtifactStorageStatus = "available" | "missing" | "unavailable";
+
+export type ReportArtifactStorageAvailability = {
+  status: ReportArtifactStorageStatus;
+  objectName: string | null;
+  failureReason: string | null;
 };
 
 function safeFileName(fileName: string | null | undefined): string {
@@ -43,6 +57,45 @@ export function isReportArtifactStorageReference(storageUrl: string | null | und
 export function isSupportedStoredFileReference(storageUrl: string | null | undefined): boolean {
   if (typeof storageUrl !== "string") return false;
   return storageUrl.startsWith("local:");
+}
+
+export async function getReportArtifactStorageAvailability(
+  storageUrl: string | null | undefined
+): Promise<ReportArtifactStorageAvailability> {
+  if (!storageUrl) {
+    return {
+      status: "missing",
+      objectName: null,
+      failureReason: "missing_storage_reference",
+    };
+  }
+
+  const availability = await checkStoredFileAvailability(storageUrl);
+  if (availability.available) {
+    return {
+      status: "available",
+      objectName: availability.objectName,
+      failureReason: null,
+    };
+  }
+
+  return {
+    status: availability.failureReason === "not_found" ? "missing" : "unavailable",
+    objectName: availability.objectName,
+    failureReason: availability.failureReason,
+  };
+}
+
+export function getReportArtifactStorageFailureContext(
+  storageUrl: string | null | undefined,
+  error: unknown
+): ReportArtifactStorageAvailability {
+  const failureReason = classifyStorageFailureReason(error);
+  return {
+    status: failureReason === "not_found" ? "missing" : "unavailable",
+    objectName: getStoredFileObjectName(storageUrl),
+    failureReason,
+  };
 }
 
 function isPdfBase64Payload(value: string): boolean {

@@ -1,4 +1,4 @@
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { recordStorageFailureMetric } from "./productionObservabilityMetrics";
 
@@ -57,6 +57,76 @@ function getObjectNameFromStorageUrl(storageUrl: string): string | null {
   }
 
   return storageUrl.substring(STORAGE_PREFIX.length);
+}
+
+export type StoredFileAvailability =
+  | {
+      available: true;
+      storageProvider: "inline";
+      objectName: null;
+      failureReason: null;
+    }
+  | {
+      available: true;
+      storageProvider: "local_file_storage";
+      objectName: string;
+      failureReason: null;
+    }
+  | {
+      available: false;
+      storageProvider: "local_file_storage";
+      objectName: string;
+      failureReason: string;
+    };
+
+export function classifyStorageFailureReason(error: unknown): string {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  if (code === "ENOENT") return "not_found";
+  if (typeof code === "string" && code.trim()) return code.toLowerCase();
+  if (error instanceof Error && error.name) return error.name;
+  return "unknown";
+}
+
+export function getStoredFileObjectName(storageUrl: string | null | undefined): string | null {
+  return typeof storageUrl === "string" ? getObjectNameFromStorageUrl(storageUrl) : null;
+}
+
+export async function checkStoredFileAvailability(storageUrl: string): Promise<StoredFileAvailability> {
+  const objectName = getObjectNameFromStorageUrl(storageUrl);
+
+  if (!objectName) {
+    return {
+      available: true,
+      storageProvider: "inline",
+      objectName: null,
+      failureReason: null,
+    };
+  }
+
+  try {
+    await stat(getSafeObjectPath(objectName));
+    return {
+      available: true,
+      storageProvider: "local_file_storage",
+      objectName,
+      failureReason: null,
+    };
+  } catch (error) {
+    await recordStorageFailureMetricBestEffort({
+      operation: "read",
+      provider: "local_file_storage",
+      storageArea: "report_artifact",
+      objectName,
+      error,
+    });
+
+    return {
+      available: false,
+      storageProvider: "local_file_storage",
+      objectName,
+      failureReason: classifyStorageFailureReason(error),
+    };
+  }
 }
 
 export async function uploadFile(

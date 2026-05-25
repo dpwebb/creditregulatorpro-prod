@@ -521,6 +521,46 @@ describe("report artifact raw PDF storage references", () => {
     });
   });
 
+  it("fails only the requested artifact when stored PDF bytes are missing", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    queueResults({
+      first: {
+        id: 9905,
+        artifactType: "credit_report",
+        storageUrl: "local:report-artifacts/42/missing-open.pdf",
+        reportDate: new Date("2026-05-20T00:00:00.000Z"),
+        metro2Version: null,
+        sha256: "missing-open-sha",
+        createdAt: new Date("2026-05-20T00:00:00.000Z"),
+        userId: 42,
+        organizationId: null,
+      },
+    });
+
+    try {
+      const response = await getReportArtifact(getRequest("/_api/report-artifact/get?id=9905"));
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({
+        error: "Report artifact file is unavailable",
+        storageStatus: "missing",
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        "storage_read_failed:not_found",
+        expect.objectContaining({
+          artifactId: 9905,
+          artifactUserId: 42,
+          requestUserId: 42,
+          storageKey: "report-artifacts/42/missing-open.pdf",
+          failureReason: "not_found",
+          endpoint: "report-artifact/get",
+        }),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it("keeps list metadata-only for raw storage and denies non-owner raw byte retrieval", async () => {
     queueResults(
       { firstOrThrow: { total: "1" } },
@@ -567,5 +607,104 @@ describe("report artifact raw PDF storage references", () => {
     const denied = await getReportArtifact(getRequest("/_api/report-artifact/get?id=9901"));
     expect(denied.status).toBe(404);
     await expect(denied.json()).resolves.toEqual({ error: "Report artifact not found or access denied" });
+  });
+
+  it("returns an empty list for an authenticated user with no report artifacts", async () => {
+    queueResults(
+      { firstOrThrow: { total: "0" } },
+      { execute: [] },
+    );
+
+    const response = await listReportArtifacts(getRequest("/_api/report-artifact/list"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ artifacts: [], total: 0 });
+  });
+
+  it("rejects unauthenticated report artifact list requests", async () => {
+    mocks.getServerUserSession.mockRejectedValueOnce(new NotAuthenticatedError());
+
+    const response = await listReportArtifacts(getRequest("/_api/report-artifact/list"));
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Not authenticated" });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+  });
+
+  it("keeps stale missing storage item-level while listing the user's other artifacts", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    queueResults(
+      { firstOrThrow: { total: "2" } },
+      {
+        execute: [
+          {
+            id: 9903,
+            artifactType: "credit_report",
+            reportDate: new Date("2026-05-20T00:00:00.000Z"),
+            metro2Version: null,
+            sha256: "missing-sha",
+            createdAt: new Date("2026-05-20T00:00:00.000Z"),
+            userId: 42,
+            organizationId: null,
+            region: "CA",
+            tradelineId: null,
+            crrgYear: null,
+            expiresAt: null,
+            validationRulesApplied: null,
+            storageUrl: "local:report-artifacts/42/missing-report.pdf",
+            processingStatus: "completed",
+            tradelineAccountNumber: null,
+            tradelineAccountType: null,
+            linkedAccountCount: "0",
+            bureauName: null,
+          },
+          {
+            id: 9904,
+            artifactType: "credit_report",
+            reportDate: new Date("2026-05-21T00:00:00.000Z"),
+            metro2Version: null,
+            sha256: "inline-sha",
+            createdAt: new Date("2026-05-21T00:00:00.000Z"),
+            userId: 42,
+            organizationId: null,
+            region: "CA",
+            tradelineId: null,
+            crrgYear: null,
+            expiresAt: null,
+            validationRulesApplied: null,
+            storageUrl: pdfBase64,
+            processingStatus: "completed",
+            tradelineAccountNumber: null,
+            tradelineAccountType: null,
+            linkedAccountCount: "1",
+            bureauName: "TransUnion",
+          },
+        ],
+      },
+    );
+
+    try {
+      const response = await listReportArtifacts(getRequest("/_api/report-artifact/list"));
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.artifacts).toHaveLength(2);
+      expect(body.artifacts[0]).toMatchObject({ id: 9903, storageStatus: "missing" });
+      expect(body.artifacts[1]).toMatchObject({ id: 9904, storageStatus: "available", bureauName: "TransUnion" });
+      expect(body.artifacts[0]).not.toHaveProperty("storageUrl");
+      expect(warnSpy).toHaveBeenCalledWith(
+        "storage_read_failed:not_found",
+        expect.objectContaining({
+          artifactId: 9903,
+          artifactUserId: 42,
+          requestUserId: 42,
+          storageKey: "report-artifacts/42/missing-report.pdf",
+          failureReason: "not_found",
+          endpoint: "report-artifact/list",
+        }),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });

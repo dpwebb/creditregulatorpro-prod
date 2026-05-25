@@ -3,7 +3,11 @@ import { schema, OutputType } from "./get_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { resolveReportArtifactPdfBase64 } from "../../helpers/reportArtifactStorage";
+import {
+  getReportArtifactStorageFailureContext,
+  resolveReportArtifactPdfBase64,
+} from "../../helpers/reportArtifactStorage";
+import { logger } from "../../helpers/logger";
 
 export async function handle(request: Request) {
   try {
@@ -51,7 +55,33 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Report artifact not found or access denied" }), { status: 404 });
     }
 
-    const resolvedStorageUrl = await resolveReportArtifactPdfBase64(reportArtifact.storageUrl);
+    let resolvedStorageUrl: string | null;
+    try {
+      resolvedStorageUrl = await resolveReportArtifactPdfBase64(reportArtifact.storageUrl);
+    } catch (error) {
+      const storageFailure = getReportArtifactStorageFailureContext(reportArtifact.storageUrl, error);
+      logger.warn(
+        storageFailure.failureReason === "not_found"
+          ? "storage_read_failed:not_found"
+          : "storage_read_failed",
+        {
+          artifactId: reportArtifact.id,
+          artifactUserId: reportArtifact.userId,
+          requestUserId: user.id,
+          storageKey: storageFailure.objectName,
+          failureReason: storageFailure.failureReason,
+          endpoint: "report-artifact/get",
+        }
+      );
+
+      return Response.json(
+        {
+          error: "Report artifact file is unavailable",
+          storageStatus: storageFailure.status,
+        },
+        { status: storageFailure.status === "missing" ? 404 : 503 }
+      );
+    }
 
     return new Response(JSON.stringify({
       reportArtifact: {

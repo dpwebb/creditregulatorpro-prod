@@ -37,6 +37,7 @@ export type ReportArtifactWithDetails = ReportArtifactListItem & {
   tradelineAccountType: string | null;
   linkedAccountCount: number | null;
   bureauName: string | null;
+  storageStatus: "available" | "missing" | "unavailable";
 };
 
 export type OutputType = {

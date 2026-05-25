@@ -1,10 +1,12 @@
 import { OutputType, schema } from "./list_GET.schema";
 
-import { sql } from "kysely";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { maskAccountNumber } from "../../helpers/disputePacketTemplate";
+import { logger } from "../../helpers/logger";
+import { reportArtifactFileNameSelection } from "../../helpers/reportArtifactListQuery";
+import { getReportArtifactStorageAvailability } from "../../helpers/reportArtifactStorage";
 
 export async function handle(request: Request) {
   try {
@@ -47,7 +49,8 @@ export async function handle(request: Request) {
       "reportArtifact.expiresAt",
       "reportArtifact.validationRulesApplied",
       "reportArtifact.processingStatus",
-      sql<string | null>`"reportArtifact"."data" ->> 'fileName'`.as("fileName"),
+      "reportArtifact.storageUrl",
+      reportArtifactFileNameSelection(),
       "tradeline.accountNumber as tradelineAccountNumber",
       "tradeline.accountType as tradelineAccountType",
       // Subquery: count tradelines linked to this artifact via report_artifact_id
@@ -80,18 +83,35 @@ export async function handle(request: Request) {
 
     const rawArtifacts = await dataQuery.execute();
 
-    // linkedAccountCount comes back as a string from pg COUNT aggregate; coerce to number
-    const artifacts = rawArtifacts.map((row) => {
+    // linkedAccountCount comes back as a string from pg COUNT aggregate; coerce to number.
+    const artifacts = await Promise.all(rawArtifacts.map(async (row) => {
       const {
-        storageUrl: _storageUrl,
+        storageUrl,
         data: _data,
         tradelineAccountNumber,
         ...safeRow
       } = row as typeof row & {
-        storageUrl?: unknown;
+        storageUrl?: string | null;
         data?: unknown;
         tradelineAccountNumber?: string | null;
       };
+      const storageAvailability = await getReportArtifactStorageAvailability(storageUrl);
+      if (storageAvailability.status !== "available") {
+        logger.warn(
+          storageAvailability.failureReason === "not_found"
+            ? "storage_read_failed:not_found"
+            : "storage_read_failed",
+          {
+            artifactId: safeRow.id,
+            artifactUserId: safeRow.userId,
+            requestUserId: user.id,
+            storageKey: storageAvailability.objectName,
+            failureReason: storageAvailability.failureReason,
+            endpoint: "report-artifact/list",
+          }
+        );
+      }
+
       return {
         ...safeRow,
         tradelineAccountNumber: tradelineAccountNumber
@@ -102,10 +122,11 @@ export async function handle(request: Request) {
             ? parseInt(row.linkedAccountCount as unknown as string, 10)
             : null,
         bureauName: row.bureauName ?? null,
+        storageStatus: storageAvailability.status,
       };
-    });
+    }));
 
-    return new Response(JSON.stringify({ artifacts, total } satisfies OutputType));
+    return Response.json({ artifacts, total } satisfies OutputType);
   } catch (error) {
     return handleEndpointError(error);
   }

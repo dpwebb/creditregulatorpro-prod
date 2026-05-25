@@ -77,6 +77,22 @@ describe("platform reset script guards", () => {
     expect(targetedTables.has("compliance_config")).toBe(true);
   });
 
+  it("hard reset deletes user report artifact rows instead of leaving stale file references", () => {
+    const hardPlan = buildResetPlan("hard", { preserveAdminEmails: ["admin@example.test"] });
+    const reportArtifactStep = hardPlan.tableSteps.find((step) => step.table === "report_artifact");
+    const usersIndex = hardPlan.tableSteps.findIndex((step) => step.table === "users");
+    const reportArtifactIndex = hardPlan.tableSteps.findIndex((step) => step.table === "report_artifact");
+
+    expect(reportArtifactStep).toMatchObject({
+      table: "report_artifact",
+      where: null,
+      action: "delete_all",
+      resetIdentity: true,
+    });
+    expect(reportArtifactIndex).toBeGreaterThanOrEqual(0);
+    expect(usersIndex).toBeGreaterThan(reportArtifactIndex);
+  });
+
   it("soft reset preserves users and hard reset preserves only explicitly configured admin emails", () => {
     const softPlan = buildResetPlan("soft");
     const softUserStep = softPlan.tableSteps.find((step) => step.table === "users");

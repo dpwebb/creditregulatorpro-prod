@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { z } from "zod";
+import type { ReportArtifactWithDetails } from "../endpoints/report-artifact/list_GET.schema";
 import { useReportArtifactList, useCreateReportArtifact, useDeleteReportArtifact } from "../helpers/reportArtifactQueries";
 import { useTradelineList } from "../helpers/tradelineQueries";
 import { Button } from "../components/Button";
@@ -93,9 +94,17 @@ export default function ReportArtifactsPage() {
     }
   };
 
-  const renderArtifact = (artifact: any) => {
+  const renderArtifact = (artifact: ReportArtifactWithDetails) => {
     const isCreditReport = isCreditReportArtifact(artifact.artifactType);
-    const status = isCreditReport
+    const storageUnavailable = artifact.storageStatus === "missing" || artifact.storageStatus === "unavailable";
+    const status = storageUnavailable
+      ? {
+          variant: "error" as const,
+          label: "File unavailable",
+          icon: AlertCircle,
+          nextAction: "File unavailable",
+        }
+      : isCreditReport
       ? getProcessingDisplay(artifact.processingStatus)
       : getExpirationStatus(artifact.expiresAt);
     const StatusIcon = status.icon;
@@ -116,7 +125,7 @@ export default function ReportArtifactsPage() {
           </div>
           <div className={styles.cardDates}>
             <span className={styles.dateText}>
-              Uploaded on {artifact.createdAt ? format(new Date(artifact.createdAt), "MMM d, yyyy") : "—"}
+              Uploaded on {artifact.createdAt ? format(new Date(artifact.createdAt), "MMM d, yyyy") : "-"}
             </span>
           </div>
         </div>
@@ -143,11 +152,17 @@ export default function ReportArtifactsPage() {
             )}
           </div>
           <div className={styles.actionsCell}>
-            <Button asChild variant="ghost" size="icon-sm" className={styles.actionBtn}>
-              <Link to={canViewResults ? `/upload-results/${artifact.id}` : `/upload-review/${artifact.id}`} title={canViewResults ? "View Results" : "View Upload Status"}>
+            {storageUnavailable ? (
+              <Button variant="ghost" size="icon-sm" className={styles.actionBtn} disabled title="File unavailable">
                 <LinkIcon size={16} />
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button asChild variant="ghost" size="icon-sm" className={styles.actionBtn}>
+                <Link to={canViewResults ? `/upload-results/${artifact.id}` : `/upload-review/${artifact.id}`} title={canViewResults ? "View Results" : "View Upload Status"}>
+                  <LinkIcon size={16} />
+                </Link>
+              </Button>
+            )}
             <DeleteArtifactButton id={artifact.id} />
           </div>
         </div>
@@ -195,10 +210,10 @@ export default function ReportArtifactsPage() {
         ) : (
           <div className={styles.emptyState}>
             <FileText size={40} />
-            <h3>No Reports Found</h3>
-            <p>Upload your first credit report to get started.</p>
-            <Button variant="default" size="sm" onClick={() => setIsCreateOpen(true)}>
-              Add a Report
+            <h3>No files uploaded yet.</h3>
+            <p>Upload a credit report to start reviewing your accounts.</p>
+            <Button asChild variant="default" size="sm">
+              <Link to="/upload">Upload Report</Link>
             </Button>
           </div>
         )}
