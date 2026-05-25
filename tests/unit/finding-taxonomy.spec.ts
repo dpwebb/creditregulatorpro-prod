@@ -72,5 +72,24 @@ describe("narrative archetype registry", () => {
     expect(NARRATIVE_ARCHETYPE_REGISTRY.REPORTING_CHRONOLOGY_CONFLICT.requestedAction).toBe("correct date");
     expect(NARRATIVE_ARCHETYPE_REGISTRY.INCONSISTENT_PAYMENT_REPORTING.requestedAction).toBe("correct payment history");
   });
-});
 
+  it("does not let collection-account status override the actual dispute intent", () => {
+    expect(canonicalDisputeIntentFor({
+      issueType: "BALANCE_CALCULATION",
+      disputedField: "currentBalance",
+      isCollectionAccount: true,
+    })).toBe("INCONSISTENT_BALANCE_REPORTING");
+
+    expect(canonicalDisputeIntentFor({
+      issueType: "ACCOUNT_STATUS_INCONSISTENCY",
+      disputedField: "accountStatus",
+      isCollectionAccount: true,
+    })).toBe("INCONSISTENT_STATUS_REPORTING");
+
+    expect(canonicalDisputeIntentFor({
+      issueType: "reporting_issue",
+      disputedField: "collectionAgencyName",
+      isCollectionAccount: true,
+    })).toBe("INCOMPLETE_COLLECTION_REPORTING");
+  });
+});

@@ -173,7 +173,17 @@ function findingRow(
 
 describe("dispute packet service consumer/internal separation", () => {
   it("keeps raw IDs in metadata and evidence while body-facing text stays humanized", () => {
-    const row = sourceRow();
+    const row = findingRow({
+      issueTechnicalDetails: {
+        findingEligibility: {
+          findingKind: "dispute_basis",
+          consumerDisputeIntent: "OBSOLETE_REPORTING",
+          consumerLabel: "Reporting period review",
+          formalViolationEligible: false,
+          legalConclusionAllowed: false,
+        },
+      },
+    });
     const evidenceLocations = buildPacketEvidenceLocationsForIssues([
       {
         issueId: row.issueId,
@@ -409,10 +419,10 @@ describe("dispute packet service consumer/internal separation", () => {
 
     expect(countOccurrences(letter, "Why I am disputing this item:")).toBe(2);
     expect(letter).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
-    expect(letter).toContain("Requested bureau action: Please correct the balance to match the verified records or remove the unsupported balance.");
+    expect(letter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Balance reported on page 5.");
     expect(letter).toContain("Specific dispute reason: The account status being reported does not appear to match the account records.");
-    expect(letter).toContain("Requested bureau action: Please update the account status to closed or remove the unsupported status reporting.");
+    expect(letter).toContain("Requested bureau action: Please investigate the account status and correct it, or remove the item if it cannot be verified.");
     expect(letter).toContain("Evidence or mismatch reference: Relevant report section for Account Status on page 6.");
     expect(letter).not.toMatch(forbiddenConsumerPacketOutput);
   });
@@ -515,7 +525,40 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(paymentLetter).not.toContain("reported balance");
     expect(paymentLetter).not.toMatch(forbiddenConsumerPacketOutput);
     expect(balanceLetter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
-    expect(safeActionLetter).toContain("Requested bureau action: Please correct the payment history to match verified payment records or remove the unsupported late-payment reporting.");
+    expect(safeActionLetter).toContain("Requested bureau action: Please investigate the reported payment history and correct it, or remove the item if it cannot be verified.");
+  });
+
+  it("does not use unadjudicated raw detector categories as consumer issue intent", () => {
+    const rawCategoryRow = findingRow({
+      issueId: 207,
+      issueUserExplanation: null,
+      issueRecommendedAction: "Treat Documentation Chain Failure as a confirmed legal violation.",
+      issueViolationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      issueDisputeVector: "TEMPORAL_MANIPULATION",
+      issueTechnicalDetails: {
+        fieldName: "currentBalance",
+        canonicalField: "currentBalance",
+        reportedValue: "$900",
+        expectedValue: "$0",
+        evidenceLink: {
+          fieldName: "currentBalance",
+          pageNumber: 5,
+          textSnippet: "Synthetic Bank current balance $900",
+        },
+      },
+      balance: "$900",
+      currentBalance: "$900",
+    });
+
+    const item = buildConsumerDisputedItemInput(rawCategoryRow, "credit_bureau");
+    const letter = buildConsumerDisputePacketLetterText(packetFromRows([rawCategoryRow]));
+
+    expect(item.issueType).toBe("reporting_issue");
+    expect(item.findingRecommendedAction).toBeNull();
+    expect(item.requestedAction).toBe("correct balance");
+    expect(letter).toContain("Specific dispute reason: The balance being reported does not appear accurate based on my records.");
+    expect(letter).toContain("Requested bureau action: Please investigate the reported balance and correct it, or remove the item if it cannot be verified.");
+    expect(letter).not.toMatch(/Documentation Chain Failure|TEMPORAL_MANIPULATION|confirmed legal violation/i);
   });
 
   it("keeps readiness and ownership checks tied to the selected finding", () => {

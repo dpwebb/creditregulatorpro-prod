@@ -394,6 +394,7 @@ function normalizedActionText(...values: Array<string | null | undefined>): stri
   return values
     .filter(hasText)
     .join(" ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, " ")
     .trim();

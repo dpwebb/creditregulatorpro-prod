@@ -212,6 +212,7 @@ function normalizedText(...values: Array<string | null | undefined>): string {
   return values
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
     .join(" ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, " ")
     .trim();
@@ -240,10 +241,10 @@ export function canonicalDisputeIntentFor(input: DisputeIntentInput = {}): Canon
     hasAny(text, [
       "MISSING COLLECTION AGENCY NAME",
       "COLLECTION AGENCY NAME",
+      "COLLECTIONAGENCYNAME",
       "INCOMPLETE COLLECTION",
       "COLLECTION OR DEFAULT STATUS",
-    ]) ||
-    input.isCollectionAccount === true
+    ])
   ) {
     return "INCOMPLETE_COLLECTION_REPORTING";
   }

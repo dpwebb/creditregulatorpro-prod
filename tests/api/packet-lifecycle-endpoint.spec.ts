@@ -443,6 +443,12 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
         requiresManualReview: false,
         reasonCodes: [],
       },
+      findingEligibility: {
+        findingKind: "dispute_basis",
+        consumerDisputeIntent: "INCONSISTENT_BALANCE_REPORTING",
+        formalViolationEligible: false,
+        legalConclusionAllowed: false,
+      },
     },
   });
 
@@ -466,6 +472,12 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
         confidenceScore: 95,
         requiresManualReview: false,
         reasonCodes: [],
+      },
+      findingEligibility: {
+        findingKind: "dispute_basis",
+        consumerDisputeIntent: "INCONSISTENT_STATUS_REPORTING",
+        formalViolationEligible: false,
+        legalConclusionAllowed: false,
       },
     },
   });
