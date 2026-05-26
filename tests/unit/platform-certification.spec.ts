@@ -93,7 +93,7 @@ describe("platform certification command", () => {
     expect(report.unresolvedBlockers).toEqual([]);
   });
 
-  it("fails closed and identifies missing admin credentials", async () => {
+  it("classifies missing admin credentials as input-blocked certification", async () => {
     const gates = [gate("runtimeAudit"), gate("adminClickThrough")];
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
@@ -108,14 +108,15 @@ describe("platform certification command", () => {
       completedAt: RUN_COMPLETED_AT,
     });
 
-    expect(report.certificationStatus).toBe("FAIL");
+    expect(report.certificationStatus).toBe("INCOMPLETE");
     expect(report.CERTIFYING).toBe(false);
+    expect(report.BLOCKED_BY_INPUTS).toBe(true);
     expect(report.deploymentReadinessScore).toBe(50);
     expect(report.unresolvedBlockers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           gateId: "adminClickThrough",
-          severity: "BLOCKER",
+          severity: "BLOCKED_BY_INPUTS",
           reason: expect.stringContaining("E2E admin credentials"),
         }),
       ]),
@@ -160,26 +161,75 @@ describe("platform certification command", () => {
     ]);
   });
 
-  it("classifies runtime SSH gaps as production blockers", () => {
+  it("classifies runtime SSH gaps as input-blocked production requirements", () => {
     const blockers = buildPlatformBlockers([gate("runtimeAudit")], [
       {
         id: "runtimeAudit",
         label: "Level 2 runtime/system audit",
         subsystem: "Infrastructure Readiness",
         command: "pnpm run audit:runtime --json",
-        status: "failed",
-        failureReason:
+        status: "incomplete",
+        incompleteReason:
           "Runtime audit could not certify container, DB, storage, OCR/PDF, log, or volume state because staging SSH diagnostics were unavailable.",
       },
     ]);
 
     expect(blockers).toEqual([
       expect.objectContaining({
-        severity: "BLOCKER",
+        severity: "BLOCKED_BY_INPUTS",
         subsystem: "Infrastructure Readiness",
         requiredBeforeProduction: true,
       }),
     ]);
+  });
+
+  it("classifies runtime audit access failure as incomplete, not platform failure", async () => {
+    const gates = [gate("runtimeAudit")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      runCommand: runCommandWithFailures(["runtimeAudit"], {
+        runtimeAudit: '{"completion":"AUDIT_ACCESS_FAILURE","status":"FAIL","checks":[{"subsystem":"SSH Diagnostics","status":"FAIL"}]}',
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.certificationStatus).toBe("INCOMPLETE");
+    expect(report.gates[0]).toMatchObject({
+      status: "incomplete",
+      incompleteReason: expect.stringContaining("Runtime audit diagnostics are unavailable"),
+    });
+    expect(report.infrastructureReadinessStatus).toBe("INCOMPLETE");
+  });
+
+  it("classifies admin click-through login rejection as credential/config incomplete", async () => {
+    const gates = [gate("adminClickThrough")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      runCommand: runCommandWithFailures(["adminClickThrough"], {
+        adminClickThrough: "Login failed for admin@example.test. Verify the E2E credentials and E2E_BASE_URL target.",
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.certificationStatus).toBe("INCOMPLETE");
+    expect(report.gates[0]).toMatchObject({
+      status: "incomplete",
+      diagnostic: expect.objectContaining({
+        observedFailure: "FAIL_AUTH",
+      }),
+    });
+    expect(report.unresolvedBlockers[0]).toMatchObject({
+      severity: "BLOCKED_BY_INPUTS",
+      reason: expect.stringContaining("failed login"),
+    });
   });
 
   it("classifies admin route navigation timeouts separately from credential failures", async () => {

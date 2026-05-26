@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "audit:static": "node scripts/static-audit.mjs",
     "audit:runtime": "node scripts/runtime-audit.mjs",
+    "audit:admin-auth": "tsx scripts/admin-auth-audit.ts",
     "audit:e2e": "tsx scripts/e2e-operational-audit.ts",
     "audit:resilience": "tsx scripts/resilience-audit.ts",
     "check": "pnpm run validate:release",

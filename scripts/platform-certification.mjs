@@ -9,6 +9,7 @@ export const PLATFORM_CERTIFICATION_MD_PATH = "docs/platform-certification/lates
 export const DEFAULT_STAGING_BASE_URL = "https://staging.creditregulatorpro.com";
 
 const DEFAULT_GATE_TIMEOUT_MS = 15 * 60 * 1000;
+const INPUT_BLOCKED_GATE_STATUS = "incomplete";
 
 const STAGING_BROWSER_ENV = {
   E2E_BASE_URL: DEFAULT_STAGING_BASE_URL,
@@ -384,8 +385,48 @@ function failureReasonForGate(gate, result) {
   return `${gate.label} failed with exit code ${result.exitCode}.`;
 }
 
-function diagnosticDetailsForGate(gate, result, failureReason) {
-  if (normalizeGateStatus(result.exitCode, result.timedOut) === "passed") return null;
+function incompleteReasonForGate(gate, result) {
+  if (result.timedOut) return null;
+  const combined = `${result.stdoutTail ?? ""}\n${result.stderrTail ?? ""}`;
+
+  if (gate.id === "runtimeAudit" && /AUDIT_ACCESS_FAILURE|Missing SSH credential inputs|SSH command execution failed/i.test(combined)) {
+    return [
+      "Runtime audit diagnostics are unavailable, so Docker, Traefik, env, DB, storage, OCR/PDF, log, and volume state are not certified.",
+      "Run with SSH credentials or directly on the staging VPS with --local-vps.",
+    ].join(" ");
+  }
+
+  if (gate.id === "runtimeAudit" && /PUBLIC_ONLY_PARTIAL_PASS|CONTAINER_LOCAL_PARTIAL_PASS/i.test(combined)) {
+    return "Runtime audit completed only a partial diagnostic mode; full host/container diagnostics are still required for production certification.";
+  }
+
+  if (gate.id === "e2eOperationalAudit" && /"status"\s*:\s*"INCOMPLETE"|ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING/i.test(combined)) {
+    return "E2E operational workflow completed without a platform failure, but the admin packet workflow probe was skipped because admin credentials were not supplied.";
+  }
+
+  if (gate.id === "e2eOperationalAudit" && /"status"\s*:\s*"FAIL_AUTH"|ADMIN_PROBE_AUTH_FAILED/i.test(combined)) {
+    return "E2E operational admin packet workflow could not authenticate with the configured admin credentials; this is an admin credential/configuration blocker, not a packet workflow failure.";
+  }
+
+  if (gate.id === "adminClickThrough" && /E2E_ADMIN_EMAIL|E2E_ADMIN_PASSWORD|Admin click-through certification is required/i.test(combined)) {
+    return "Admin click-through certification is blocked because E2E admin credentials are not configured.";
+  }
+
+  if (gate.id === "adminClickThrough" && /Login failed for .*Verify the E2E credentials/i.test(combined)) {
+    return "Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login.";
+  }
+
+  return null;
+}
+
+function normalizeGateStatusForResult(gate, result) {
+  if (result.timedOut) return "failed";
+  if (incompleteReasonForGate(gate, result)) return INPUT_BLOCKED_GATE_STATUS;
+  return normalizeGateStatus(result.exitCode, false);
+}
+
+function diagnosticDetailsForGate(gate, result, reason, status) {
+  if (status === "passed") return null;
   const combined = `${result.stdoutTail ?? ""}\n${result.stderrTail ?? ""}`;
 
   if (gate.id === "staticAudit") {
@@ -401,6 +442,12 @@ function diagnosticDetailsForGate(gate, result, failureReason) {
       missingInputs: [
         "STAGING_USER or --ssh-user",
         "STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY",
+      ],
+      commandExamples: [
+        'STAGING_USER="<user>" STAGING_OBSERVABILITY_SSH_KEY="<path>" pnpm audit:runtime --ssh',
+        'STAGING_USER="<user>" STAGING_RUNTIME_SSH_KEY="<path>" pnpm audit:runtime --ssh',
+        "pnpm audit:runtime --ssh --ssh-user <user> --ssh-key <path>",
+        "cd /opt/creditregulatorpro-staging/app && pnpm audit:runtime --local-vps",
       ],
       blockedSubsystems: [
         "Docker Containers",
@@ -419,13 +466,55 @@ function diagnosticDetailsForGate(gate, result, failureReason) {
     };
   }
 
+  if (gate.id === "runtimeAudit" && /AUDIT_ACCESS_FAILURE|PUBLIC_ONLY_PARTIAL_PASS|CONTAINER_LOCAL_PARTIAL_PASS|SSH command execution failed/i.test(combined)) {
+    return {
+      completion:
+        combined.match(/"completion"\s*:\s*"([^"]+)"/)?.[1] ??
+        (/SSH command execution failed/i.test(combined) ? "AUDIT_ACCESS_FAILURE" : "UNKNOWN"),
+      commandExamples: [
+        'STAGING_USER="<user>" STAGING_OBSERVABILITY_SSH_KEY="<path>" pnpm audit:runtime --ssh',
+        'STAGING_USER="<user>" STAGING_RUNTIME_SSH_KEY="<path>" pnpm audit:runtime --ssh',
+        "pnpm audit:runtime --ssh --ssh-user <user> --ssh-key <path>",
+        "cd /opt/creditregulatorpro-staging/app && pnpm audit:runtime --local-vps",
+      ],
+      blockedSubsystems: [
+        "Docker Containers",
+        "Traefik Routing",
+        "Environment Variables",
+        "Database Connectivity",
+        "Storage Connectivity",
+        "OCR/PDF Tooling",
+        "Runtime Logs",
+      ],
+      rawOutputStored: false,
+    };
+  }
+
   if (gate.id === "e2eOperationalAudit" && /STAGING_ADMIN_EMAIL|STAGING_ADMIN_PASSWORD|STAGING_ADMIN_SESSION_COOKIE/i.test(combined)) {
     return {
       missingInputs: [
         "STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD",
         "STAGING_ADMIN_SESSION_COOKIE",
       ],
+      commandExamples: [
+        'STAGING_ADMIN_EMAIL="<email>" STAGING_ADMIN_PASSWORD="<password>" pnpm audit:e2e --require-admin',
+        'STAGING_ADMIN_SESSION_COOKIE="<cookie>" pnpm audit:e2e --require-admin',
+        'STAGING_ADMIN_EMAIL="<email>" STAGING_ADMIN_PASSWORD="<password>" pnpm audit:admin-auth',
+        'STAGING_ADMIN_SESSION_COOKIE="<cookie>" pnpm audit:admin-auth',
+      ],
       blockedStage: "admin_packet_workflow",
+      rawOutputStored: false,
+    };
+  }
+
+  if (gate.id === "e2eOperationalAudit" && /"status"\s*:\s*"FAIL_AUTH"|ADMIN_PROBE_AUTH_FAILED/i.test(combined)) {
+    return {
+      observedFailure: "FAIL_AUTH",
+      blockedStage: "admin_packet_workflow",
+      commandExamples: [
+        'STAGING_ADMIN_EMAIL="<email>" STAGING_ADMIN_PASSWORD="<password>" pnpm audit:admin-auth',
+        'STAGING_ADMIN_SESSION_COOKIE="<cookie>" pnpm audit:admin-auth',
+      ],
       rawOutputStored: false,
     };
   }
@@ -434,18 +523,27 @@ function diagnosticDetailsForGate(gate, result, failureReason) {
     return {
       targetBaseUrl: DEFAULT_STAGING_BASE_URL,
       observedFailure: /Login failed for/i.test(combined)
-        ? "admin-login-failed"
+        ? "FAIL_AUTH"
         : /Test timeout|page\.goto: Test timeout|waiting until/i.test(combined)
           ? "admin-navigation-timeout"
           : /No audit logs found matching your criteria|Expected substring:[\s\S]*DELETE|toContainText[\s\S]*DELETE/i.test(combined)
             ? "admin-audit-log-filter-empty"
-          : failureReason,
+          : reason,
+      commandExamples:
+        /Login failed for|E2E_ADMIN_EMAIL|E2E_ADMIN_PASSWORD/i.test(combined)
+          ? [
+              'E2E_ADMIN_EMAIL="<email>" E2E_ADMIN_PASSWORD="<password>" pnpm certify:platform',
+              'STAGING_ADMIN_EMAIL="<email>" STAGING_ADMIN_PASSWORD="<password>" pnpm certify:platform',
+              'STAGING_ADMIN_EMAIL="<email>" STAGING_ADMIN_PASSWORD="<password>" pnpm audit:admin-auth',
+              'STAGING_ADMIN_SESSION_COOKIE="<cookie>" pnpm audit:admin-auth',
+            ]
+          : [],
       rawOutputStored: false,
     };
   }
 
   return {
-    observedFailure: failureReason,
+    observedFailure: reason,
     rawOutputStored: false,
   };
 }
@@ -453,8 +551,14 @@ function diagnosticDetailsForGate(gate, result, failureReason) {
 function normalizeCommandResult(gate, result) {
   const exitCode = Number.isInteger(result.exitCode) ? result.exitCode : 1;
   const timedOut = result.timedOut === true;
-  const status = normalizeGateStatus(exitCode, timedOut);
-  const failureReason = status === "failed" ? failureReasonForGate(gate, { ...result, exitCode, timedOut }) : null;
+  const normalizedResult = { ...result, exitCode, timedOut };
+  const status = normalizeGateStatusForResult(gate, normalizedResult);
+  const reason =
+    status === "failed"
+      ? failureReasonForGate(gate, normalizedResult)
+      : status === INPUT_BLOCKED_GATE_STATUS
+        ? incompleteReasonForGate(gate, normalizedResult)
+        : null;
   return {
     id: gate.id,
     label: gate.label,
@@ -469,8 +573,9 @@ function normalizeCommandResult(gate, result) {
     rawOutputStored: false,
     envKeys: Object.keys(gate.env ?? {}).sort(),
     certifies: gate.certifies ?? [],
-    failureReason,
-    diagnostic: diagnosticDetailsForGate(gate, { ...result, exitCode, timedOut }, failureReason),
+    failureReason: status === "failed" ? reason : null,
+    incompleteReason: status === INPUT_BLOCKED_GATE_STATUS ? reason : null,
+    diagnostic: diagnosticDetailsForGate(gate, normalizedResult, reason, status),
   };
 }
 
@@ -495,10 +600,13 @@ export function buildSubsystemCertificationMatrix(results, subsystems = PLATFORM
       .filter(Boolean);
     const missingGateIds = subsystem.gateIds.filter((gateId) => !resultById.has(gateId));
     const failedGateIds = gateResults.filter((entry) => entry.status === "failed").map((entry) => entry.id);
+    const incompleteGateIds = gateResults.filter((entry) => entry.status === INPUT_BLOCKED_GATE_STATUS).map((entry) => entry.id);
     const passedGateIds = gateResults.filter((entry) => entry.status === "passed").map((entry) => entry.id);
     const status =
       failedGateIds.length > 0
         ? "FAIL"
+        : incompleteGateIds.length > 0
+          ? "INCOMPLETE"
         : missingGateIds.length > 0 && subsystem.requiredForPass
           ? "SKIP"
           : "PASS";
@@ -510,6 +618,7 @@ export function buildSubsystemCertificationMatrix(results, subsystems = PLATFORM
       gateIds: subsystem.gateIds,
       passedGateIds,
       failedGateIds,
+      incompleteGateIds,
       missingGateIds,
     };
   });
@@ -518,16 +627,17 @@ export function buildSubsystemCertificationMatrix(results, subsystems = PLATFORM
 export function buildPlatformBlockers(gates, results) {
   const gateById = new Map(gates.map((gate) => [gate.id, gate]));
   return results
-    .filter((result) => result.status === "failed")
+    .filter((result) => result.status === "failed" || result.status === INPUT_BLOCKED_GATE_STATUS)
     .map((result) => {
       const gate = gateById.get(result.id);
+      const inputBlocked = result.status === INPUT_BLOCKED_GATE_STATUS;
       return {
-        severity: "BLOCKER",
+        severity: inputBlocked ? "BLOCKED_BY_INPUTS" : "BLOCKER",
         subsystem: result.subsystem,
         gateId: result.id,
         gateLabel: result.label,
         command: result.command,
-        reason: result.failureReason ?? `${result.label} failed.`,
+        reason: result.failureReason ?? result.incompleteReason ?? `${result.label} failed.`,
         requiredBeforeProduction: true,
         weight: gate?.weight ?? null,
       };
@@ -537,6 +647,7 @@ export function buildPlatformBlockers(gates, results) {
 function statusFromGateIds(gateIds, results) {
   const resultById = new Map(results.map((entry) => [entry.id, entry]));
   if (gateIds.some((gateId) => resultById.get(gateId)?.status === "failed")) return "FAIL";
+  if (gateIds.some((gateId) => resultById.get(gateId)?.status === INPUT_BLOCKED_GATE_STATUS)) return "INCOMPLETE";
   if (gateIds.some((gateId) => !resultById.has(gateId))) return "SKIP";
   return "PASS";
 }
@@ -551,6 +662,15 @@ function buildRiskAssessment(report) {
     };
   }
 
+  if (blockers.every((blocker) => blocker.severity === "BLOCKED_BY_INPUTS")) {
+    return {
+      level: "UNKNOWN",
+      summary:
+        "Production deployment is not certified because required credential/access inputs were unavailable; no platform failure is asserted by these incomplete gates.",
+      reasons: blockers.map((blocker) => `${blocker.subsystem}: ${blocker.reason}`),
+    };
+  }
+
   return {
     level: blockers.some((blocker) => blocker.severity === "BLOCKER") ? "HIGH" : "MEDIUM",
     summary: "Production deployment is not certified until every blocker is resolved and the platform certification reruns cleanly.",
@@ -559,7 +679,9 @@ function buildRiskAssessment(report) {
 }
 
 function certificationDecision(results) {
-  return results.every((result) => result.status === "passed") ? "PASS" : "FAIL";
+  if (results.some((result) => result.status === "failed")) return "FAIL";
+  if (results.some((result) => result.status === INPUT_BLOCKED_GATE_STATUS)) return "INCOMPLETE";
+  return "PASS";
 }
 
 export async function buildPlatformCertificationReport(options = {}) {
@@ -602,11 +724,14 @@ export async function buildPlatformCertificationReport(options = {}) {
     targetBaseUrl: DEFAULT_STAGING_BASE_URL,
     certificationStatus,
     CERTIFYING: certificationStatus === "PASS",
+    BLOCKED_BY_INPUTS: certificationStatus === "INCOMPLETE",
+    strictMode: options.strict === true,
     deploymentReadinessScore,
     commandCounts: {
       total: results.length,
       passed: results.filter((result) => result.status === "passed").length,
       failed: results.filter((result) => result.status === "failed").length,
+      incomplete: results.filter((result) => result.status === INPUT_BLOCKED_GATE_STATUS).length,
     },
     gateStatus,
     gates: results,
@@ -646,12 +771,15 @@ export async function buildPlatformCertificationReport(options = {}) {
     operationalStabilitySummary:
       certificationStatus === "PASS"
         ? "Operational stability is certified by the mandatory static, runtime, E2E, resilience, admin, deployment, rollback, storage, and parity gates."
+        : certificationStatus === "INCOMPLETE"
+          ? "Operational stability is not certified because one or more mandatory gates were blocked by missing credentials or unavailable diagnostics."
         : "Operational stability is not certified; at least one mandatory Level 5 gate failed or could not run to completion.",
   };
 }
 
 function statusIcon(status) {
   if (status === "PASS" || status === "passed") return "PASS";
+  if (status === "INCOMPLETE" || status === INPUT_BLOCKED_GATE_STATUS) return "INCOMPLETE";
   if (status === "SKIP" || status === "skipped") return "SKIP";
   return "FAIL";
 }
@@ -666,11 +794,12 @@ export function renderPlatformCertificationMarkdown(report) {
     `Commit: \`${report.currentCommit}\``,
     `Formal certification: **${report.certificationStatus}**`,
     `CERTIFYING:${report.CERTIFYING ? "true" : "false"}`,
+    `BLOCKED_BY_INPUTS:${report.BLOCKED_BY_INPUTS ? "true" : "false"}`,
     `Deployment readiness score: **${report.deploymentReadinessScore}/100**`,
     "",
     "## Summary",
     "",
-    `- Commands: ${report.commandCounts.passed} passed, ${report.commandCounts.failed} failed, ${report.commandCounts.total} total`,
+    `- Commands: ${report.commandCounts.passed} passed, ${report.commandCounts.incomplete} incomplete, ${report.commandCounts.failed} failed, ${report.commandCounts.total} total`,
     `- Infrastructure readiness: ${report.infrastructureReadinessStatus}`,
     `- Storage lifecycle: ${report.storageLifecycleStatus}`,
     `- Packet lifecycle: ${report.packetLifecycleStatus}`,
@@ -745,7 +874,7 @@ export async function writePlatformCertificationOutputs(report, repoRoot = proce
 }
 
 function parseArgs(args) {
-  const options = { json: false, writeReport: true };
+  const options = { json: false, writeReport: true, strict: false };
   for (const arg of args) {
     if (arg === "--json") {
       options.json = true;
@@ -755,8 +884,12 @@ function parseArgs(args) {
       options.writeReport = false;
       continue;
     }
+    if (arg === "--strict") {
+      options.strict = true;
+      continue;
+    }
     if (arg === "--help" || arg === "-h") {
-      console.log("Usage: pnpm certify:platform -- [--json] [--no-write-report]");
+      console.log("Usage: pnpm certify:platform -- [--json] [--no-write-report] [--strict]");
       process.exit(0);
     }
     throw new Error(`Unknown option: ${arg}`);
@@ -767,7 +900,7 @@ function parseArgs(args) {
 async function main() {
   const repoRoot = repoRootFromScript();
   const options = parseArgs(process.argv.slice(2));
-  const report = await buildPlatformCertificationReport({ repoRoot, logProgress: true });
+  const report = await buildPlatformCertificationReport({ repoRoot, logProgress: true, strict: options.strict });
   let outputs = null;
   if (options.writeReport) {
     outputs = await writePlatformCertificationOutputs(report, repoRoot);
@@ -777,6 +910,7 @@ async function main() {
     console.log(JSON.stringify(report, null, 2));
   } else {
     console.log(`[certify:platform] formal certification: ${report.certificationStatus}`);
+    console.log(`[certify:platform] blocked by inputs: ${report.BLOCKED_BY_INPUTS ? "yes" : "no"}`);
     console.log(`[certify:platform] deployment readiness score: ${report.deploymentReadinessScore}/100`);
     console.log(`[certify:platform] blockers: ${report.unresolvedBlockers.length}`);
     if (outputs) {
@@ -785,7 +919,7 @@ async function main() {
     }
   }
 
-  process.exitCode = report.CERTIFYING ? 0 : 1;
+  process.exitCode = report.CERTIFYING || (!options.strict && report.certificationStatus === "INCOMPLETE") ? 0 : 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

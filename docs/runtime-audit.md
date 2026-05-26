@@ -11,6 +11,13 @@ Run from the staging repo on a workstation that has staging SSH access:
 pnpm audit:runtime --ssh --ssh-user <user> --ssh-key <path>
 ```
 
+Equivalent environment-variable form:
+
+```bash
+STAGING_USER="<user>" STAGING_OBSERVABILITY_SSH_KEY="<path>" pnpm audit:runtime --ssh
+STAGING_USER="<user>" STAGING_RUNTIME_SSH_KEY="<path>" pnpm audit:runtime --ssh
+```
+
 The SSH mode runs public HTTP/TLS checks from the workstation, then executes
 Docker, container, DB, storage, filesystem, OCR/PDF, disk, and log checks on the
 staging VPS through SSH.

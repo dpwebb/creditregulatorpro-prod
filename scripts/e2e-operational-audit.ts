@@ -14,9 +14,10 @@ import {
 
 const DEFAULT_STAGING_BASE_URL = "https://staging.creditregulatorpro.com";
 export const ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING = "ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING";
+export const ADMIN_PROBE_AUTH_FAILED = "ADMIN_PROBE_AUTH_FAILED";
 
 type StageStatus = "PASS" | "FAIL" | "WARN" | "SKIP";
-type OperationalAuditStatus = "PASS" | "FAIL" | "INCOMPLETE";
+type OperationalAuditStatus = "PASS" | "FAIL" | "INCOMPLETE" | "FAIL_AUTH";
 
 type AuditStage = {
   id: string;
@@ -94,9 +95,10 @@ type OwnerReadinessBlockerProbe = {
 };
 
 type AdminPacketWorkflowProbe = {
-  status: "passed" | "failed" | "skipped";
+  status: "passed" | "failed" | "skipped" | "auth_failed";
   mode?: "session_cookie" | "credentials";
   skipCode?: typeof ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING;
+  authFailureCode?: typeof ADMIN_PROBE_AUTH_FAILED;
   detail: string;
   adminSessionUserId?: number;
   readinessBypassBlocked?: boolean;
@@ -188,7 +190,11 @@ export function buildE2eOperationalAuditEnv(env: NodeJS.ProcessEnv = process.env
 export function resolveAdminAuthInputs(env: NodeJS.ProcessEnv, host?: string): AdminAuthInputs {
   const prefix = isLocalHost(host) ? "LOCAL_SMOKE" : "STAGING";
   const fallbackPrefix = prefix === "STAGING" ? "LOCAL_SMOKE" : "STAGING";
-  const sessionCookie = envValue(env, [`${prefix}_ADMIN_SESSION_COOKIE`, `${fallbackPrefix}_ADMIN_SESSION_COOKIE`]);
+  const sessionCookie = envValue(env, [
+    `${prefix}_ADMIN_SESSION_COOKIE`,
+    `${fallbackPrefix}_ADMIN_SESSION_COOKIE`,
+    "E2E_ADMIN_SESSION_COOKIE",
+  ]);
   if (sessionCookie) {
     return {
       status: "configured",
@@ -197,8 +203,8 @@ export function resolveAdminAuthInputs(env: NodeJS.ProcessEnv, host?: string): A
     };
   }
 
-  const email = envValue(env, [`${prefix}_ADMIN_EMAIL`, `${fallbackPrefix}_ADMIN_EMAIL`]);
-  const password = envValue(env, [`${prefix}_ADMIN_PASSWORD`, `${fallbackPrefix}_ADMIN_PASSWORD`]);
+  const email = envValue(env, [`${prefix}_ADMIN_EMAIL`, `${fallbackPrefix}_ADMIN_EMAIL`, "E2E_ADMIN_EMAIL"]);
+  const password = envValue(env, [`${prefix}_ADMIN_PASSWORD`, `${fallbackPrefix}_ADMIN_PASSWORD`, "E2E_ADMIN_PASSWORD"]);
   if (email && password) {
     return {
       status: "configured",
@@ -232,6 +238,11 @@ export function classifyE2eFailureStage(message: string): string {
   return "runtime";
 }
 
+function adminAuthFailureDetail(error: unknown, env: NodeJS.ProcessEnv): string {
+  const message = redactSecretText(error instanceof Error ? error.message : String(error), env);
+  return `${ADMIN_PROBE_AUTH_FAILED}: ${message}`;
+}
+
 async function authenticateAdminApi(
   config: SmokeBeforeCleanupContext["config"],
   env: NodeJS.ProcessEnv,
@@ -258,7 +269,7 @@ async function authenticateAdminApi(
   if ("error" in session) {
     throw new Error(`Admin authentication did not produce a session: ${session.error}`);
   }
-  if (session.user.role !== "admin") {
+  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
     throw new Error(`Configured admin auth resolved to role ${session.user.role}.`);
   }
 
@@ -323,8 +334,20 @@ async function runAdminPacketWorkflowProbe(
     };
   }
 
+  let authenticated: Awaited<ReturnType<typeof authenticateAdminApi>>;
   try {
-    const { api, mode, adminUserId } = await authenticateAdminApi(context.config, env);
+    authenticated = await authenticateAdminApi(context.config, env);
+  } catch (error) {
+    return {
+      status: "auth_failed",
+      mode: auth.mode,
+      authFailureCode: ADMIN_PROBE_AUTH_FAILED,
+      detail: adminAuthFailureDetail(error, env),
+    };
+  }
+
+  const { api, mode, adminUserId } = authenticated;
+  try {
     const packetInput = {
       packetType: "credit_bureau",
       selectedIssueIds: [context.selectedIssueId],
@@ -650,6 +673,7 @@ export function evaluateOperationalAudit(
   const adminCredentialsMissing =
     adminProbe?.status === "skipped" &&
     adminProbe.skipCode === ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING;
+  const adminAuthFailed = adminProbe?.status === "auth_failed";
   const adminStatus: StageStatus =
     adminProbe?.status === "passed"
       ? "PASS"
@@ -661,11 +685,14 @@ export function evaluateOperationalAudit(
       ? requireAdmin
         ? `${ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING}: Admin credentials are required because --require-admin was set.`
         : `${ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING}: Non-admin workflow completed, but admin credentials were not supplied for the admin packet workflow probe.`
+      : adminAuthFailed
+        ? adminProbe.detail
       : adminProbe?.detail ?? "Admin packet workflow probe did not run.";
   stage(stages, "admin_packet_workflow", "Admin Packet Workflow", adminStatus, adminDetails, {
     status: adminProbe?.status,
     mode: adminProbe?.mode,
     skipCode: adminProbe?.skipCode,
+    authFailureCode: adminProbe?.authFailureCode,
     requireAdmin,
     adminSessionUserId: adminProbe?.adminSessionUserId,
     readinessBypassBlocked: adminProbe?.readinessBypassBlocked,
@@ -700,7 +727,7 @@ export function evaluateOperationalAudit(
   const failureStages = stages.filter((item) => item.status === "FAIL").map((item) => item.id);
   const incompleteStages = stages.filter((item) => item.status === "SKIP").map((item) => item.id);
   const status: OperationalAuditStatus =
-    failureStages.length > 0 ? "FAIL" : incompleteStages.length > 0 ? "INCOMPLETE" : "PASS";
+    adminAuthFailed ? "FAIL_AUTH" : failureStages.length > 0 ? "FAIL" : incompleteStages.length > 0 ? "INCOMPLETE" : "PASS";
 
   return {
     status,
@@ -709,6 +736,8 @@ export function evaluateOperationalAudit(
         ? "Operational PASS: staging upload-to-packet workflow, admin packet probe, authorization, PDF retrieval, and cleanup lifecycle passed."
         : status === "INCOMPLETE"
           ? "Operational INCOMPLETE: non-admin staging workflow passed, but the admin packet workflow probe was skipped because admin credentials were missing."
+          : status === "FAIL_AUTH"
+            ? "Operational FAIL_AUTH: configured admin credentials failed authentication, so the admin packet workflow probe could not run."
           : "Operational FAIL: one or more required Level 3 audit stages failed.",
     generatedAt: new Date().toISOString(),
     baseUrl: result.baseUrl,
@@ -723,6 +752,7 @@ export function evaluateOperationalAudit(
       ownerPacketPdfByteLength: result.packet.pdfByteLength,
       adminProbeStatus: adminProbe?.status ?? null,
       adminProbeSkipCode: adminProbe?.skipCode ?? null,
+      adminProbeAuthFailureCode: adminProbe?.authFailureCode ?? null,
       adminPacketPdfByteLength: adminProbe?.pdfByteLength ?? null,
       cleanupReportArtifacts: ownerCounts.reportArtifacts ?? null,
       cleanupTradelines: ownerCounts.tradelines ?? null,
@@ -799,6 +829,7 @@ export async function runE2eOperationalAuditCli(
     console.log(JSON.stringify(report, null, 2));
     if (report.status === "PASS") return 0;
     if (report.status === "INCOMPLETE") return SKIPPED_EXIT_CODE;
+    if (report.status === "FAIL_AUTH") return 3;
     return 1;
   } catch (error) {
     const message = redactSecretText(error instanceof Error ? error.message : String(error), auditEnv);

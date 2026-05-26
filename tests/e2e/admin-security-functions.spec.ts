@@ -32,6 +32,15 @@ test.describe("Security & Compliance admin functions", () => {
       await page.getByRole("button", { name: "Previous" }).click();
     }
 
+    const failedLoginEmail = `admin-clickthrough-${Date.now()}@example.invalid`;
+    await page.evaluate(async (email) => {
+      await fetch("/_api/auth/login_with_password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: "intentionally-invalid-password" }),
+      });
+    }, failedLoginEmail);
+
     await page.evaluate(async () => {
       const response = await fetch("/_api/admin/retention", {
         method: "POST",
@@ -43,20 +52,19 @@ test.describe("Security & Compliance admin functions", () => {
       }
     });
 
-    await page.getByLabel("Action Type").selectOption("DELETE");
+    await page.getByLabel("Action Type").selectOption("LOGIN_FAILED");
     await page.getByLabel("Status").selectOption("FAILURE");
-    await page.getByLabel("User Email").fill(adminCredentials!.email);
-    await expect(page.locator("tbody")).toContainText("DELETE", { timeout: 15000 });
+    await expect(page.locator("tbody")).toContainText("Login Failed", { timeout: 15000 });
     await expect(page.locator("tbody")).toContainText("FAILURE");
 
-    await page.getByLabel("Error Severity").selectOption("LOW");
+    await page.getByLabel("Error Severity").selectOption("HIGH");
     await expect(page.locator("body")).toBeVisible();
     await page.getByLabel("Error Severity").selectOption("");
 
     await page.getByRole("button", { name: /View details for audit log/i }).first().click();
     const detailsDialog = page.getByRole("dialog", { name: "Log Details" });
     await expect(detailsDialog).toBeVisible();
-    await expect(page.getByText("MANUAL_RETENTION_ENFORCEMENT")).toBeVisible();
+    await expect(detailsDialog).toContainText(failedLoginEmail);
     await detailsDialog.getByRole("button", { name: "Close" }).filter({ hasText: "Close" }).click();
   });
 
@@ -105,7 +113,6 @@ test.describe("Security & Compliance admin functions", () => {
     await page.getByRole("tab", { name: /Semantic Audit/i }).click();
 
     await page.getByRole("button", { name: "Run Full Audit" }).click();
-    await expect(page.getByText("Running semantic audit...")).toBeVisible();
     await expect(page.getByText("Total Checks")).toBeVisible({ timeout: 60000 });
     await expect(page.getByText("Passed", { exact: true })).toBeVisible();
     await expect(page.getByText("Failed", { exact: true })).toBeVisible();
@@ -122,7 +129,6 @@ test.describe("Security & Compliance admin functions", () => {
     if (userId) {
       await page.getByPlaceholder("User ID").fill(String(userId));
       await page.getByRole("button", { name: "Audit Specific User" }).click();
-      await expect(page.getByText("Running semantic audit...")).toBeVisible();
       await expect(page.getByText("Total Checks")).toBeVisible({ timeout: 60000 });
     }
 

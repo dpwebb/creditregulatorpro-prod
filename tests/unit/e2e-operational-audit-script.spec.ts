@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  ADMIN_PROBE_AUTH_FAILED,
   ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING,
   buildE2eOperationalAuditEnv,
   classifyE2eFailureStage,
@@ -175,6 +176,16 @@ describe("e2e operational audit script", () => {
       mode: "credentials",
     });
 
+    expect(
+      resolveAdminAuthInputs({
+        E2E_ADMIN_EMAIL: "admin@example.test",
+        E2E_ADMIN_PASSWORD: "super-secret-password",
+      }, "staging.creditregulatorpro.com"),
+    ).toMatchObject({
+      status: "configured",
+      mode: "credentials",
+    });
+
     expect(resolveAdminAuthInputs({}, "staging.creditregulatorpro.com")).toMatchObject({
       status: "missing",
       reason: expect.stringContaining("STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD"),
@@ -281,6 +292,37 @@ describe("e2e operational audit script", () => {
       details: expect.stringContaining(ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING),
       evidence: expect.objectContaining({
         requireAdmin: true,
+      }),
+    });
+  });
+
+  it("reports FAIL_AUTH when configured admin credentials cannot authenticate", () => {
+    const report = evaluateOperationalAudit(mockSmokeResult({
+      beforeCleanupProbe: {
+        ownerReadinessBlocker: {
+          status: "passed",
+          packetReady: false,
+          reasonCodes: ["FINDING_NOT_FOUND"],
+          detail: "Readiness endpoint returned a deterministic blocker for a missing finding.",
+        },
+        adminPacketWorkflow: {
+          status: "auth_failed",
+          mode: "credentials",
+          authFailureCode: ADMIN_PROBE_AUTH_FAILED,
+          detail: `${ADMIN_PROBE_AUTH_FAILED}: HTTP 401 /_api/auth/login_with_password: Invalid email or password`,
+        },
+      },
+    }) as never, 90_000);
+
+    expect(report.status).toBe("FAIL_AUTH");
+    expect(report.certification).toContain("Operational FAIL_AUTH");
+    expect(report.failureStages).toContain("admin_packet_workflow");
+    expect(report.stages.find((stage) => stage.id === "admin_packet_workflow")).toMatchObject({
+      status: "FAIL",
+      details: expect.stringContaining(ADMIN_PROBE_AUTH_FAILED),
+      evidence: expect.objectContaining({
+        status: "auth_failed",
+        authFailureCode: ADMIN_PROBE_AUTH_FAILED,
       }),
     });
   });

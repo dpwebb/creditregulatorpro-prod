@@ -9,12 +9,26 @@ export type E2ECredentials = {
 };
 
 export function resolveE2EAdminCredentials(): E2ECredentials | null {
+  const stagingCredentials =
+    process.env.STAGING_ADMIN_EMAIL && process.env.STAGING_ADMIN_PASSWORD
+      ? {
+          email: process.env.STAGING_ADMIN_EMAIL,
+          password: process.env.STAGING_ADMIN_PASSWORD,
+        }
+      : null;
+
+  if (!isLocalhostUrl(E2E_BASE_URL) && stagingCredentials) {
+    return stagingCredentials;
+  }
+
   if (process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD) {
     return {
       email: process.env.E2E_ADMIN_EMAIL,
       password: process.env.E2E_ADMIN_PASSWORD,
     };
   }
+
+  if (stagingCredentials) return stagingCredentials;
 
   if (!isLocalhostUrl(E2E_BASE_URL)) {
     return null;
