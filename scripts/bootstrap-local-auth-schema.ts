@@ -235,6 +235,14 @@ async function main() {
       created_at timestamptz not null default now()
     )`;
 
+    await sql`create table if not exists public.system_settings (
+      key text primary key,
+      value text not null,
+      description text null,
+      updated_at timestamptz not null default now(),
+      updated_by_user_id bigint null references public.users(id) on delete set null
+    )`;
+
     await sql`insert into public.system_settings(key, value, description, updated_at, updated_by_user_id)
       values
         ('production_mode', 'false', 'local mode', now(), null),

@@ -45,6 +45,7 @@ describe("local bootstrap table coverage", () => {
       "userAccount",
       "consumerIdentificationDocument",
       "sessions",
+      "systemSettings",
       "subscriptions",
       "reportArtifact",
       "passExtraction",
