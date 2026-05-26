@@ -417,6 +417,64 @@ describe("production promotion guard", () => {
     });
   });
 
+  it("allows controlled go-live with Level 5 PASS_WITH_WARNINGS when all hard gates are still certifying", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(
+      root,
+      platformCertification({
+        certificationStatus: "PASS_WITH_WARNINGS",
+        warnOnlyFindings: [
+          {
+            severity: "WARN_ONLY",
+            subsystem: "Infrastructure Readiness",
+            reason: "Runtime audit passed with non-fatal warnings.",
+          },
+        ],
+      }),
+    );
+
+    const result = validateControlledGoLivePromotion({
+      rootDir: root,
+      currentHead: HEAD,
+      env: hostKeyEnv(),
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.certification).toMatchObject({
+      certificationStatus: "PASS_WITH_WARNINGS",
+      deploymentReadinessScore: 100,
+      blockers: 0,
+      targetAccepted: true,
+    });
+  });
+
+  it("blocks controlled go-live when Level 5 certification is not certifying", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(
+      root,
+      platformCertification({
+        certificationStatus: "INCOMPLETE",
+        CERTIFYING: false,
+        BLOCKED_BY_INPUTS: true,
+      }),
+    );
+
+    const result = validateControlledGoLivePromotion({
+      rootDir: root,
+      currentHead: HEAD,
+      env: hostKeyEnv(),
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.certification.reasons.map((reason) => reason.code)).toEqual(
+      expect.arrayContaining([
+        "platform-certification-not-pass",
+        "platform-certification-blocked-inputs",
+        "platform-certification-not-certifying",
+      ]),
+    );
+  });
+
   it("blocks controlled go-live when host-key pinning input is missing", () => {
     const root = tempRoot();
     writeControlledGoLiveFixture(root);

@@ -395,6 +395,10 @@ function unresolvedBlockerCount(report) {
   return null;
 }
 
+function acceptedPlatformCertificationStatus(status) {
+  return status === "PASS" || status === "PASS_WITH_WARNINGS";
+}
+
 export function validatePlatformCertificationForGoLive(report, {
   rootDir = repoRootFromScript(),
   currentHead = null,
@@ -412,8 +416,8 @@ export function validatePlatformCertificationForGoLive(report, {
   if (!report || typeof report !== "object" || Array.isArray(report)) {
     addReason(reasons, "invalid-platform-certification", "Platform certification JSON did not parse to an object.");
   }
-  if (report?.certificationStatus !== "PASS") {
-    addReason(reasons, "platform-certification-not-pass", "Platform certification status is not PASS.");
+  if (!acceptedPlatformCertificationStatus(report?.certificationStatus)) {
+    addReason(reasons, "platform-certification-not-pass", "Platform certification status is not PASS or PASS_WITH_WARNINGS.");
   }
   if (report?.deploymentReadinessScore !== 100) {
     addReason(reasons, "platform-certification-score", "Platform certification readiness score is not 100.");
