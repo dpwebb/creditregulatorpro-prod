@@ -81,12 +81,25 @@ export function buildIngestWorkerBoundaryEvidence({
     checkContains(statusPresenter, "stalled_no_worker_heartbeat", "upload status exposes no-worker heartbeat state"),
     checkContains(stagingCompose, "creditregulatorpro-staging-ingest-worker", "staging compose has ingest worker service"),
     checkContains(stagingCompose, "--source authenticated_ingest_process", "staging worker service scopes source"),
-    checkContains(productionCompose, "creditregulatorpro-ingest-worker", "production compose has ingest worker service"),
-    checkContains(productionCompose, "explicit-bounded-production-ingest-worker-apply", "production worker service keeps explicit apply guard"),
+    {
+      name: "production compose keeps ingest worker default-off",
+      passed: !/^\s{2}creditregulatorpro-ingest-worker:/m.test(productionCompose),
+      detail: "docker-compose.production.yml must not define creditregulatorpro-ingest-worker for normal first go-live deploys",
+    },
+    checkContains(productionWorkflow, "explicit-bounded-production-ingest-worker-apply", "production manual worker path keeps explicit apply guard"),
+    checkContains(productionWorkflow, "--source authenticated_ingest_process", "production manual worker path scopes source"),
+    checkContains(productionWorkflow, "--concurrency 1", "production manual worker path keeps bounded concurrency"),
     checkContains(stagingWorkflow, "ingest:worker-boundary-evidence", "staging workflow runs ingest worker boundary preflight"),
     checkContains(productionWorkflow, "ingest:worker-boundary-evidence", "production workflow runs ingest worker boundary preflight"),
     checkContains(stagingWorkflow, "creditregulatorpro-staging creditregulatorpro-staging-ingest-worker", "staging workflow starts app and ingest worker services"),
-    checkContains(productionWorkflow, "creditregulatorpro creditregulatorpro-ingest-worker", "production workflow starts app and ingest worker services"),
+    {
+      name: "production workflow starts app without ingest worker by default",
+      passed:
+        productionWorkflow.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro") &&
+        !productionWorkflow.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker") &&
+        productionWorkflow.includes("production ingest worker started during default no-worker deploy"),
+      detail: "normal production deploy starts only creditregulatorpro and asserts creditregulatorpro-ingest-worker is absent",
+    },
   ];
   const passed = checks.every((check) => check.passed);
 
@@ -107,7 +120,10 @@ export function buildIngestWorkerBoundaryEvidence({
     checks,
     deployStaticCheck: {
       stagingWorkerPathPresent: checks.find((check) => check.name === "staging compose has ingest worker service")?.passed === true,
-      productionWorkerPathPresent: checks.find((check) => check.name === "production compose has ingest worker service")?.passed === true,
+      productionWorkerPathPresent:
+        checks.find((check) => check.name === "production workflow starts app without ingest worker by default")?.passed === true,
+      productionWorkerDefaultOff:
+        checks.find((check) => check.name === "production compose keeps ingest worker default-off")?.passed === true,
       workflowPreflightPresent: checks
         .filter((check) => check.name.includes("workflow runs ingest worker boundary preflight"))
         .every((check) => check.passed),
