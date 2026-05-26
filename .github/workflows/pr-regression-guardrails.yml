@@ -85,8 +85,5 @@ jobs:
         env:
           VALIDATION_BASE_SHA: ${{ github.event.before || '' }}
           VALIDATION_HEAD_SHA: ${{ github.sha }}
-          CRP_LOCAL_DEV: "true"
-          LOCAL_DATABASE_NAME: creditregulatorpro_release_validation
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation
-          FLOOT_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation
+          RELEASE_VALIDATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation
         run: pnpm run validate:release -- --head "$VALIDATION_HEAD_SHA"

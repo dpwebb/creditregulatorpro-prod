@@ -55,6 +55,7 @@ describe("PR regression guardrail workflow", () => {
       expect(source).toContain("creditregulatorpro_release_validation");
       expect(source).toContain("pnpm run bootstrap:local-auth-schema");
       expect(source).toContain("pnpm run bootstrap:local-app-fixtures");
+      expect(source).toContain("RELEASE_VALIDATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation");
     }
   }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 

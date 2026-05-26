@@ -31,10 +31,21 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("pnpm run bootstrap:local-auth-schema");
     expect(source).toContain("pnpm run bootstrap:local-app-fixtures");
     expect(source).toContain("FLOOT_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation");
+    expect(source).toContain("RELEASE_VALIDATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation");
     expect(source).toContain("pnpm run build");
     expect(source).toContain("needs: resolve-target");
     expect(source).toContain("- resolve-target");
     expect(source).toContain("- check");
+  });
+
+  it("scopes the release-validation database to the response soak command", () => {
+    const source = workflowSource();
+    const releaseValidationBlock = source.match(/- name: Tiered production release validation[\s\S]*?\n\n  deploy:/)?.[0] ?? "";
+
+    expect(releaseValidationBlock).toContain("RELEASE_VALIDATION_DATABASE_URL");
+    expect(releaseValidationBlock).not.toContain("FLOOT_DATABASE_URL:");
+    expect(releaseValidationBlock).not.toMatch(/^\s+DATABASE_URL:/m);
+    expect(releaseValidationBlock).not.toContain("CRP_LOCAL_DEV:");
   });
 
   it("verifies the selected production checkout SHA before building the container", () => {

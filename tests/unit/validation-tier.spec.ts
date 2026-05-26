@@ -6,6 +6,7 @@ import {
   adminClickThroughAvailable,
   buildValidationPlan,
   classifyChangedFiles,
+  COMMANDS,
 } from "../../scripts/validation-tier.mjs";
 
 const packageJson = () => JSON.parse(readFileSync("package.json", "utf8"));
@@ -85,6 +86,12 @@ describe("tiered validation workflow", () => {
     expect(commandList).not.toContain("pnpm run test:api");
     expect(commandList).not.toContain("pnpm run test:contracts");
     expect(commandList).not.toContain("pnpm run test:evidence-ledger");
+  });
+
+  it("keeps release validation database injection scoped to the response soak command", () => {
+    expect(COMMANDS.responseSoak.useReleaseValidationDatabase).toBe(true);
+    expect(COMMANDS.unitCheck).not.toHaveProperty("useReleaseValidationDatabase");
+    expect(COMMANDS.goldenPath).not.toHaveProperty("useReleaseValidationDatabase");
   });
 
   it("accepts the npm argument separator used by CI workflow commands", () => {

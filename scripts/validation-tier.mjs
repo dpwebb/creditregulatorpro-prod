@@ -87,6 +87,7 @@ export const COMMANDS = {
     id: "responseSoak",
     label: "Response soak check",
     command: "pnpm run response:soak-check",
+    useReleaseValidationDatabase: true,
   },
   storageDurability: {
     id: "storageDurability",
@@ -519,13 +520,26 @@ function runCommand(entry, { dryRun }) {
   }
   console.log(`[validation] ${entry.label}: ${entry.command}`);
   if (dryRun) return;
+  const commandEnv = {
+    ...process.env,
+    ...(entry.env ?? {}),
+  };
+  if (entry.useReleaseValidationDatabase) {
+    const validationDatabaseUrl =
+      process.env.RESPONSE_SOAK_DATABASE_URL ||
+      process.env.RELEASE_VALIDATION_DATABASE_URL ||
+      process.env.FLOOT_DATABASE_URL ||
+      process.env.DATABASE_URL ||
+      "";
+    if (validationDatabaseUrl) {
+      commandEnv.FLOOT_DATABASE_URL = validationDatabaseUrl;
+      commandEnv.DATABASE_URL = validationDatabaseUrl;
+    }
+  }
   const result = spawnSync(entry.command, {
     shell: true,
     stdio: "inherit",
-    env: {
-      ...process.env,
-      ...(entry.env ?? {}),
-    },
+    env: commandEnv,
   });
   if ((result.status ?? 1) !== 0) {
     throw new Error(`${entry.label} failed with exit code ${result.status ?? 1}`);
