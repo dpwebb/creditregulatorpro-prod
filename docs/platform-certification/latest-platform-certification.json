@@ -1,10 +1,10 @@
 {
   "reportName": "creditregulatorpro-level-5-platform-certification",
-  "generatedAt": "2026-05-26T14:40:21.637Z",
-  "runStartedAt": "2026-05-26T14:34:15.615Z",
-  "runCompletedAt": "2026-05-26T14:40:21.637Z",
-  "currentBranch": "unknown",
-  "currentCommit": "1c7c8b73d0f0e1b9097f2e4f37c62d4ecb4db755",
+  "generatedAt": "2026-05-26T16:20:36.737Z",
+  "runStartedAt": "2026-05-26T16:13:18.738Z",
+  "runCompletedAt": "2026-05-26T16:20:36.737Z",
+  "currentBranch": "staging",
+  "currentCommit": "950e7ee9765e0676f957c0c3cb29dbfa99a756c7",
   "targetEnvironment": "staging",
   "targetBaseUrl": "https://staging.creditregulatorpro.com",
   "certificationStatus": "PASS",
@@ -16,7 +16,8 @@
     "total": 12,
     "passed": 12,
     "failed": 0,
-    "incomplete": 0
+    "incomplete": 0,
+    "warned": 0
   },
   "gateStatus": {
     "staticAudit": "passed",
@@ -41,9 +42,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 91995,
-      "startedAt": "2026-05-26T14:34:15.625Z",
-      "completedAt": "2026-05-26T14:35:47.620Z",
+      "durationMs": 136231,
+      "startedAt": "2026-05-26T16:13:18.896Z",
+      "completedAt": "2026-05-26T16:15:35.127Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -55,6 +56,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -65,9 +67,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 18839,
-      "startedAt": "2026-05-26T14:35:47.621Z",
-      "completedAt": "2026-05-26T14:36:06.460Z",
+      "durationMs": 25179,
+      "startedAt": "2026-05-26T16:15:35.129Z",
+      "completedAt": "2026-05-26T16:16:00.308Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -77,6 +79,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -87,9 +90,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 534,
-      "startedAt": "2026-05-26T14:36:06.461Z",
-      "completedAt": "2026-05-26T14:36:06.995Z",
+      "durationMs": 1646,
+      "startedAt": "2026-05-26T16:16:00.309Z",
+      "completedAt": "2026-05-26T16:16:01.955Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -98,6 +101,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -108,9 +112,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 554,
-      "startedAt": "2026-05-26T14:36:06.996Z",
-      "completedAt": "2026-05-26T14:36:07.550Z",
+      "durationMs": 2343,
+      "startedAt": "2026-05-26T16:16:01.956Z",
+      "completedAt": "2026-05-26T16:16:04.299Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -125,6 +129,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -135,9 +140,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 1289,
-      "startedAt": "2026-05-26T14:36:07.551Z",
-      "completedAt": "2026-05-26T14:36:08.840Z",
+      "durationMs": 10048,
+      "startedAt": "2026-05-26T16:16:04.300Z",
+      "completedAt": "2026-05-26T16:16:14.348Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -156,6 +161,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -166,9 +172,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 1292,
-      "startedAt": "2026-05-26T14:36:08.841Z",
-      "completedAt": "2026-05-26T14:36:10.133Z",
+      "durationMs": 2844,
+      "startedAt": "2026-05-26T16:16:14.349Z",
+      "completedAt": "2026-05-26T16:16:17.193Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -179,19 +185,20 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
       "id": "e2eOperationalAudit",
       "label": "Level 3 E2E operational audit",
       "subsystem": "Operational Workflow",
-      "command": "pnpm run audit:e2e",
+      "command": "pnpm audit:e2e --require-admin",
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 89425,
-      "startedAt": "2026-05-26T14:36:10.134Z",
-      "completedAt": "2026-05-26T14:37:39.559Z",
+      "durationMs": 94850,
+      "startedAt": "2026-05-26T16:16:17.194Z",
+      "completedAt": "2026-05-26T16:17:52.044Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -212,6 +219,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -222,9 +230,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 113638,
-      "startedAt": "2026-05-26T14:37:39.559Z",
-      "completedAt": "2026-05-26T14:39:33.197Z",
+      "durationMs": 110004,
+      "startedAt": "2026-05-26T16:17:52.046Z",
+      "completedAt": "2026-05-26T16:19:42.050Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -241,6 +249,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -251,9 +260,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 4224,
-      "startedAt": "2026-05-26T14:39:33.197Z",
-      "completedAt": "2026-05-26T14:39:37.421Z",
+      "durationMs": 5219,
+      "startedAt": "2026-05-26T16:19:42.051Z",
+      "completedAt": "2026-05-26T16:19:47.270Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -263,6 +272,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -273,9 +283,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 43215,
-      "startedAt": "2026-05-26T14:39:37.421Z",
-      "completedAt": "2026-05-26T14:40:20.636Z",
+      "durationMs": 38924,
+      "startedAt": "2026-05-26T16:19:47.271Z",
+      "completedAt": "2026-05-26T16:20:26.195Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -290,6 +300,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -300,9 +311,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 579,
-      "startedAt": "2026-05-26T14:40:20.637Z",
-      "completedAt": "2026-05-26T14:40:21.216Z",
+      "durationMs": 9454,
+      "startedAt": "2026-05-26T16:20:26.197Z",
+      "completedAt": "2026-05-26T16:20:35.651Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -312,6 +323,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -322,9 +334,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 419,
-      "startedAt": "2026-05-26T14:40:21.218Z",
-      "completedAt": "2026-05-26T14:40:21.637Z",
+      "durationMs": 1084,
+      "startedAt": "2026-05-26T16:20:35.653Z",
+      "completedAt": "2026-05-26T16:20:36.737Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -334,6 +346,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
+      "warningReason": null,
       "diagnostic": null
     }
   ],
@@ -552,13 +565,14 @@
     }
   ],
   "unresolvedBlockers": [],
+  "warnOnlyFindings": [],
   "exactCommandsRun": [
     {
       "gateId": "staticAudit",
       "command": "pnpm run audit:static",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 91995,
+      "durationMs": 136231,
       "envKeys": []
     },
     {
@@ -566,7 +580,7 @@
       "command": "pnpm run build",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 18839,
+      "durationMs": 25179,
       "envKeys": []
     },
     {
@@ -574,7 +588,7 @@
       "command": "pnpm run check:migrations",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 534,
+      "durationMs": 1646,
       "envKeys": []
     },
     {
@@ -582,7 +596,7 @@
       "command": "pnpm run check:staging-gate",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 554,
+      "durationMs": 2343,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -594,7 +608,7 @@
       "command": "pnpm run audit:runtime --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1289,
+      "durationMs": 10048,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -606,15 +620,15 @@
       "command": "pnpm run storage:durability-contract --no-write-evidence --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1292,
+      "durationMs": 2844,
       "envKeys": []
     },
     {
       "gateId": "e2eOperationalAudit",
-      "command": "pnpm run audit:e2e",
+      "command": "pnpm audit:e2e --require-admin",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 89425,
+      "durationMs": 94850,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -626,7 +640,7 @@
       "command": "pnpm run audit:resilience",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 113638,
+      "durationMs": 110004,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -638,7 +652,7 @@
       "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 4224,
+      "durationMs": 5219,
       "envKeys": []
     },
     {
@@ -646,7 +660,7 @@
       "command": "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 43215,
+      "durationMs": 38924,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -658,7 +672,7 @@
       "command": "pnpm run deploy:rollback-simulation --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 579,
+      "durationMs": 9454,
       "envKeys": []
     },
     {
@@ -666,7 +680,7 @@
       "command": "pnpm run production-deployment-parity:evidence --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 419,
+      "durationMs": 1084,
       "envKeys": []
     }
   ],
