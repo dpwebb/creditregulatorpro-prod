@@ -309,12 +309,11 @@ describe("production-scale certification report", () => {
     });
   });
 
-  it("keeps package aliases explicit without creating false lint confidence", () => {
+  it("keeps package aliases explicit with real lint infrastructure", () => {
     const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
     expect(packageJson.scripts.test).toBe("pnpm run test:unit");
-    expect(packageJson.scripts.lint).toContain("No lint infrastructure is configured");
-    expect(packageJson.scripts.lint).toContain("process.exit(1)");
+    expect(packageJson.scripts.lint).toBe("eslint .");
     expect(packageJson.scripts.check).toBe("pnpm run validate:release");
     expect(packageJson.scripts["validate:fast"]).toBe("node scripts/validation-tier.mjs fast");
     expect(packageJson.scripts["validate:staging"]).toBe("node scripts/validation-tier.mjs staging");

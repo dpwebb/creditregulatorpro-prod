@@ -9,10 +9,10 @@ const DEFAULT_STAGING_BASE_URL = "https://staging.creditregulatorpro.com";
 const STRICT_SHA_RE = /^[0-9a-f]{40}$/i;
 
 export const COMMANDS = {
-  lintStatus: {
-    id: "lintStatus",
-    label: "Lint status",
-    note: "No lint infrastructure is configured; tier continues with typecheck/build/tests.",
+  lint: {
+    id: "lint",
+    label: "Lint",
+    command: "pnpm lint",
   },
   typecheck: {
     id: "typecheck",
@@ -480,7 +480,7 @@ export function buildValidationPlan({ tier, changedFiles = [], forceFullRegressi
     appendChangedAreaCommands(queue, classification);
     if (fullRegression && !classification.docsOnly) pushCommand(queue, "goldenPath");
   } else if (tier === "staging") {
-    pushCommand(queue, "lintStatus");
+    pushCommand(queue, "lint");
     pushCommand(queue, "typecheck");
     pushCommand(queue, "build");
     if (fullRegression && !classification.docsOnly) {
@@ -492,7 +492,7 @@ export function buildValidationPlan({ tier, changedFiles = [], forceFullRegressi
       appendChangedAreaCommands(queue, classification);
     }
   } else if (tier === "release") {
-    pushCommand(queue, "lintStatus");
+    pushCommand(queue, "lint");
     for (const id of FULL_BASELINE_COMMAND_IDS) pushCommand(queue, id);
     for (const id of RELEASE_SAFETY_COMMAND_IDS) pushCommand(queue, id);
     if (adminRequired) {

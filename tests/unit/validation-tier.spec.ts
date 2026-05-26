@@ -54,6 +54,7 @@ describe("tiered validation workflow", () => {
 
     expect(plan.fullRegression).toBe(true);
     expect(commands(plan)).toEqual(expect.arrayContaining([
+      "pnpm lint",
       "pnpm run build",
       "pnpm run test:golden-path",
       "pnpm run test:unit:check",
@@ -70,6 +71,7 @@ describe("tiered validation workflow", () => {
     const commandList = commands(plan).filter((command): command is string => typeof command === "string");
 
     expect(commandList).toEqual(expect.arrayContaining([
+      "pnpm lint",
       "pnpm run typecheck",
       "pnpm run build",
       "pnpm run test:golden-path",

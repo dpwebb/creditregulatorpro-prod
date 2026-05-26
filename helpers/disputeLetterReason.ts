@@ -1,4 +1,4 @@
-import type { PacketNarrative, PacketRequestedAction } from "./disputePacketTemplate";
+import type { PacketNarrative, PacketRequestedAction } from "./disputePacketTypes";
 
 export const PLAIN_DISPUTE_LETTER_REASONS = {
   EXCEEDED_REPORTING_PERIOD:

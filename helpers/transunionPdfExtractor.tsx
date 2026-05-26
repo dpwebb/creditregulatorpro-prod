@@ -1,4 +1,4 @@
-import { ParsedTradeline } from "./reportParser";
+import type { ParsedTradeline } from "./reportParserTypes";
 import { splitIntoTradelineSections } from "./tradelineSectionSplitter";
 import {
   extractAccountNumber,

@@ -12,7 +12,7 @@ import type {
   PacketNarrative,
   PacketNarrativeCautionLevel,
   PacketNarrativeDisputeCategory,
-} from "./disputePacketTemplate";
+} from "./disputePacketTypes";
 
 const MATERIAL_OLD_DATE_YEARS = 6;
 

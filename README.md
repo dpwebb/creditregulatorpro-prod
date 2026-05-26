@@ -95,6 +95,10 @@ pnpm run build
 pnpm start
 ```
 
+Package manager policy: this repository uses `pnpm` for installs, scripts, and
+lockfile updates. `pnpm-lock.yaml` is the authoritative lockfile; do not commit a
+root `package-lock.json`.
+
 For local-only development with shared global secrets and a local Postgres
 database clone, see `docs/local-development.md`.
 
