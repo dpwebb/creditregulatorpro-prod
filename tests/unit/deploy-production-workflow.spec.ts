@@ -25,6 +25,12 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain('validation_sha="$(git rev-parse HEAD)"');
     expect(source).toContain("Tiered production release validation");
     expect(source).toContain('run: pnpm run validate:release -- --head "$VALIDATION_HEAD_SHA"');
+    expect(source).toContain("Bootstrap isolated release validation database");
+    expect(source).toContain("postgres:16");
+    expect(source).toContain("creditregulatorpro_release_validation");
+    expect(source).toContain("pnpm run bootstrap:local-auth-schema");
+    expect(source).toContain("pnpm run bootstrap:local-app-fixtures");
+    expect(source).toContain("FLOOT_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation");
     expect(source).toContain("pnpm run build");
     expect(source).toContain("needs: resolve-target");
     expect(source).toContain("- resolve-target");

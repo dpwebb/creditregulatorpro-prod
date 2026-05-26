@@ -46,6 +46,16 @@ describe("PR regression guardrail workflow", () => {
     expect(prWorkflow?.jobs).toContain("pre-promotion-automated");
     expect(prWorkflow?.commands).toEqual(expect.arrayContaining([expect.stringMatching(/^pnpm run validate:release\b/)]));
     expect(productionWorkflow?.commands).toEqual(expect.arrayContaining([expect.stringMatching(/^pnpm run validate:release\b/)]));
+
+    const prWorkflowSource = workflowSource("pr-regression-guardrails.yml");
+    const productionWorkflowSource = workflowSource("deploy-production.yml");
+    for (const source of [prWorkflowSource, productionWorkflowSource]) {
+      expect(source).toContain("Bootstrap isolated release validation database");
+      expect(source).toContain("postgres:16");
+      expect(source).toContain("creditregulatorpro_release_validation");
+      expect(source).toContain("pnpm run bootstrap:local-auth-schema");
+      expect(source).toContain("pnpm run bootstrap:local-app-fixtures");
+    }
   }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("does not require manual UI interaction for guardrail commands", () => {

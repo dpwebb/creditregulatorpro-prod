@@ -14,6 +14,8 @@ This repo uses tiered validation to keep ordinary development fast without remov
 
 `pnpm run check` is retained as a compatibility alias for `pnpm run validate:release`.
 
+GitHub release-validation workflows run `response:soak-check` against an isolated local PostgreSQL service that is bootstrapped during the job. The soak check must not use production database credentials during pre-deploy validation.
+
 ## Full Regression Trigger
 
 `validate:staging` promotes from targeted checks to full regression when changed files touch any of these areas:

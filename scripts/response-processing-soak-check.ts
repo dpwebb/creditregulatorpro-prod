@@ -6,6 +6,7 @@ import { sql } from "kysely";
 import { db } from "../helpers/db";
 import { ensureResponseDocumentSchema } from "../helpers/responseDocumentSchema";
 import {
+  ResponseProcessingLifecycleError,
   getResponseProcessingDriftReport,
   getResponseProcessingRetentionPreview,
   recordResponseProcessingSoakCheckResult,
@@ -50,6 +51,24 @@ function marker(): string {
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
+}
+
+function requireResponseSoakDatabaseUrl(): void {
+  const databaseUrl = process.env.FLOOT_DATABASE_URL;
+  if (!databaseUrl) {
+    throw new ResponseProcessingLifecycleError(
+      "RESPONSE_SOAK_DB_INPUT_MISSING",
+      "response:soak-check requires a safe non-production validation DB connection.",
+    );
+  }
+  try {
+    new URL(databaseUrl);
+  } catch {
+    throw new ResponseProcessingLifecycleError(
+      "RESPONSE_SOAK_DB_INPUT_INVALID",
+      "response:soak-check requires a valid safe non-production validation DB connection.",
+    );
+  }
 }
 
 async function cleanup(source: string): Promise<void> {
@@ -142,6 +161,7 @@ async function insertSyntheticRunningLock(source: string, lockScope: string): Pr
 }
 
 export async function runSyntheticResponseProcessingSoakCheck(cycles = 3): Promise<SyntheticSoakResult> {
+  requireResponseSoakDatabaseUrl();
   await ensureResponseDocumentSchema();
   const source = marker();
   let result: Omit<SyntheticSoakResult, "cleanupComplete"> | null = null;

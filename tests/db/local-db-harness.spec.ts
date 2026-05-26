@@ -70,6 +70,7 @@ describe("local bootstrap table coverage", () => {
     const authBootstrap = readFileSync(path.join(projectRoot, "scripts", "bootstrap-local-auth-schema.ts"), "utf8");
 
     expect(authBootstrap).toContain("resolveLocalAdminAuth");
+    expect(authBootstrap).toContain("process.env.FLOOT_DATABASE_URL || process.env.DATABASE_URL");
     expect(authBootstrap).toContain("Refusing to bootstrap local admin unless CRP_LOCAL_DEV=true");
     expect(authBootstrap).toContain("Refusing to bootstrap local admin for non-local database host");
     expect(authBootstrap).toContain("LOCAL_DEV_SINGLE_ADMIN");

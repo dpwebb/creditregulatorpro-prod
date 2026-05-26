@@ -27,8 +27,21 @@ function parseDotEnv(contents: string): EnvMap {
   return out;
 }
 
+function readOptionalEnvJson(): EnvMap {
+  const envJsonPath = path.resolve("env.json");
+  if (!fs.existsSync(envJsonPath)) {
+    return {};
+  }
+  return JSON.parse(fs.readFileSync(envJsonPath, "utf8")) as EnvMap;
+}
+
 function resolveLocalDatabaseUrl(): string {
   const envJsonPath = path.resolve("env.json");
+  const explicitDatabaseUrl = process.env.FLOOT_DATABASE_URL || process.env.DATABASE_URL;
+  if (explicitDatabaseUrl) {
+    return explicitDatabaseUrl;
+  }
+
   if (!fs.existsSync(envJsonPath)) {
     throw new Error("env.json not found");
   }
@@ -67,7 +80,7 @@ function isTruthy(value: string | undefined): boolean {
 
 async function main() {
   const databaseUrl = resolveLocalDatabaseUrl();
-  const envJson = JSON.parse(fs.readFileSync(path.resolve("env.json"), "utf8")) as EnvMap;
+  const envJson = readOptionalEnvJson();
   const databaseHost = new URL(databaseUrl).hostname;
   const isExplicitLocalDev = isTruthy(process.env.CRP_LOCAL_DEV) || isTruthy(envJson.CRP_LOCAL_DEV);
 
