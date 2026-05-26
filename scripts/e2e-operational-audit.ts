@@ -13,8 +13,10 @@ import {
 } from "./staging-auth-workflow-smoke";
 
 const DEFAULT_STAGING_BASE_URL = "https://staging.creditregulatorpro.com";
+export const ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING = "ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING";
 
 type StageStatus = "PASS" | "FAIL" | "WARN" | "SKIP";
+type OperationalAuditStatus = "PASS" | "FAIL" | "INCOMPLETE";
 
 type AuditStage = {
   id: string;
@@ -67,6 +69,22 @@ type PacketListResponse = {
   total: number;
 };
 
+type AdminAuditLogResponse = {
+  logs: Array<{
+    actionType?: string;
+    entityType?: string;
+    entityId?: number | string | null;
+    status?: string;
+  }>;
+  total: number;
+};
+
+type AdminAuditLogCheck = {
+  status: "found" | "not_found" | "unavailable";
+  detail: string;
+  total?: number;
+};
+
 type OwnerReadinessBlockerProbe = {
   status: "passed" | "failed";
   httpStatus?: number;
@@ -78,7 +96,11 @@ type OwnerReadinessBlockerProbe = {
 type AdminPacketWorkflowProbe = {
   status: "passed" | "failed" | "skipped";
   mode?: "session_cookie" | "credentials";
+  skipCode?: typeof ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING;
   detail: string;
+  adminSessionUserId?: number;
+  readinessBypassBlocked?: boolean;
+  readinessBypassReasonCodes?: string[];
   packetId?: number;
   pdfStatus?: number;
   pdfContentType?: string;
@@ -86,6 +108,9 @@ type AdminPacketWorkflowProbe = {
   pdfStartsWithPdf?: boolean;
   listTotal?: number;
   createdPacketVisibleInAdminList?: boolean;
+  auditLogPacketGenerated?: boolean;
+  auditLogStatus?: AdminAuditLogCheck["status"];
+  auditLogDetail?: string;
 };
 
 type BeforeCleanupProbe = {
@@ -96,15 +121,22 @@ type BeforeCleanupProbe = {
 type SmokeResult = Awaited<ReturnType<typeof runSmoke>>;
 
 type OperationalAuditReport = {
-  status: "PASS" | "FAIL";
+  status: OperationalAuditStatus;
   certification: string;
   generatedAt: string;
   baseUrl: string | null;
   durationMs: number;
   failureStages: string[];
+  incompleteStages: string[];
   metrics: Record<string, unknown>;
   stages: AuditStage[];
 };
+
+type E2eOperationalAuditOptions = {
+  requireAdmin: boolean;
+};
+
+type EvaluateOperationalAuditOptions = Partial<E2eOperationalAuditOptions>;
 
 function normalizeEnv(value: string | undefined): string | null {
   const trimmed = String(value ?? "").trim();
@@ -121,6 +153,17 @@ function envValue(env: NodeJS.ProcessEnv, keys: string[]): string | null {
     if (value) return value;
   }
   return null;
+}
+
+export function parseE2eOperationalAuditArgs(argv: string[] = process.argv.slice(2)): E2eOperationalAuditOptions {
+  const unknownArgs = argv.filter((arg) => arg !== "--require-admin");
+  if (unknownArgs.length > 0) {
+    throw new Error(`Unknown audit:e2e option(s): ${unknownArgs.join(", ")}`);
+  }
+
+  return {
+    requireAdmin: argv.includes("--require-admin"),
+  };
 }
 
 export function buildE2eOperationalAuditEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
@@ -268,6 +311,7 @@ async function runAdminPacketWorkflowProbe(
   if (auth.status === "missing") {
     return {
       status: "skipped",
+      skipCode: ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING,
       detail: auth.reason,
     };
   }
@@ -280,7 +324,7 @@ async function runAdminPacketWorkflowProbe(
   }
 
   try {
-    const { api, mode } = await authenticateAdminApi(context.config, env);
+    const { api, mode, adminUserId } = await authenticateAdminApi(context.config, env);
     const packetInput = {
       packetType: "credit_bureau",
       selectedIssueIds: [context.selectedIssueId],
@@ -294,7 +338,31 @@ async function runAdminPacketWorkflowProbe(
       return {
         status: "failed",
         mode,
+        adminSessionUserId: adminUserId,
         detail: `Admin readiness did not accept the owner finding: ${readiness.reasonCodes.join(", ") || "no reason codes"}`,
+      };
+    }
+
+    const missingIssueId = 999_999_998;
+    const missingReadiness = await api.json<PacketReadinessResponse>(AUTH_WORKFLOW_ENDPOINTS.packetValidateReadiness, {
+      method: "POST",
+      body: {
+        packetType: "credit_bureau",
+        selectedIssueIds: [missingIssueId],
+      },
+    });
+    const readinessBypassBlocked =
+      missingReadiness.packetReady === false &&
+      missingReadiness.ineligibleFindingIds.includes(missingIssueId) &&
+      missingReadiness.reasonCodes.includes("FINDING_NOT_FOUND");
+    if (!readinessBypassBlocked) {
+      return {
+        status: "failed",
+        mode,
+        adminSessionUserId: adminUserId,
+        readinessBypassBlocked,
+        readinessBypassReasonCodes: missingReadiness.reasonCodes,
+        detail: "Admin readiness check did not block a missing finding reference.",
       };
     }
 
@@ -306,6 +374,9 @@ async function runAdminPacketWorkflowProbe(
       return {
         status: "failed",
         mode,
+        adminSessionUserId: adminUserId,
+        readinessBypassBlocked,
+        readinessBypassReasonCodes: missingReadiness.reasonCodes,
         detail: "Admin packet create did not return success and packetId.",
       };
     }
@@ -320,6 +391,9 @@ async function runAdminPacketWorkflowProbe(
       return {
         status: "failed",
         mode,
+        adminSessionUserId: adminUserId,
+        readinessBypassBlocked,
+        readinessBypassReasonCodes: missingReadiness.reasonCodes,
         detail: "Admin-created packet PDF did not return a valid PDF.",
         packetId: created.packetId,
         pdfStatus: pdfResponse.status,
@@ -331,13 +405,53 @@ async function runAdminPacketWorkflowProbe(
 
     const packetList = await api.json<PacketListResponse>("/_api/packet/list?limit=10");
     const createdPacketVisibleInAdminList = packetList.packets.some((packet) => Number(packet.id) === created.packetId);
+    if (!createdPacketVisibleInAdminList) {
+      return {
+        status: "failed",
+        mode,
+        adminSessionUserId: adminUserId,
+        readinessBypassBlocked,
+        readinessBypassReasonCodes: missingReadiness.reasonCodes,
+        detail: "Admin-created packet was not visible in the admin packet list.",
+        packetId: created.packetId,
+        pdfStatus: pdfResponse.status,
+        pdfContentType,
+        pdfByteLength: pdfBytes.byteLength,
+        pdfStartsWithPdf,
+        listTotal: packetList.total,
+        createdPacketVisibleInAdminList,
+      };
+    }
+
+    const auditLogCheck = await readAdminPacketGeneratedAuditLog(api, created.packetId);
+    if (auditLogCheck.status !== "found") {
+      return {
+        status: "failed",
+        mode,
+        adminSessionUserId: adminUserId,
+        readinessBypassBlocked,
+        readinessBypassReasonCodes: missingReadiness.reasonCodes,
+        detail: auditLogCheck.detail,
+        packetId: created.packetId,
+        pdfStatus: pdfResponse.status,
+        pdfContentType,
+        pdfByteLength: pdfBytes.byteLength,
+        pdfStartsWithPdf,
+        listTotal: packetList.total,
+        createdPacketVisibleInAdminList,
+        auditLogPacketGenerated: false,
+        auditLogStatus: auditLogCheck.status,
+        auditLogDetail: auditLogCheck.detail,
+      };
+    }
 
     return {
-      status: createdPacketVisibleInAdminList ? "passed" : "failed",
+      status: "passed",
       mode,
-      detail: createdPacketVisibleInAdminList
-        ? "Admin authenticated, created a packet from the owner finding, downloaded the PDF, and saw it in packet list."
-        : "Admin-created packet was not visible in the admin packet list.",
+      adminSessionUserId: adminUserId,
+      readinessBypassBlocked,
+      readinessBypassReasonCodes: missingReadiness.reasonCodes,
+      detail: "Admin authenticated, enforced readiness, created a packet from the owner finding, downloaded the PDF, saw it in packet list, and found the packet audit log.",
       packetId: created.packetId,
       pdfStatus: pdfResponse.status,
       pdfContentType,
@@ -345,12 +459,48 @@ async function runAdminPacketWorkflowProbe(
       pdfStartsWithPdf,
       listTotal: packetList.total,
       createdPacketVisibleInAdminList,
+      auditLogPacketGenerated: true,
+      auditLogStatus: auditLogCheck.status,
+      auditLogDetail: auditLogCheck.detail,
     };
   } catch (error) {
     return {
       status: "failed",
       mode: auth.mode,
       detail: redactSecretText(error instanceof Error ? error.message : String(error), env),
+    };
+  }
+}
+
+async function readAdminPacketGeneratedAuditLog(
+  api: ApiClient,
+  packetId: number,
+): Promise<AdminAuditLogCheck> {
+  try {
+    const query = new URLSearchParams({
+      actionType: "PACKET_GENERATED",
+      entityType: "PACKET",
+      status: "SUCCESS",
+      limit: "20",
+    });
+    const response = await api.json<AdminAuditLogResponse>(`/_api/admin/audit-logs?${query.toString()}`);
+    const found = response.logs.some((log) => Number(log.entityId) === packetId);
+
+    return found
+      ? {
+          status: "found",
+          detail: "Found PACKET_GENERATED audit log for the admin-created packet.",
+          total: response.total,
+        }
+      : {
+          status: "not_found",
+          detail: "PACKET_GENERATED audit log was not found for the admin-created packet.",
+          total: response.total,
+        };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      detail: `Could not verify PACKET_GENERATED audit log: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
@@ -390,7 +540,9 @@ function probeFromSmoke(result: SmokeResult): BeforeCleanupProbe | null {
 export function evaluateOperationalAudit(
   result: SmokeResult,
   durationMs: number,
+  options: EvaluateOperationalAuditOptions = {},
 ): OperationalAuditReport {
+  const requireAdmin = options.requireAdmin === true;
   const stages: AuditStage[] = [];
   const probe = probeFromSmoke(result);
   const ownerCounts = result.cleanupStatus?.purgedCounts ?? {};
@@ -495,14 +647,36 @@ export function evaluateOperationalAudit(
   });
 
   const adminProbe = probe?.adminPacketWorkflow;
-  stage(stages, "admin_packet_workflow", "Admin Packet Workflow", adminProbe?.status === "passed" ? "PASS" : "FAIL", adminProbe?.detail ?? "Admin packet workflow probe did not run.", {
+  const adminCredentialsMissing =
+    adminProbe?.status === "skipped" &&
+    adminProbe.skipCode === ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING;
+  const adminStatus: StageStatus =
+    adminProbe?.status === "passed"
+      ? "PASS"
+      : adminCredentialsMissing && !requireAdmin
+        ? "SKIP"
+        : "FAIL";
+  const adminDetails =
+    adminCredentialsMissing
+      ? requireAdmin
+        ? `${ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING}: Admin credentials are required because --require-admin was set.`
+        : `${ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING}: Non-admin workflow completed, but admin credentials were not supplied for the admin packet workflow probe.`
+      : adminProbe?.detail ?? "Admin packet workflow probe did not run.";
+  stage(stages, "admin_packet_workflow", "Admin Packet Workflow", adminStatus, adminDetails, {
     status: adminProbe?.status,
     mode: adminProbe?.mode,
+    skipCode: adminProbe?.skipCode,
+    requireAdmin,
+    adminSessionUserId: adminProbe?.adminSessionUserId,
+    readinessBypassBlocked: adminProbe?.readinessBypassBlocked,
+    readinessBypassReasonCodes: adminProbe?.readinessBypassReasonCodes,
     packetId: adminProbe?.packetId,
     pdfStatus: adminProbe?.pdfStatus,
     pdfContentType: adminProbe?.pdfContentType,
     pdfByteLength: adminProbe?.pdfByteLength,
     createdPacketVisibleInAdminList: adminProbe?.createdPacketVisibleInAdminList,
+    auditLogPacketGenerated: adminProbe?.auditLogPacketGenerated,
+    auditLogStatus: adminProbe?.auditLogStatus,
   });
 
   const cleanupStatus =
@@ -524,23 +698,31 @@ export function evaluateOperationalAudit(
   });
 
   const failureStages = stages.filter((item) => item.status === "FAIL").map((item) => item.id);
-  const status = failureStages.length === 0 ? "PASS" : "FAIL";
+  const incompleteStages = stages.filter((item) => item.status === "SKIP").map((item) => item.id);
+  const status: OperationalAuditStatus =
+    failureStages.length > 0 ? "FAIL" : incompleteStages.length > 0 ? "INCOMPLETE" : "PASS";
 
   return {
     status,
     certification:
       status === "PASS"
         ? "Operational PASS: staging upload-to-packet workflow, admin packet probe, authorization, PDF retrieval, and cleanup lifecycle passed."
-        : "Operational FAIL: one or more required Level 3 audit stages failed.",
+        : status === "INCOMPLETE"
+          ? "Operational INCOMPLETE: non-admin staging workflow passed, but the admin packet workflow probe was skipped because admin credentials were missing."
+          : "Operational FAIL: one or more required Level 3 audit stages failed.",
     generatedAt: new Date().toISOString(),
     baseUrl: result.baseUrl,
     durationMs,
     failureStages,
+    incompleteStages,
     metrics: {
+      requireAdmin,
       ingestPollCount: result.ingestStatus.pollCount,
       totalTradelines: result.parserReview.totalTradelines,
       actionableFindings: result.parserReview.actionableCount,
       ownerPacketPdfByteLength: result.packet.pdfByteLength,
+      adminProbeStatus: adminProbe?.status ?? null,
+      adminProbeSkipCode: adminProbe?.skipCode ?? null,
       adminPacketPdfByteLength: adminProbe?.pdfByteLength ?? null,
       cleanupReportArtifacts: ownerCounts.reportArtifacts ?? null,
       cleanupTradelines: ownerCounts.tradelines ?? null,
@@ -563,6 +745,7 @@ function buildStartupFailureReport(
     baseUrl,
     durationMs,
     failureStages: [failureStage],
+    incompleteStages: [],
     metrics: {},
     stages: [
       {
@@ -575,7 +758,20 @@ function buildStartupFailureReport(
   };
 }
 
-export async function runE2eOperationalAuditCli(env: NodeJS.ProcessEnv = process.env): Promise<number> {
+export async function runE2eOperationalAuditCli(
+  env: NodeJS.ProcessEnv = process.env,
+  argv: string[] = process.argv.slice(2),
+): Promise<number> {
+  let options: E2eOperationalAuditOptions;
+  try {
+    options = parseE2eOperationalAuditArgs(argv);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const report = buildStartupFailureReport(null, 0, message);
+    console.error(JSON.stringify(report, null, 2));
+    return 1;
+  }
+
   const auditEnv = buildE2eOperationalAuditEnv(env);
   const config = buildSmokeConfig(auditEnv);
   const startedAt = performance.now();
@@ -599,9 +795,11 @@ export async function runE2eOperationalAuditCli(env: NodeJS.ProcessEnv = process
     const result = await runSmoke(config, {
       beforeCleanup: (context) => runBeforeCleanupProbe(context, auditEnv),
     });
-    const report = evaluateOperationalAudit(result, Math.round(performance.now() - startedAt));
+    const report = evaluateOperationalAudit(result, Math.round(performance.now() - startedAt), options);
     console.log(JSON.stringify(report, null, 2));
-    return report.status === "PASS" ? 0 : 1;
+    if (report.status === "PASS") return 0;
+    if (report.status === "INCOMPLETE") return SKIPPED_EXIT_CODE;
+    return 1;
   } catch (error) {
     const message = redactSecretText(error instanceof Error ? error.message : String(error), auditEnv);
     const report = buildStartupFailureReport(config.baseUrl, Math.round(performance.now() - startedAt), message);

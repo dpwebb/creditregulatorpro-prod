@@ -3,9 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING,
   buildE2eOperationalAuditEnv,
   classifyE2eFailureStage,
   evaluateOperationalAudit,
+  parseE2eOperationalAuditArgs,
   resolveAdminAuthInputs,
 } from "../../scripts/e2e-operational-audit";
 import { AUTH_WORKFLOW_SMOKE_ENV } from "../../scripts/staging-auth-workflow-smoke";
@@ -104,7 +106,10 @@ function mockSmokeResult(overrides: Record<string, unknown> = {}) {
       adminPacketWorkflow: {
         status: "passed",
         mode: "session_cookie",
-        detail: "Admin authenticated, created a packet from the owner finding, downloaded the PDF, and saw it in packet list.",
+        detail: "Admin authenticated, enforced readiness, created a packet from the owner finding, downloaded the PDF, saw it in packet list, and found the packet audit log.",
+        adminSessionUserId: 1,
+        readinessBypassBlocked: true,
+        readinessBypassReasonCodes: ["FINDING_NOT_FOUND"],
         packetId: 5,
         pdfStatus: 200,
         pdfContentType: "application/pdf",
@@ -112,6 +117,8 @@ function mockSmokeResult(overrides: Record<string, unknown> = {}) {
         pdfStartsWithPdf: true,
         listTotal: 1,
         createdPacketVisibleInAdminList: true,
+        auditLogPacketGenerated: true,
+        auditLogStatus: "found",
       },
     },
     safety: {
@@ -172,6 +179,22 @@ describe("e2e operational audit script", () => {
       status: "missing",
       reason: expect.stringContaining("STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD"),
     });
+
+    expect(
+      resolveAdminAuthInputs({
+        LOCAL_SMOKE_ADMIN_EMAIL: "admin@example.test",
+        LOCAL_SMOKE_ADMIN_PASSWORD: "local-secret-password",
+      }, "localhost"),
+    ).toMatchObject({
+      status: "configured",
+      mode: "credentials",
+    });
+  });
+
+  it("parses the explicit require-admin audit mode", () => {
+    expect(parseE2eOperationalAuditArgs([])).toEqual({ requireAdmin: false });
+    expect(parseE2eOperationalAuditArgs(["--require-admin"])).toEqual({ requireAdmin: true });
+    expect(() => parseE2eOperationalAuditArgs(["--unknown"])).toThrow(/Unknown audit:e2e option/);
   });
 
   it("classifies operational failures by the broken workflow stage", () => {
@@ -190,16 +213,19 @@ describe("e2e operational audit script", () => {
 
     expect(report.status).toBe("PASS");
     expect(report.failureStages).toEqual([]);
+    expect(report.incompleteStages).toEqual([]);
     expect(report.metrics).toMatchObject({
+      requireAdmin: false,
       ingestPollCount: 5,
       totalTradelines: 2,
       actionableFindings: 6,
       ownerPacketPdfByteLength: 8485,
+      adminProbeStatus: "passed",
       adminPacketPdfByteLength: 8500,
     });
   });
 
-  it("fails certification when the required admin packet workflow is unavailable", () => {
+  it("reports incomplete when admin credentials are missing and admin is not required", () => {
     const report = evaluateOperationalAudit(mockSmokeResult({
       beforeCleanupProbe: {
         ownerReadinessBlocker: {
@@ -210,13 +236,53 @@ describe("e2e operational audit script", () => {
         },
         adminPacketWorkflow: {
           status: "skipped",
+          skipCode: ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING,
           detail: "STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD or STAGING_ADMIN_SESSION_COOKIE is required for the admin packet workflow stage.",
         },
       },
     }) as never, 90_000);
 
+    expect(report.status).toBe("INCOMPLETE");
+    expect(report.failureStages).toEqual([]);
+    expect(report.incompleteStages).toContain("admin_packet_workflow");
+    expect(report.certification).toContain("Operational INCOMPLETE");
+    expect(report.stages.find((stage) => stage.id === "admin_packet_workflow")).toMatchObject({
+      status: "SKIP",
+      details: expect.stringContaining(ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING),
+      evidence: expect.objectContaining({
+        skipCode: ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING,
+        requireAdmin: false,
+      }),
+    });
+  });
+
+  it("fails when --require-admin is set and admin credentials are missing", () => {
+    const report = evaluateOperationalAudit(mockSmokeResult({
+      beforeCleanupProbe: {
+        ownerReadinessBlocker: {
+          status: "passed",
+          packetReady: false,
+          reasonCodes: ["FINDING_NOT_FOUND"],
+          detail: "Readiness endpoint returned a deterministic blocker for a missing finding.",
+        },
+        adminPacketWorkflow: {
+          status: "skipped",
+          skipCode: ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING,
+          detail: "STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD or STAGING_ADMIN_SESSION_COOKIE is required for the admin packet workflow stage.",
+        },
+      },
+    }) as never, 90_000, { requireAdmin: true });
+
     expect(report.status).toBe("FAIL");
     expect(report.failureStages).toContain("admin_packet_workflow");
+    expect(report.incompleteStages).toEqual([]);
+    expect(report.stages.find((stage) => stage.id === "admin_packet_workflow")).toMatchObject({
+      status: "FAIL",
+      details: expect.stringContaining(ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING),
+      evidence: expect.objectContaining({
+        requireAdmin: true,
+      }),
+    });
   });
 
   it("keeps audit:e2e wired as a package script", () => {
