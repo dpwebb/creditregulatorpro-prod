@@ -1,0 +1,723 @@
+{
+  "reportName": "creditregulatorpro-level-5-platform-certification",
+  "generatedAt": "2026-05-26T00:28:37.876Z",
+  "runStartedAt": "2026-05-26T00:22:54.709Z",
+  "runCompletedAt": "2026-05-26T00:28:37.876Z",
+  "currentBranch": "staging",
+  "currentCommit": "2353005f1204f0b58bee3a5b4760488e0ccd294a",
+  "targetEnvironment": "staging",
+  "targetBaseUrl": "https://staging.creditregulatorpro.com",
+  "certificationStatus": "FAIL",
+  "CERTIFYING": false,
+  "deploymentReadinessScore": 46,
+  "commandCounts": {
+    "total": 11,
+    "passed": 7,
+    "failed": 4
+  },
+  "gateStatus": {
+    "staticAudit": "failed",
+    "buildReproducibility": "passed",
+    "migrationConsistency": "passed",
+    "stagingRoutingGate": "passed",
+    "runtimeAudit": "failed",
+    "storageDurability": "passed",
+    "e2eOperationalAudit": "failed",
+    "resilienceAudit": "passed",
+    "adminCertification": "failed",
+    "rollbackSimulation": "passed",
+    "productionParity": "passed"
+  },
+  "gates": [
+    {
+      "id": "staticAudit",
+      "label": "Level 1 static code audit",
+      "subsystem": "Static Audit",
+      "command": "pnpm run audit:static",
+      "status": "failed",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 51145,
+      "startedAt": "2026-05-26T00:22:54.811Z",
+      "completedAt": "2026-05-26T00:23:45.956Z",
+      "rawOutputStored": false,
+      "envKeys": [],
+      "certifies": [
+        "lint",
+        "typecheck",
+        "build",
+        "dead code",
+        "dependency consistency"
+      ],
+      "failureReason": "Static audit failed; run pnpm audit:static for the full categorized lint, dependency, typing, dead-code, and package-consistency findings.",
+      "diagnostic": {
+        "failedChecks": [
+          "pnpm lint",
+          "pnpm audit --prod"
+        ],
+        "dependencyAdvisoryObserved": "GHSA-hm8q-7f3q-5f36",
+        "rawOutputStored": false
+      }
+    },
+    {
+      "id": "buildReproducibility",
+      "label": "Build reproducibility",
+      "subsystem": "Deployment Verification",
+      "command": "pnpm run build",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 15093,
+      "startedAt": "2026-05-26T00:23:45.957Z",
+      "completedAt": "2026-05-26T00:24:01.050Z",
+      "rawOutputStored": false,
+      "envKeys": [],
+      "certifies": [
+        "frontend build",
+        "Vite build",
+        "bundle generation"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    },
+    {
+      "id": "migrationConsistency",
+      "label": "Migration consistency",
+      "subsystem": "Database Validation",
+      "command": "pnpm run check:migrations",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 979,
+      "startedAt": "2026-05-26T00:24:01.050Z",
+      "completedAt": "2026-05-26T00:24:02.029Z",
+      "rawOutputStored": false,
+      "envKeys": [],
+      "certifies": [
+        "schema-source inventory",
+        "migration governance"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    },
+    {
+      "id": "stagingRoutingGate",
+      "label": "Staging routing and API availability gate",
+      "subsystem": "Runtime Validation",
+      "command": "pnpm run check:staging-gate",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 1035,
+      "startedAt": "2026-05-26T00:24:02.029Z",
+      "completedAt": "2026-05-26T00:24:03.064Z",
+      "rawOutputStored": false,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ],
+      "certifies": [
+        "HTTPS app shell",
+        "login route",
+        "auth session boundary",
+        "admin endpoint boundary"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    },
+    {
+      "id": "runtimeAudit",
+      "label": "Level 2 runtime/system audit",
+      "subsystem": "Infrastructure Readiness",
+      "command": "pnpm run audit:runtime --json",
+      "status": "failed",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 1687,
+      "startedAt": "2026-05-26T00:24:03.064Z",
+      "completedAt": "2026-05-26T00:24:04.751Z",
+      "rawOutputStored": false,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ],
+      "certifies": [
+        "Docker containers",
+        "Traefik routing",
+        "environment variables",
+        "database connectivity",
+        "storage write/read/delete",
+        "OCR/PDF tooling",
+        "filesystem permissions",
+        "runtime logs"
+      ],
+      "failureReason": "Runtime audit could not certify container, DB, storage, OCR/PDF, log, or volume state because staging SSH diagnostics were unavailable. Missing inputs: STAGING_USER or --ssh-user; STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY.",
+      "diagnostic": {
+        "missingInputs": [
+          "STAGING_USER or --ssh-user",
+          "STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY"
+        ],
+        "blockedSubsystems": [
+          "Docker Containers",
+          "Traefik Routing",
+          "Environment Variables",
+          "Database Connectivity",
+          "Storage Connectivity",
+          "Mounted Volumes",
+          "Runtime Tooling",
+          "Filesystem Permissions",
+          "Logging/Error Reporting",
+          "Disk Space",
+          "Queue/Job Systems"
+        ],
+        "rawOutputStored": false
+      }
+    },
+    {
+      "id": "storageDurability",
+      "label": "Storage lifecycle and durability contract",
+      "subsystem": "Storage Validation",
+      "command": "pnpm run storage:durability-contract --no-write-evidence --json",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 2178,
+      "startedAt": "2026-05-26T00:24:04.751Z",
+      "completedAt": "2026-05-26T00:24:06.929Z",
+      "rawOutputStored": false,
+      "envKeys": [],
+      "certifies": [
+        "artifact storage contract",
+        "generated PDF path",
+        "deploy storage preflight",
+        "sentinel cleanup"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    },
+    {
+      "id": "e2eOperationalAudit",
+      "label": "Level 3 E2E operational audit",
+      "subsystem": "Operational Workflow",
+      "command": "pnpm run audit:e2e",
+      "status": "failed",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 86822,
+      "startedAt": "2026-05-26T00:24:06.929Z",
+      "completedAt": "2026-05-26T00:25:33.751Z",
+      "rawOutputStored": false,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ],
+      "certifies": [
+        "upload",
+        "OCR",
+        "parsing",
+        "canonical mapping",
+        "tradeline extraction",
+        "violation scanning",
+        "evidence linking",
+        "readiness validation",
+        "packet PDF retrieval",
+        "cleanup lifecycle"
+      ],
+      "failureReason": "E2E operational admin packet workflow could not certify because staging admin API credentials or an admin session cookie are not configured.",
+      "diagnostic": {
+        "missingInputs": [
+          "STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD",
+          "STAGING_ADMIN_SESSION_COOKIE"
+        ],
+        "blockedStage": "admin_packet_workflow",
+        "rawOutputStored": false
+      }
+    },
+    {
+      "id": "resilienceAudit",
+      "label": "Level 4 adversarial/resilience audit",
+      "subsystem": "Resilience",
+      "command": "pnpm run audit:resilience",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 113087,
+      "startedAt": "2026-05-26T00:25:33.752Z",
+      "completedAt": "2026-05-26T00:27:26.839Z",
+      "rawOutputStored": false,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ],
+      "certifies": [
+        "malformed input handling",
+        "auth boundary stress",
+        "readiness bypass attempts",
+        "packet integrity",
+        "concurrency probes",
+        "cleanup collision handling"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    },
+    {
+      "id": "adminCertification",
+      "label": "Admin click-through certification",
+      "subsystem": "Admin Certification",
+      "command": "pnpm run certify:admin",
+      "status": "failed",
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 58792,
+      "startedAt": "2026-05-26T00:27:26.839Z",
+      "completedAt": "2026-05-26T00:28:25.631Z",
+      "rawOutputStored": false,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ],
+      "certifies": [
+        "admin route rendering",
+        "admin navigation",
+        "admin API calls",
+        "admin permission enforcement"
+      ],
+      "failureReason": "Admin click-through certification reached staging, but the configured E2E admin credentials failed login.",
+      "diagnostic": {
+        "targetBaseUrl": "https://staging.creditregulatorpro.com",
+        "observedFailure": "admin-login-failed",
+        "rawOutputStored": false
+      }
+    },
+    {
+      "id": "rollbackSimulation",
+      "label": "Rollback simulation",
+      "subsystem": "Rollback Readiness",
+      "command": "pnpm run deploy:rollback-simulation --json",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 10310,
+      "startedAt": "2026-05-26T00:28:25.632Z",
+      "completedAt": "2026-05-26T00:28:35.942Z",
+      "rawOutputStored": false,
+      "envKeys": [],
+      "certifies": [
+        "rollback workflow simulation",
+        "rollback health checks",
+        "previous SHA restoration"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    },
+    {
+      "id": "productionParity",
+      "label": "Production parity evidence",
+      "subsystem": "Production Parity",
+      "command": "pnpm run production-deployment-parity:evidence --json",
+      "status": "passed",
+      "exitCode": 0,
+      "timedOut": false,
+      "durationMs": 1933,
+      "startedAt": "2026-05-26T00:28:35.943Z",
+      "completedAt": "2026-05-26T00:28:37.876Z",
+      "rawOutputStored": false,
+      "envKeys": [],
+      "certifies": [
+        "deployment workflow parity",
+        "safe production probe parity",
+        "privacy probe evidence"
+      ],
+      "failureReason": null,
+      "diagnostic": null
+    }
+  ],
+  "subsystemCertificationMatrix": [
+    {
+      "subsystem": "Static Audit",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "staticAudit"
+      ],
+      "passedGateIds": [],
+      "failedGateIds": [
+        "staticAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Runtime Validation",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "stagingRoutingGate",
+        "runtimeAudit"
+      ],
+      "passedGateIds": [
+        "stagingRoutingGate"
+      ],
+      "failedGateIds": [
+        "runtimeAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Database Validation",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "runtimeAudit",
+        "migrationConsistency"
+      ],
+      "passedGateIds": [
+        "migrationConsistency"
+      ],
+      "failedGateIds": [
+        "runtimeAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Storage Validation",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "runtimeAudit",
+        "storageDurability"
+      ],
+      "passedGateIds": [
+        "storageDurability"
+      ],
+      "failedGateIds": [
+        "runtimeAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "OCR/PDF Validation",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "runtimeAudit",
+        "e2eOperationalAudit"
+      ],
+      "passedGateIds": [],
+      "failedGateIds": [
+        "runtimeAudit",
+        "e2eOperationalAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "E2E Ingestion Workflow",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "e2eOperationalAudit"
+      ],
+      "passedGateIds": [],
+      "failedGateIds": [
+        "e2eOperationalAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Packet Lifecycle Workflow",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "e2eOperationalAudit",
+        "resilienceAudit"
+      ],
+      "passedGateIds": [
+        "resilienceAudit"
+      ],
+      "failedGateIds": [
+        "e2eOperationalAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Admin Certification",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "adminCertification",
+        "e2eOperationalAudit"
+      ],
+      "passedGateIds": [],
+      "failedGateIds": [
+        "adminCertification",
+        "e2eOperationalAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Resilience Testing",
+      "status": "PASS",
+      "requiredForPass": true,
+      "gateIds": [
+        "resilienceAudit"
+      ],
+      "passedGateIds": [
+        "resilienceAudit"
+      ],
+      "failedGateIds": [],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Deployment Verification",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "buildReproducibility",
+        "migrationConsistency",
+        "runtimeAudit",
+        "productionParity"
+      ],
+      "passedGateIds": [
+        "buildReproducibility",
+        "migrationConsistency",
+        "productionParity"
+      ],
+      "failedGateIds": [
+        "runtimeAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Rollback Readiness",
+      "status": "PASS",
+      "requiredForPass": true,
+      "gateIds": [
+        "rollbackSimulation"
+      ],
+      "passedGateIds": [
+        "rollbackSimulation"
+      ],
+      "failedGateIds": [],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Cleanup/Reset Validation",
+      "status": "FAIL",
+      "requiredForPass": true,
+      "gateIds": [
+        "e2eOperationalAudit",
+        "resilienceAudit"
+      ],
+      "passedGateIds": [
+        "resilienceAudit"
+      ],
+      "failedGateIds": [
+        "e2eOperationalAudit"
+      ],
+      "missingGateIds": []
+    },
+    {
+      "subsystem": "Reproducibility Verification",
+      "status": "PASS",
+      "requiredForPass": true,
+      "gateIds": [
+        "buildReproducibility",
+        "migrationConsistency",
+        "storageDurability",
+        "rollbackSimulation",
+        "productionParity"
+      ],
+      "passedGateIds": [
+        "buildReproducibility",
+        "migrationConsistency",
+        "storageDurability",
+        "rollbackSimulation",
+        "productionParity"
+      ],
+      "failedGateIds": [],
+      "missingGateIds": []
+    }
+  ],
+  "unresolvedBlockers": [
+    {
+      "severity": "BLOCKER",
+      "subsystem": "Static Audit",
+      "gateId": "staticAudit",
+      "gateLabel": "Level 1 static code audit",
+      "command": "pnpm run audit:static",
+      "reason": "Static audit failed; run pnpm audit:static for the full categorized lint, dependency, typing, dead-code, and package-consistency findings.",
+      "requiredBeforeProduction": true,
+      "weight": 12
+    },
+    {
+      "severity": "BLOCKER",
+      "subsystem": "Infrastructure Readiness",
+      "gateId": "runtimeAudit",
+      "gateLabel": "Level 2 runtime/system audit",
+      "command": "pnpm run audit:runtime --json",
+      "reason": "Runtime audit could not certify container, DB, storage, OCR/PDF, log, or volume state because staging SSH diagnostics were unavailable. Missing inputs: STAGING_USER or --ssh-user; STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY.",
+      "requiredBeforeProduction": true,
+      "weight": 16
+    },
+    {
+      "severity": "BLOCKER",
+      "subsystem": "Operational Workflow",
+      "gateId": "e2eOperationalAudit",
+      "gateLabel": "Level 3 E2E operational audit",
+      "command": "pnpm run audit:e2e",
+      "reason": "E2E operational admin packet workflow could not certify because staging admin API credentials or an admin session cookie are not configured.",
+      "requiredBeforeProduction": true,
+      "weight": 16
+    },
+    {
+      "severity": "BLOCKER",
+      "subsystem": "Admin Certification",
+      "gateId": "adminCertification",
+      "gateLabel": "Admin click-through certification",
+      "command": "pnpm run certify:admin",
+      "reason": "Admin click-through certification reached staging, but the configured E2E admin credentials failed login.",
+      "requiredBeforeProduction": true,
+      "weight": 10
+    }
+  ],
+  "exactCommandsRun": [
+    {
+      "gateId": "staticAudit",
+      "command": "pnpm run audit:static",
+      "status": "failed",
+      "exitCode": 1,
+      "durationMs": 51145,
+      "envKeys": []
+    },
+    {
+      "gateId": "buildReproducibility",
+      "command": "pnpm run build",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 15093,
+      "envKeys": []
+    },
+    {
+      "gateId": "migrationConsistency",
+      "command": "pnpm run check:migrations",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 979,
+      "envKeys": []
+    },
+    {
+      "gateId": "stagingRoutingGate",
+      "command": "pnpm run check:staging-gate",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1035,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ]
+    },
+    {
+      "gateId": "runtimeAudit",
+      "command": "pnpm run audit:runtime --json",
+      "status": "failed",
+      "exitCode": 1,
+      "durationMs": 1687,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ]
+    },
+    {
+      "gateId": "storageDurability",
+      "command": "pnpm run storage:durability-contract --no-write-evidence --json",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2178,
+      "envKeys": []
+    },
+    {
+      "gateId": "e2eOperationalAudit",
+      "command": "pnpm run audit:e2e",
+      "status": "failed",
+      "exitCode": 1,
+      "durationMs": 86822,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ]
+    },
+    {
+      "gateId": "resilienceAudit",
+      "command": "pnpm run audit:resilience",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 113087,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ]
+    },
+    {
+      "gateId": "adminCertification",
+      "command": "pnpm run certify:admin",
+      "status": "failed",
+      "exitCode": 1,
+      "durationMs": 58792,
+      "envKeys": [
+        "E2E_BASE_URL",
+        "STAGING_APP_URL",
+        "STAGING_BASE_URL"
+      ]
+    },
+    {
+      "gateId": "rollbackSimulation",
+      "command": "pnpm run deploy:rollback-simulation --json",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 10310,
+      "envKeys": []
+    },
+    {
+      "gateId": "productionParity",
+      "command": "pnpm run production-deployment-parity:evidence --json",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1933,
+      "envKeys": []
+    }
+  ],
+  "rollbackReadinessStatus": "PASS",
+  "infrastructureReadinessStatus": "FAIL",
+  "parserConfidenceCertification": "FAIL",
+  "storageLifecycleStatus": "FAIL",
+  "adminCertificationStatus": "FAIL",
+  "packetLifecycleStatus": "FAIL",
+  "reproducibilityStatus": "PASS",
+  "safety": {
+    "productionDataMutated": false,
+    "productionConfigurationModified": false,
+    "infrastructureModifiedAutomatically": false,
+    "schemasModified": false,
+    "destructiveCleanupRun": false,
+    "secretsPrinted": false
+  },
+  "productionRiskAssessment": {
+    "level": "HIGH",
+    "summary": "Production deployment is not certified until every blocker is resolved and the platform certification reruns cleanly.",
+    "reasons": [
+      "Static Audit: Static audit failed; run pnpm audit:static for the full categorized lint, dependency, typing, dead-code, and package-consistency findings.",
+      "Infrastructure Readiness: Runtime audit could not certify container, DB, storage, OCR/PDF, log, or volume state because staging SSH diagnostics were unavailable. Missing inputs: STAGING_USER or --ssh-user; STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY.",
+      "Operational Workflow: E2E operational admin packet workflow could not certify because staging admin API credentials or an admin session cookie are not configured.",
+      "Admin Certification: Admin click-through certification reached staging, but the configured E2E admin credentials failed login."
+    ]
+  },
+  "operationalStabilitySummary": "Operational stability is not certified; at least one mandatory Level 5 gate failed or could not run to completion."
+}
