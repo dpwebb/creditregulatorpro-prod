@@ -53,7 +53,16 @@ describe("platform certification command", () => {
         expect.objectContaining({ id: "runtimeAudit", command: "pnpm run audit:runtime --json" }),
         expect.objectContaining({ id: "e2eOperationalAudit", command: "pnpm run audit:e2e" }),
         expect.objectContaining({ id: "resilienceAudit", command: "pnpm run audit:resilience" }),
-        expect.objectContaining({ id: "adminCertification", command: "pnpm run certify:admin" }),
+        expect.objectContaining({
+          id: "adminStaticCertification",
+          command:
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
+        }),
+        expect.objectContaining({
+          id: "adminClickThrough",
+          command:
+            "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
+        }),
         expect.objectContaining({ id: "rollbackSimulation", command: "pnpm run deploy:rollback-simulation --json" }),
       ]),
     );
@@ -67,7 +76,7 @@ describe("platform certification command", () => {
   });
 
   it("certifies PASS only when every planned mandatory gate passes", async () => {
-    const gates = [gate("staticAudit"), gate("runtimeAudit"), gate("adminCertification")];
+    const gates = [gate("staticAudit"), gate("runtimeAudit"), gate("adminClickThrough")];
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
@@ -85,12 +94,12 @@ describe("platform certification command", () => {
   });
 
   it("fails closed and identifies missing admin credentials", async () => {
-    const gates = [gate("runtimeAudit"), gate("adminCertification")];
+    const gates = [gate("runtimeAudit"), gate("adminClickThrough")];
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      runCommand: runCommandWithFailures(["adminCertification"], {
-        adminCertification:
+      runCommand: runCommandWithFailures(["adminClickThrough"], {
+        adminClickThrough:
           "Admin click-through certification is required but E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD are unavailable.",
       }),
       currentCommit: COMMIT,
@@ -105,7 +114,7 @@ describe("platform certification command", () => {
     expect(report.unresolvedBlockers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          gateId: "adminCertification",
+          gateId: "adminClickThrough",
           severity: "BLOCKER",
           reason: expect.stringContaining("E2E admin credentials"),
         }),
@@ -171,5 +180,56 @@ describe("platform certification command", () => {
         requiredBeforeProduction: true,
       }),
     ]);
+  });
+
+  it("classifies admin route navigation timeouts separately from credential failures", async () => {
+    const gates = [gate("adminClickThrough")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      runCommand: runCommandWithFailures(["adminClickThrough"], {
+        adminClickThrough:
+          'Test timeout of 60000ms exceeded. Error: page.goto: Test timeout of 60000ms exceeded. navigating to "https://staging.creditregulatorpro.com/admin-security", waiting until "domcontentloaded"',
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.unresolvedBlockers[0]).toMatchObject({
+      gateId: "adminClickThrough",
+      reason: "Admin click-through certification timed out while loading staging login or admin routes.",
+    });
+    expect(report.gates[0].diagnostic).toMatchObject({
+      observedFailure: "admin-navigation-timeout",
+      rawOutputStored: false,
+    });
+  });
+
+  it("classifies empty admin audit-log filter results", async () => {
+    const gates = [gate("adminClickThrough")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      runCommand: runCommandWithFailures(["adminClickThrough"], {
+        adminClickThrough:
+          'expect(locator).toContainText(expected) failed. Expected substring: "DELETE". Received string: "No audit logs found matching your criteria."',
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.unresolvedBlockers[0]).toMatchObject({
+      gateId: "adminClickThrough",
+      reason:
+        "Admin click-through reached the Security & Compliance page, but the audit-log filter did not return the expected DELETE/FAILURE row.",
+    });
+    expect(report.gates[0].diagnostic).toMatchObject({
+      observedFailure: "admin-audit-log-filter-empty",
+      rawOutputStored: false,
+    });
   });
 });

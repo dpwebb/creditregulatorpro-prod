@@ -121,11 +121,21 @@ export const PLATFORM_CERTIFICATION_GATES = [
     ],
   },
   {
-    id: "adminCertification",
+    id: "adminStaticCertification",
+    label: "Admin static route and permission certification",
+    subsystem: "Admin Certification",
+    command:
+      "pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
+    weight: 2,
+    timeoutMs: 5 * 60 * 1000,
+    certifies: ["admin route inventory", "admin route auth contracts", "support-role privacy matrix"],
+  },
+  {
+    id: "adminClickThrough",
     label: "Admin click-through certification",
     subsystem: "Admin Certification",
-    command: "pnpm run certify:admin",
-    weight: 10,
+    command: "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
+    weight: 8,
     timeoutMs: 10 * 60 * 1000,
     env: STAGING_BROWSER_ENV,
     certifies: ["admin route rendering", "admin navigation", "admin API calls", "admin permission enforcement"],
@@ -188,7 +198,7 @@ export const PLATFORM_SUBSYSTEMS = [
   },
   {
     subsystem: "Admin Certification",
-    gateIds: ["adminCertification", "e2eOperationalAudit"],
+    gateIds: ["adminStaticCertification", "adminClickThrough", "e2eOperationalAudit"],
     requiredForPass: true,
   },
   {
@@ -271,7 +281,7 @@ export function redactCertificationText(value) {
     .replace(/(sk-[A-Za-z0-9_-]{8,}|github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9_]+)/g, "[REDACTED]");
 }
 
-function appendTail(buffer, chunk, maxLength = 8000) {
+function appendTail(buffer, chunk, maxLength = 40000) {
   const next = buffer + chunk.toString();
   return next.length > maxLength ? next.slice(next.length - maxLength) : next;
 }
@@ -360,8 +370,14 @@ function failureReasonForGate(gate, result) {
       "Missing inputs: STAGING_USER or --ssh-user; STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY.",
     ].join(" ");
   }
-  if (gate.id === "adminCertification" && /Login failed for .*Verify the E2E credentials/i.test(combined)) {
+  if (gate.id === "adminClickThrough" && /Login failed for .*Verify the E2E credentials/i.test(combined)) {
     return "Admin click-through certification reached staging, but the configured E2E admin credentials failed login.";
+  }
+  if (gate.id === "adminClickThrough" && /Test timeout|page\.goto: Test timeout|waiting until/i.test(combined)) {
+    return "Admin click-through certification timed out while loading staging login or admin routes.";
+  }
+  if (gate.id === "adminClickThrough" && /No audit logs found matching your criteria|Expected substring:[\s\S]*DELETE|toContainText[\s\S]*DELETE/i.test(combined)) {
+    return "Admin click-through reached the Security & Compliance page, but the audit-log filter did not return the expected DELETE/FAILURE row.";
   }
   const match = FAILURE_REASONS.find((entry) => entry.pattern.test(combined));
   if (match) return match.reason;
@@ -414,10 +430,16 @@ function diagnosticDetailsForGate(gate, result, failureReason) {
     };
   }
 
-  if (gate.id === "adminCertification") {
+  if (gate.id === "adminClickThrough") {
     return {
       targetBaseUrl: DEFAULT_STAGING_BASE_URL,
-      observedFailure: /Login failed for/i.test(combined) ? "admin-login-failed" : failureReason,
+      observedFailure: /Login failed for/i.test(combined)
+        ? "admin-login-failed"
+        : /Test timeout|page\.goto: Test timeout|waiting until/i.test(combined)
+          ? "admin-navigation-timeout"
+          : /No audit logs found matching your criteria|Expected substring:[\s\S]*DELETE|toContainText[\s\S]*DELETE/i.test(combined)
+            ? "admin-audit-log-filter-empty"
+          : failureReason,
       rawOutputStored: false,
     };
   }
@@ -602,7 +624,7 @@ export async function buildPlatformCertificationReport(options = {}) {
     infrastructureReadinessStatus: statusFromGateIds(["runtimeAudit", "stagingRoutingGate"], results),
     parserConfidenceCertification: statusFromGateIds(["e2eOperationalAudit", "resilienceAudit", "staticAudit"], results),
     storageLifecycleStatus: statusFromGateIds(["runtimeAudit", "storageDurability"], results),
-    adminCertificationStatus: statusFromGateIds(["adminCertification"], results),
+    adminCertificationStatus: statusFromGateIds(["adminStaticCertification", "adminClickThrough"], results),
     packetLifecycleStatus: statusFromGateIds(["e2eOperationalAudit", "resilienceAudit"], results),
     reproducibilityStatus: statusFromGateIds(
       ["buildReproducibility", "migrationConsistency", "storageDurability", "rollbackSimulation", "productionParity"],
