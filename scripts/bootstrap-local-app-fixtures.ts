@@ -309,6 +309,35 @@ async function createCoreAppTables(sql: Sql) {
     created_at timestamptz null default now()
   )`;
 
+  await sql`create table if not exists public.evidence_event (
+    id bigserial primary key,
+    event_type text not null,
+    packet_id bigint null references public.packet(id) on delete cascade,
+    statute_version_id bigint null,
+    organization_id bigint null,
+    description text null,
+    previous_hash text null,
+    current_hash text null,
+    region text not null default 'CA',
+    at timestamptz null default now()
+  )`;
+  await sql`create index if not exists idx_evidence_event_packet_id on public.evidence_event(packet_id)`;
+
+  await sql`create table if not exists public.evidence_attachment (
+    id bigserial primary key,
+    packet_id bigint null references public.packet(id) on delete cascade,
+    obligation_instance_id bigint null references public.obligation_instance(id) on delete set null,
+    uploaded_by bigint null references public.users(id) on delete set null,
+    file_name text not null,
+    file_type text not null,
+    file_size_bytes integer not null,
+    storage_url text not null,
+    description text null,
+    region text not null default 'CA',
+    uploaded_at timestamptz not null default now()
+  )`;
+  await sql`create index if not exists idx_evidence_attachment_packet_id on public.evidence_attachment(packet_id)`;
+
   await sql`create table if not exists public.dispute_packet_findings (
     id bigserial primary key,
     dispute_packet_id bigint not null,

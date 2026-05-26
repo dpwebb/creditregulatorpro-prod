@@ -58,6 +58,8 @@ describe("local bootstrap table coverage", () => {
       "violationRegulationReference",
       "violationTrainingExample",
       "packet",
+      "evidenceEvent",
+      "evidenceAttachment",
       "disputePacketFindings",
     ];
 
