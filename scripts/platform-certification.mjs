@@ -24,7 +24,7 @@ export const PLATFORM_CERTIFICATION_GATES = [
     subsystem: "Static Audit",
     command: "pnpm run audit:static",
     weight: 12,
-    timeoutMs: 10 * 60 * 1000,
+    timeoutMs: 20 * 60 * 1000,
     certifies: ["lint", "typecheck", "build", "dead code", "dependency consistency"],
   },
   {

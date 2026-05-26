@@ -77,6 +77,12 @@ describe("platform certification command", () => {
     expect(commands).not.toMatch(/\bcore-config:apply\b/);
   });
 
+  it("allows the static audit enough time for slow typecheck runs", () => {
+    const staticAuditGate = PLATFORM_CERTIFICATION_GATES.find((entry) => entry.id === "staticAudit");
+
+    expect(staticAuditGate?.timeoutMs).toBeGreaterThanOrEqual(20 * 60 * 1000);
+  });
+
   it("certifies PASS only when every planned mandatory gate passes", async () => {
     const gates = [gate("staticAudit"), gate("runtimeAudit"), gate("adminClickThrough")];
     const report = await buildPlatformCertificationReport({
