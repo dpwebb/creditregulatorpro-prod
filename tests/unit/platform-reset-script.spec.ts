@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   HARD_RESET_TABLES,
+  PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE,
   PRESERVED_TABLES,
   RESET_FILE_TARGETS,
   assertResetSafety,
+  buildResetRuntimeDiagnostics,
   buildPreservedUserPredicate,
   buildResetPlan,
   parseResetArgs,
@@ -40,11 +42,83 @@ describe("platform reset script guards", () => {
       "postgres://user:pass@db.example.com:5432/creditregulatorpro_prod",
     );
     expect(production.kind).toBe("production");
-    expect(() => assertResetSafety({ environment: production, confirmEnv: "production" })).toThrow(/production/i);
+    expect(() => assertResetSafety({ environment: production, confirmEnv: "production" })).toThrow(
+      PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE,
+    );
 
     const unknown = resolveResetEnvironment({}, "postgres://user:pass@db.internal.example:5432/creditregulatorpro");
     expect(unknown.kind).toBe("unknown");
     expect(() => assertResetSafety({ environment: unknown, confirmEnv: "staging" })).toThrow(/unknown/i);
+  });
+
+  it("detects production from safe runtime signals and refuses with a production-specific message", () => {
+    const nodeEnvProduction = resolveResetEnvironment(
+      { NODE_ENV: "production" },
+      "postgres://user:pass@host.docker.internal:5432/NF9hH8HR8XJ6DluI",
+    );
+    expect(nodeEnvProduction).toMatchObject({
+      kind: "production",
+      reason: expect.stringContaining("NODE_ENV"),
+    });
+    expect(() => assertResetSafety({ environment: nodeEnvProduction, confirmEnv: "staging" })).toThrow(
+      PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE,
+    );
+
+    expect(resolveResetEnvironment(
+      { APP_BASE_URL: "https://creditregulatorpro.com" },
+      "postgres://user:pass@host.docker.internal:5432/creditregulatorpro",
+    ).kind).toBe("production");
+    expect(resolveResetEnvironment(
+      { CONTAINER_NAME: "creditregulatorpro-app" },
+      "postgres://user:pass@host.docker.internal:5432/creditregulatorpro",
+    ).kind).toBe("production");
+  });
+
+  it("allows staging and local reset guards while keeping unknown targets refused", () => {
+    const staging = resolveResetEnvironment(
+      { NODE_ENV: "staging" },
+      "postgres://user:pass@host.docker.internal:5432/creditregulatorpro_staging",
+    );
+    expect(staging.kind).toBe("staging");
+    expect(() => assertResetSafety({ environment: staging, confirmEnv: "staging" })).not.toThrow();
+
+    const local = resolveResetEnvironment(
+      { NODE_ENV: "development" },
+      "postgres://user:pass@localhost:5432/creditregulatorpro_dev",
+    );
+    expect(local.kind).toBe("local");
+    expect(() => assertResetSafety({ environment: local, confirmEnv: "local" })).not.toThrow();
+
+    const unknown = resolveResetEnvironment({}, "postgres://user:pass@db.internal.example:5432/creditregulatorpro");
+    expect(unknown.kind).toBe("unknown");
+    expect(() => assertResetSafety({ environment: unknown, confirmEnv: "staging" })).toThrow(/unknown/i);
+  });
+
+  it("builds reset diagnostics without database credentials", () => {
+    const diagnostics = buildResetRuntimeDiagnostics({
+      environment: { kind: "production", reason: "NODE_ENV indicates production." },
+      database: {
+        source: "FLOOT_DATABASE_URL",
+        host: "host.docker.internal",
+        port: "5432",
+        database: "NF9hH8HR8XJ6DluI",
+      },
+      storage: {
+        provider: "local_file_storage",
+        configuredPath: "document-storage",
+        root: "/app/document-storage",
+      },
+    });
+
+    expect(diagnostics).toEqual({
+      detectedEnvironment: "production",
+      databaseHost: "host.docker.internal",
+      databaseName: "NF9hH8HR8XJ6DluI",
+      storageProvider: "local_file_storage",
+      storageRoot: "/app/document-storage",
+      reason: "NODE_ENV indicates production.",
+    });
+    expect(JSON.stringify(diagnostics)).not.toContain("user:pass");
   });
 
   it("fails when detected environment and confirmation do not match", () => {

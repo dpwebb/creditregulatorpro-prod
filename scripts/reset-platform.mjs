@@ -9,11 +9,25 @@ import postgres from "postgres";
 
 const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const ENVIRONMENT_KEYS = ["CRP_ENV", "APP_ENV", "FLOOT_ENV", "DEPLOYMENT_ENV", "ENVIRONMENT", "VERCEL_ENV"];
+const URL_ENVIRONMENT_KEYS = [
+  "APP_BASE_URL",
+  "PUBLIC_APP_URL",
+  "SITE_URL",
+  "BASE_URL",
+  "VITE_APP_URL",
+  "CRP_APP_URL",
+  "PRODUCTION_APP_URL",
+  "STAGING_APP_URL",
+];
+const CONTAINER_ENVIRONMENT_KEYS = ["CONTAINER_NAME", "DOCKER_CONTAINER_NAME", "CRP_CONTAINER_NAME", "SERVICE_NAME", "HOSTNAME"];
 const DATABASE_URL_KEYS = ["FLOOT_DATABASE_URL", "DATABASE_URL", "DATABASE_PRIVATE_URL", "POSTGRES_URL", "CRP_DATABASE_URL"];
+const PRODUCTION_DOMAIN_HOSTS = new Set(["creditregulatorpro.com", "www.creditregulatorpro.com"]);
+const STAGING_DOMAIN_HOSTS = new Set(["staging.creditregulatorpro.com"]);
 const ADMIN_PRESERVE_ROLES = ["admin", "super_admin"];
 const LOCAL_NODE_ENV_VALUES = new Set(["development", "dev", "test"]);
 const USER_REPORT_LIMIT = 200;
 export const PLATFORM_RESET_CONFIRMATION_PHRASE = "RESET STAGING PLATFORM";
+export const PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE = "Production environment detected. Platform reset is disabled in production.";
 
 export const PRESERVED_SUBSYSTEMS = [
   "migrations and version metadata",
@@ -357,6 +371,12 @@ function normalizedEnvironmentValues(env) {
     .filter((entry) => entry.value);
 }
 
+function normalizedSignalValues(env, keys) {
+  return keys
+    .map((key) => ({ key, value: String(env[key] ?? "").trim().toLowerCase() }))
+    .filter((entry) => entry.value);
+}
+
 function normalizedNodeEnv(env) {
   return String(env.NODE_ENV ?? "").trim().toLowerCase();
 }
@@ -367,11 +387,49 @@ function signatureIncludesProduction(value) {
   return lowered.includes("creditregulatorpro-prod") || lowered.includes("production") || /(^|[^a-z])prod([^a-z]|$)/.test(lowered);
 }
 
+function signatureIncludesStaging(value) {
+  return String(value ?? "").toLowerCase().includes("staging");
+}
+
+function urlHostFromSignal(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    return parsed.hostname.toLowerCase();
+  } catch {
+    return raw.toLowerCase();
+  }
+}
+
+function urlSignalIndicatesProduction(entry) {
+  const host = urlHostFromSignal(entry.value);
+  return PRODUCTION_DOMAIN_HOSTS.has(host) || signatureIncludesProduction(entry.value) || signatureIncludesProduction(host);
+}
+
+function urlSignalIndicatesStaging(entry) {
+  const host = urlHostFromSignal(entry.value);
+  return STAGING_DOMAIN_HOSTS.has(host) || signatureIncludesStaging(entry.value) || signatureIncludesStaging(host);
+}
+
+function containerSignalIndicatesProduction(entry) {
+  const value = String(entry.value ?? "").toLowerCase();
+  if (!value || signatureIncludesStaging(value)) return false;
+  return value === "creditregulatorpro-app" || signatureIncludesProduction(value);
+}
+
+function containerSignalIndicatesStaging(entry) {
+  return signatureIncludesStaging(entry.value);
+}
+
 export function resolveResetEnvironment(env = process.env, databaseUrl = "") {
   const target = databaseUrl ? describeDatabaseTarget(databaseUrl) : null;
   const dbSignature = target ? `${target.host} ${target.database}`.toLowerCase() : "";
   const environmentValues = normalizedEnvironmentValues(env);
+  const urlValues = normalizedSignalValues(env, URL_ENVIRONMENT_KEYS);
+  const containerValues = normalizedSignalValues(env, CONTAINER_ENVIRONMENT_KEYS);
   const nodeEnv = normalizedNodeEnv(env);
+  const isLocalDatabase = target ? LOCAL_DB_HOSTS.has(target.host.toLowerCase()) : false;
 
   if (signatureIncludesProduction(dbSignature)) {
     return { kind: "production", reason: "Database host or name appears production-like." };
@@ -383,24 +441,53 @@ export function resolveResetEnvironment(env = process.env, databaseUrl = "") {
     }
   }
 
-  if (environmentValues.some(({ value }) => value.includes("staging"))) {
-    return { kind: "staging", reason: "Environment indicates staging." };
+  const productionUrl = urlValues.find(urlSignalIndicatesProduction);
+  if (productionUrl) {
+    return { kind: "production", reason: `${productionUrl.key} points to the production domain.` };
+  }
+
+  const productionContainer = containerValues.find(containerSignalIndicatesProduction);
+  if (productionContainer) {
+    return { kind: "production", reason: `${productionContainer.key} indicates the production container.` };
+  }
+
+  const stagingEnvironment = environmentValues.find(({ value }) => signatureIncludesStaging(value));
+  if (stagingEnvironment) {
+    return { kind: "staging", reason: `${stagingEnvironment.key} indicates staging.` };
   }
 
   if (environmentValues.some(({ value }) => ["local", "development", "dev", "test"].includes(value))) {
     return { kind: "local", reason: "Environment indicates local/development/test." };
   }
 
-  if (target && LOCAL_DB_HOSTS.has(target.host.toLowerCase()) && LOCAL_NODE_ENV_VALUES.has(nodeEnv)) {
+  if (isLocalDatabase && LOCAL_NODE_ENV_VALUES.has(nodeEnv)) {
     return { kind: "local", reason: "Database host is local and NODE_ENV indicates development/test." };
+  }
+
+  const stagingUrl = urlValues.find(urlSignalIndicatesStaging);
+  if (stagingUrl) {
+    return { kind: "staging", reason: `${stagingUrl.key} points to staging.` };
+  }
+
+  const stagingContainer = containerValues.find(containerSignalIndicatesStaging);
+  if (stagingContainer) {
+    return { kind: "staging", reason: `${stagingContainer.key} indicates staging.` };
   }
 
   if (dbSignature.includes("staging")) {
     return { kind: "staging", reason: "Database target indicates staging." };
   }
 
-  if (target && LOCAL_DB_HOSTS.has(target.host.toLowerCase())) {
+  if (isLocalDatabase) {
     return { kind: "local", reason: "Database host is local." };
+  }
+
+  if (nodeEnv === "staging") {
+    return { kind: "staging", reason: "NODE_ENV indicates staging." };
+  }
+
+  if (nodeEnv === "production") {
+    return { kind: "production", reason: "NODE_ENV indicates production and no staging/local signal was detected." };
   }
 
   return { kind: "unknown", reason: "Unable to determine local, staging, or production from environment and database target." };
@@ -408,7 +495,7 @@ export function resolveResetEnvironment(env = process.env, databaseUrl = "") {
 
 export function assertResetSafety({ environment, confirmEnv, allowProductionDangerousOverride = false }) {
   if (environment.kind === "production" && !allowProductionDangerousOverride) {
-    fail(`Refusing platform reset against production: ${environment.reason}`);
+    fail(`${PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE} ${environment.reason}`);
   }
   if (environment.kind === "unknown") fail(`Refusing platform reset because the environment is unknown: ${environment.reason}`);
   if (environment.kind !== confirmEnv) {
@@ -430,11 +517,27 @@ function resolveDatabaseUrl(env = process.env) {
   fail("FLOOT_DATABASE_URL, DATABASE_URL, DATABASE_PRIVATE_URL, POSTGRES_URL, or CRP_DATABASE_URL is required.");
 }
 
+export function buildResetRuntimeDiagnostics(runtime, reason = "") {
+  const storageProvider =
+    typeof runtime?.storage?.provider === "string"
+      ? runtime.storage.provider
+      : String(runtime?.storage?.provider?.provider ?? "(unknown)");
+  const storageRoot = String(runtime?.storage?.root ?? runtime?.storage?.configuredPath ?? "(unknown)");
+  return {
+    detectedEnvironment: String(runtime?.environment?.kind ?? "unknown"),
+    databaseHost: String(runtime?.database?.host ?? "(unknown)"),
+    databaseName: String(runtime?.database?.database ?? "(unknown)"),
+    storageProvider,
+    storageRoot,
+    reason: String(reason || runtime?.environment?.reason || ""),
+  };
+}
+
 export function detectResetRuntimeContext(env = process.env) {
   const { key: databaseUrlKey, value: databaseUrl } = resolveDatabaseUrl(env);
   const database = describeDatabaseTarget(databaseUrl);
   const environment = resolveResetEnvironment(env, databaseUrl);
-  return {
+  const context = {
     database: {
       source: databaseUrlKey,
       host: database.host,
@@ -443,6 +546,10 @@ export function detectResetRuntimeContext(env = process.env) {
     },
     environment,
     storage: storageProviderSummary(env),
+  };
+  return {
+    ...context,
+    diagnostics: buildResetRuntimeDiagnostics(context),
   };
 }
 
@@ -1255,10 +1362,27 @@ async function runReset(options, env = process.env) {
   const { key: databaseUrlKey, value: databaseUrl } = resolveDatabaseUrl(env);
   const database = describeDatabaseTarget(databaseUrl);
   const environment = resolveResetEnvironment(env, databaseUrl);
+  const runtimeContext = {
+    database: {
+      source: databaseUrlKey,
+      host: database.host,
+      port: database.port,
+      database: database.database,
+    },
+    environment,
+    storage: storageProviderSummary(env),
+  };
   const allowProductionDangerousOverride =
     options.allowProductionDangerousOverride === true &&
     String(env.RESET_ALLOW_PRODUCTION_PLATFORM_RESET ?? "").toLowerCase() === "true";
-  assertResetSafety({ environment, confirmEnv: options.confirmEnv, allowProductionDangerousOverride });
+  try {
+    assertResetSafety({ environment, confirmEnv: options.confirmEnv, allowProductionDangerousOverride });
+  } catch (error) {
+    if (error instanceof Error) {
+      error.resetDiagnostics = buildResetRuntimeDiagnostics(runtimeContext, error.message);
+    }
+    throw error;
+  }
   assertExpectedDatabaseTarget(
     {
       source: databaseUrlKey,
@@ -1505,6 +1629,22 @@ function printHuman(result) {
   }
 }
 
+function printResetDiagnostics(diagnostics, writeLine = console.error) {
+  if (!diagnostics) return;
+  writeLine("Reset diagnostics:");
+  writeLine(`- detected environment: ${diagnostics.detectedEnvironment}`);
+  writeLine(`- database host: ${diagnostics.databaseHost}`);
+  writeLine(`- database name: ${diagnostics.databaseName}`);
+  writeLine(`- storage provider: ${diagnostics.storageProvider}`);
+  writeLine(`- storage root: ${diagnostics.storageRoot}`);
+  writeLine(`- reason: ${diagnostics.reason}`);
+}
+
+function resetDiagnosticsFromError(error) {
+  if (!error || typeof error !== "object") return null;
+  return error.resetDiagnostics ?? null;
+}
+
 async function main() {
   const options = parseResetArgs(process.argv.slice(2));
   if (options.help) {
@@ -1529,7 +1669,14 @@ export {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   main().catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error));
+    const message = error instanceof Error ? error.message : String(error);
+    const diagnostics = resetDiagnosticsFromError(error);
+    if (process.argv.includes("--json")) {
+      console.error(JSON.stringify({ success: false, error: message, diagnostics }, null, 2));
+    } else {
+      console.error(message);
+      printResetDiagnostics(diagnostics);
+    }
     process.exit(1);
   });
 }

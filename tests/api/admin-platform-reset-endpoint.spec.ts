@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   dbValues: vi.fn(),
   dbReturning: vi.fn(),
   dbExecuteTakeFirstOrThrow: vi.fn(),
+  productionDisabledMessage: "Production environment detected. Platform reset is disabled in production.",
 }));
 
 vi.mock("../../helpers/getServerUserSession", () => ({
@@ -15,6 +16,19 @@ vi.mock("../../helpers/getServerUserSession", () => ({
 }));
 
 vi.mock("../../scripts/reset-platform.mjs", () => ({
+  PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE: mocks.productionDisabledMessage,
+  buildResetRuntimeDiagnostics: (runtime: {
+    environment?: { kind?: string; reason?: string };
+    database?: { host?: string; database?: string };
+    storage?: { provider?: string; root?: string };
+  }) => ({
+    detectedEnvironment: String(runtime?.environment?.kind ?? "unknown"),
+    databaseHost: String(runtime?.database?.host ?? "(unknown)"),
+    databaseName: String(runtime?.database?.database ?? "(unknown)"),
+    storageProvider: String(runtime?.storage?.provider ?? "(unknown)"),
+    storageRoot: String(runtime?.storage?.root ?? "(unknown)"),
+    reason: String(runtime?.environment?.reason ?? ""),
+  }),
   detectResetRuntimeContext: mocks.detectResetRuntimeContext,
   parseEmailAllowlist: (value: string | string[] = "") =>
     (Array.isArray(value) ? value : String(value).split(/[,\s;]+/u))
@@ -264,7 +278,39 @@ describe("admin platform reset endpoints", () => {
     const body = await response.json();
 
     expect(response.status).toBe(403);
-    expect(body.error).toMatch(/production/i);
+    expect(body.error).toContain(mocks.productionDisabledMessage);
+    expect(body.diagnostics).toMatchObject({
+      detectedEnvironment: "production",
+      databaseHost: runtime.database.host,
+      databaseName: runtime.database.database,
+      storageProvider: "local_file_storage",
+      storageRoot: "/app/document-storage",
+    });
+    expect(mocks.runReset).not.toHaveBeenCalled();
+    expect(mocks.dbInsertInto).not.toHaveBeenCalled();
+  });
+
+  it("refuses unknown reset environments with safe diagnostics", async () => {
+    mocks.detectResetRuntimeContext.mockReturnValueOnce({
+      ...runtime,
+      environment: {
+        kind: "unknown",
+        reason: "Unable to determine local, staging, or production from environment and database target.",
+      },
+    });
+
+    const response = await dryRunPlatformReset(jsonRequest("/_api/admin/platform-reset/dry-run", { mode: "hard" }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatch(/environment is unknown/i);
+    expect(body.diagnostics).toMatchObject({
+      detectedEnvironment: "unknown",
+      databaseHost: runtime.database.host,
+      databaseName: runtime.database.database,
+      storageProvider: "local_file_storage",
+      storageRoot: "/app/document-storage",
+    });
     expect(mocks.runReset).not.toHaveBeenCalled();
     expect(mocks.dbInsertInto).not.toHaveBeenCalled();
   });

@@ -1,7 +1,8 @@
 import { detectResetRuntimeContext, runReset } from "../../../scripts/reset-platform.mjs";
-import { handleEndpointError, BusinessRuleError } from "../../../helpers/endpointErrorHandler";
+import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
 import { schema, type OutputType } from "./dry-run_POST.schema";
 import {
+  platformResetSafetyRefusalResponse,
   requirePlatformResetAdmin,
   requirePlatformResetRequest,
   resolveAdminResetPreserveEmails,
@@ -17,7 +18,10 @@ export async function handle(request: Request) {
     const input = schema.parse(json);
     const runtime = detectResetRuntimeContext(process.env);
     if (runtime.environment.kind === "production") {
-      throw new BusinessRuleError(`Refusing platform reset against production: ${runtime.environment.reason}`, 403);
+      return platformResetSafetyRefusalResponse(runtime);
+    }
+    if (runtime.environment.kind === "unknown") {
+      return platformResetSafetyRefusalResponse(runtime);
     }
 
     const result = await runReset({

@@ -1,10 +1,20 @@
 import { db } from "../../../helpers/db";
-import { parseEmailAllowlist } from "../../../scripts/reset-platform.mjs";
+import {
+  PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE,
+  buildResetRuntimeDiagnostics,
+  parseEmailAllowlist,
+} from "../../../scripts/reset-platform.mjs";
 import { BusinessRuleError } from "../../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { ADMIN_PLATFORM_RESET_HEADER } from "./dry-run_POST.schema";
 
 type PlatformResetAuditPhase = "started" | "completed" | "failed";
+
+type PlatformResetRuntimeContext = {
+  environment: { kind: string; reason: string };
+  database: { host: string; database: string };
+  storage?: { provider?: string; configuredPath?: string; root?: string };
+};
 
 export type PlatformResetAdminUser = {
   id: number;
@@ -45,6 +55,22 @@ export function resolveAdminResetPreserveEmails(adminUser: PlatformResetAdminUse
     throw new BusinessRuleError("Platform reset requires RESET_PRESERVE_ADMIN_EMAILS or an authenticated admin email.", 400);
   }
   return [email];
+}
+
+export function platformResetSafetyRefusalResponse(
+  runtime: PlatformResetRuntimeContext,
+  message = runtime.environment.kind === "production"
+    ? `${PLATFORM_RESET_PRODUCTION_DISABLED_MESSAGE} ${runtime.environment.reason}`
+    : `Refusing platform reset because the environment is unknown: ${runtime.environment.reason}`,
+  status = runtime.environment.kind === "production" ? 403 : 400,
+): Response {
+  return new Response(JSON.stringify({
+    error: message,
+    diagnostics: buildResetRuntimeDiagnostics(runtime, message),
+  }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 function extractRequestMetadata(request: Request): { ipAddress: string | null; userAgent: string | null } {
