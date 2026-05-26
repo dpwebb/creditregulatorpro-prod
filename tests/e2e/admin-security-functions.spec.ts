@@ -9,6 +9,28 @@ async function openSecurityPage(page: Page) {
   await expect(page.getByRole("heading", { name: "Security & Compliance" })).toBeVisible();
 }
 
+async function findFailedLoginAuditLogId(page: Page, email: string): Promise<number | null> {
+  return page.evaluate(async (targetEmail) => {
+    const response = await fetch("/_api/admin/audit-logs?actionType=LOGIN_FAILED&status=FAILURE&limit=200");
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const payload = await response.json();
+    const matchingLog = payload.logs?.find((log: { id?: number; details?: unknown }) => {
+      const details = log.details;
+      return (
+        details &&
+        typeof details === "object" &&
+        "email" in details &&
+        (details as { email?: unknown }).email === targetEmail
+      );
+    });
+
+    return typeof matchingLog?.id === "number" ? matchingLog.id : null;
+  }, email);
+}
+
 test.describe("Security & Compliance admin functions", () => {
   test.skip(!adminCredentials, "Set E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD for non-local admin security E2E checks.");
 
@@ -52,6 +74,14 @@ test.describe("Security & Compliance admin functions", () => {
       }
     });
 
+    let failedLoginLogId: number | null = null;
+    await expect
+      .poll(async () => {
+        failedLoginLogId = await findFailedLoginAuditLogId(page, failedLoginEmail);
+        return failedLoginLogId === null ? "missing" : "found";
+      }, { timeout: 15000 })
+      .toBe("found");
+
     await page.getByLabel("Action Type").selectOption("LOGIN_FAILED");
     await page.getByLabel("Status").selectOption("FAILURE");
     await expect(page.locator("tbody")).toContainText("Login Failed", { timeout: 15000 });
@@ -61,7 +91,7 @@ test.describe("Security & Compliance admin functions", () => {
     await expect(page.locator("body")).toBeVisible();
     await page.getByLabel("Error Severity").selectOption("");
 
-    await page.getByRole("button", { name: /View details for audit log/i }).first().click();
+    await page.getByRole("button", { name: `View details for audit log ${failedLoginLogId}` }).click();
     const detailsDialog = page.getByRole("dialog", { name: "Log Details" });
     await expect(detailsDialog).toBeVisible();
     await expect(detailsDialog).toContainText(failedLoginEmail);
