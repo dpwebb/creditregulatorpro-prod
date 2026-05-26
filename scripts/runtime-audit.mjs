@@ -31,6 +31,9 @@ function parseArgs(argv, env = process.env) {
   return {
     allowLocal: flags.has("--allow-local"),
     json: flags.has("--json"),
+    sshMode: flags.has("--ssh"),
+    localVpsMode: flags.has("--local-vps"),
+    containerLocalMode: flags.has("--container-local"),
     publicOnly: flags.has("--public-only") || normalizeBoolean(env.CRP_RUNTIME_AUDIT_PUBLIC_ONLY),
     baseUrl: nonEmpty(valueAfter("--base-url")) ?? nonEmpty(env.STAGING_BASE_URL) ?? nonEmpty(env.STAGING_APP_URL) ?? DEFAULT_BASE_URL,
     sshHost: nonEmpty(valueAfter("--ssh-host")) ?? nonEmpty(env.STAGING_RUNTIME_SSH_HOST) ?? nonEmpty(env.STAGING_HOST) ?? DEFAULT_SSH_HOST,
@@ -49,6 +52,53 @@ function parseArgs(argv, env = process.env) {
     timeoutMs: clampInteger(valueAfter("--timeout-ms") || env.STAGING_RUNTIME_AUDIT_TIMEOUT_MS, DEFAULT_TIMEOUT_MS, 3000, 120000),
     logTail: clampInteger(valueAfter("--tail") || env.STAGING_RUNTIME_AUDIT_LOG_TAIL, DEFAULT_LOG_TAIL, 50, 5000),
   };
+}
+
+function commandAvailable(command) {
+  const result = spawnSync(process.platform === "win32" ? "where.exe" : "sh", process.platform === "win32" ? [command] : ["-lc", `command -v ${command}`], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  return result.status === 0;
+}
+
+function runningInContainer() {
+  if (existsSync("/.dockerenv")) return true;
+  try {
+    return /docker|containerd|kubepods|lxc/i.test(readFileSync("/proc/1/cgroup", "utf8"));
+  } catch {
+    return false;
+  }
+}
+
+function runningOnStagingVps(options) {
+  if (process.platform === "win32") return false;
+  const cwd = process.cwd();
+  return (
+    cwd === options.remoteAppDir ||
+    cwd.startsWith(`${options.remoteAppDir}/`) ||
+    existsSync(options.remoteAppDir)
+  ) && commandAvailable("docker");
+}
+
+function resolveExecutionMode(options) {
+  const explicitModes = [
+    options.sshMode ? "--ssh" : null,
+    options.localVpsMode ? "--local-vps" : null,
+    options.containerLocalMode ? "--container-local" : null,
+  ].filter(Boolean);
+
+  if (explicitModes.length > 1) {
+    throw new Error(`Runtime audit modes are mutually exclusive: ${explicitModes.join(", ")}`);
+  }
+  if (options.publicOnly) return "public-only";
+  if (options.sshMode) return "ssh";
+  if (options.localVpsMode) return "local-vps";
+  if (options.containerLocalMode) return "container-local";
+  if (runningOnStagingVps(options)) return "local-vps";
+  if (runningInContainer()) return "container-local";
+  return "ssh";
 }
 
 function nonEmpty(value) {
@@ -267,6 +317,46 @@ function runSsh(options, remoteCommand, { input = null, timeoutMs = options.time
   return result.stdout;
 }
 
+function runLocalShell(command, { input = null, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+  const result = spawnSync(command, {
+    input,
+    shell: true,
+    cwd: process.cwd(),
+    encoding: "utf8",
+    timeout: timeoutMs,
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true,
+    maxBuffer: 20 * 1024 * 1024,
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(redact(result.stderr || result.stdout || `command exited with ${result.status ?? "unknown"}`));
+  }
+  return result.stdout;
+}
+
+function createHostExecutor(mode, options) {
+  if (mode === "ssh") {
+    return {
+      mode,
+      label: "SSH",
+      run(command, runOptions = {}) {
+        return runSsh(options, command, runOptions);
+      },
+    };
+  }
+  return {
+    mode,
+    label: "local VPS",
+    run(command, runOptions = {}) {
+      return runLocalShell(command, {
+        ...runOptions,
+        timeoutMs: runOptions.timeoutMs ?? options.timeoutMs,
+      });
+    },
+  };
+}
+
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, "'\\''")}'`;
 }
@@ -281,9 +371,46 @@ function sshPrerequisites(options) {
   return missing;
 }
 
-async function runSshBackedChecks(options) {
-  if (options.publicOnly) {
-    warnCheck("SSH Diagnostics", "Container-level audit", "Skipped by --public-only.", {});
+async function runRuntimeChecks(options, mode) {
+  if (mode === "public-only") {
+    warnCheck("Audit Coverage", "Container-level audit", "Skipped by --public-only; public HTTP/TLS checks only.", {
+      completion: "PUBLIC_ONLY_PARTIAL_PASS",
+    });
+    return;
+  }
+
+  if (mode === "container-local") {
+    passCheck("Audit Access", "Container-local mode", "Running container-local runtime probes without host Docker access.", {
+      cwd: process.cwd(),
+      hostOnlyChecksAvailable: false,
+    });
+    markContainerHostOnlyUnavailable("Container-local mode cannot inspect host Docker, Traefik, host disk, or sibling container logs.", {
+      mode,
+    });
+    await runContainerLocalProbe(options);
+    return;
+  }
+
+  const executor = createHostExecutor(mode, options);
+
+  if (mode === "local-vps") {
+    if (!runningOnStagingVps(options) && !options.allowLocal) {
+      failCheck("Audit Access", "Local VPS execution context", "Current process does not appear to be running from the staging VPS app directory.", {
+        cwd: process.cwd(),
+        expectedAppDir: options.remoteAppDir,
+        dockerAvailable: commandAvailable("docker"),
+      });
+      markAccessBlockedSubsystems("Local VPS mode requested outside the staging VPS app directory.", { mode });
+      return;
+    }
+    passCheck("Audit Access", "Local VPS execution context", "Running Docker/container diagnostics locally on the staging VPS.", {
+      cwd: process.cwd(),
+      remoteAppDir: options.remoteAppDir,
+      dockerAvailable: commandAvailable("docker"),
+    });
+    await runHostDockerChecks(options, executor);
+    await runHostContainerProbe(options, executor);
+    await runHostDiskAndLogChecks(options, executor);
     return;
   }
 
@@ -292,7 +419,7 @@ async function runSshBackedChecks(options) {
     failCheck("SSH Diagnostics", "Container-level audit prerequisites", "Missing SSH credential inputs.", {
       missingEnvVars: missing,
     });
-    markSshBlockedSubsystems("Missing SSH credential inputs.", { missingEnvVars: missing });
+    markAccessBlockedSubsystems("Missing SSH credential inputs.", { missingEnvVars: missing, mode });
     return;
   }
 
@@ -316,16 +443,16 @@ async function runSshBackedChecks(options) {
       sshUserConfigured: Boolean(options.sshUser),
       sshKeyConfigured: Boolean(options.sshKeyPath || options.sshPrivateKey),
     });
-    markSshBlockedSubsystems("SSH command execution failed.", { sshHost });
+    markAccessBlockedSubsystems("SSH command execution failed.", { sshHost, mode });
     return;
   }
 
-  await runRemoteDockerChecks(options);
-  await runRemoteContainerProbe(options);
-  await runRemoteDiskAndLogChecks(options);
+  await runHostDockerChecks(options, executor);
+  await runHostContainerProbe(options, executor);
+  await runHostDiskAndLogChecks(options, executor);
 }
 
-function markSshBlockedSubsystems(reason, evidence) {
+function markAccessBlockedSubsystems(reason, evidence) {
   const blockedChecks = [
     ["Docker Containers", "Live container inspection"],
     ["Traefik Routing", "Live routing labels/container state"],
@@ -345,10 +472,24 @@ function markSshBlockedSubsystems(reason, evidence) {
   }
 }
 
-async function runRemoteDockerChecks(options) {
+function markContainerHostOnlyUnavailable(reason, evidence) {
+  const unavailableChecks = [
+    ["Docker Containers", "Host Docker container inventory"],
+    ["Traefik Routing", "Host Traefik labels/container state"],
+    ["Mounted Volumes", "Host volume mount inspection"],
+    ["Logging/Error Reporting", "Host Docker log inspection"],
+    ["Disk Space", "Host filesystem usage"],
+  ];
+
+  for (const [subsystem, name] of unavailableChecks) {
+    warnCheck(subsystem, name, `Not verified: ${reason}`, evidence);
+  }
+}
+
+async function runHostDockerChecks(options, executor) {
   let allContainers = [];
   try {
-    const output = runSsh(options, "docker ps -a --format '{{json .}}'");
+    const output = executor.run("docker ps -a --format '{{json .}}'");
     allContainers = parseJsonLines(output);
     const stagingContainers = allContainers.filter((row) => String(row.Names ?? "").includes("creditregulatorpro-staging"));
     if (stagingContainers.length > 0) {
@@ -370,7 +511,7 @@ async function runRemoteDockerChecks(options) {
 
   for (const containerName of [options.appContainer, options.workerContainer]) {
     try {
-      const inspect = JSON.parse(runSsh(options, `docker inspect ${shellQuote(containerName)}`))[0];
+      const inspect = JSON.parse(executor.run(`docker inspect ${shellQuote(containerName)}`))[0];
       const running = inspect?.State?.Running === true;
       const status = inspect?.State?.Status ?? "unknown";
       if (running) {
@@ -462,18 +603,41 @@ function checkMountedVolumes(containerName, inspect) {
   }
 }
 
-async function runRemoteContainerProbe(options) {
+async function runHostContainerProbe(options, executor) {
   const probe = buildContainerProbe();
   let result;
   try {
-    const output = runSsh(
-      options,
+    const output = executor.run(
       `docker exec -i -w /app ${shellQuote(options.appContainer)} node --input-type=module`,
       { input: probe, timeoutMs: Math.max(options.timeoutMs, 60000) },
     );
     result = JSON.parse(output);
   } catch (error) {
     failCheck("Runtime Probe", "Container runtime probe", errorMessage(error), { container: options.appContainer });
+    return;
+  }
+
+  evaluateEnvProbe(result.env);
+  evaluateDbProbe(result.database);
+  evaluateStorageProbe(result.storage);
+  evaluateToolProbe(result.tools);
+  evaluateFilesystemProbe(result.filesystem);
+  evaluateQueueProbe(result.queues);
+}
+
+async function runContainerLocalProbe(options) {
+  const probe = buildContainerProbe();
+  let result;
+  try {
+    const output = runLocalShell(`${shellQuote(process.execPath)} --input-type=module`, {
+      input: probe,
+      timeoutMs: Math.max(options.timeoutMs, 60000),
+    });
+    result = JSON.parse(output);
+  } catch (error) {
+    failCheck("Runtime Probe", "Container-local runtime probe", errorMessage(error), {
+      cwd: process.cwd(),
+    });
     return;
   }
 
@@ -532,11 +696,12 @@ function runVersion(command, args) {
 }
 
 async function dbProbe() {
-  if (!process.env.FLOOT_DATABASE_URL) {
-    return { ok: false, missingEnvVar: "FLOOT_DATABASE_URL" };
+  const databaseUrl = process.env.FLOOT_DATABASE_URL || process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    return { ok: false, missingEnvVar: "FLOOT_DATABASE_URL or DATABASE_URL" };
   }
-  const parsed = new URL(process.env.FLOOT_DATABASE_URL);
-  const sql = postgres(process.env.FLOOT_DATABASE_URL, { max: 1, connect_timeout: 5, idle_timeout: 1 });
+  const parsed = new URL(databaseUrl);
+  const sql = postgres(databaseUrl, { max: 1, connect_timeout: 5, idle_timeout: 1 });
   try {
     const rows = await sql.unsafe("select current_database() as database_name, current_user as current_user, inet_server_addr()::text as server_addr, inet_server_port() as server_port, version() as version");
     const tableRows = await sql.unsafe("select to_regclass('public.ingest_processing_job')::text as ingest_job_table, to_regclass('public.response_processing_job')::text as response_job_table, to_regclass('public.sessions')::text as sessions_table");
@@ -600,7 +765,13 @@ async function storageProbe() {
 async function filesystemProbe() {
   const tmpRoot = os.tmpdir();
   const tmpPath = path.join(tmpRoot, "crp-runtime-audit-" + randomUUID() + ".tmp");
-  const result = { cwd: process.cwd(), tmpRoot, tmpWritable: false, uid: typeof process.getuid === "function" ? process.getuid() : null };
+  const result = {
+    cwd: process.cwd(),
+    tmpRoot,
+    tmpWritable: false,
+    uid: typeof process.getuid === "function" ? process.getuid() : null,
+    diskUsage: [],
+  };
   try {
     const io = await canWriteReadDelete(tmpPath, "crp-runtime-audit-temp");
     result.tmpWritable = io.wrote && io.readBackMatches && io.deleted;
@@ -608,7 +779,27 @@ async function filesystemProbe() {
     result.tmpWritable = false;
     result.tmpError = String(error && error.message ? error.message : error).slice(0, 300);
   }
+  try {
+    result.diskUsage = parseDf(execFileSync("df", ["-P", "-k", "/", tmpRoot, storageRoot()], { encoding: "utf8" }));
+  } catch (error) {
+    result.diskError = String(error && error.message ? error.message : error).slice(0, 300);
+  }
   return result;
+}
+
+function parseDf(output) {
+  const lines = String(output ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return lines.slice(1).map((line) => {
+    const parts = line.split(/\s+/);
+    return {
+      filesystem: parts[0],
+      sizeKb: Number(parts[1] ?? 0),
+      usedKb: Number(parts[2] ?? 0),
+      availableKb: Number(parts[3] ?? 0),
+      usePercent: Number(String(parts[4] ?? "0").replace("%", "")),
+      mountedOn: parts.slice(5).join(" "),
+    };
+  });
 }
 
 const envKeys = [
@@ -616,6 +807,7 @@ const envKeys = [
   "CRP_ENV",
   "PORT",
   "JWT_SECRET",
+  "DATABASE_URL",
   "FLOOT_DATABASE_URL",
   "LOCAL_DOCUMENT_STORAGE_PATH",
   "DOCUMENT_STORAGE_PATH",
@@ -649,8 +841,11 @@ const report = {
   queues: { ok: true },
 };
 
-for (const key of ["NODE_ENV", "PORT", "JWT_SECRET", "FLOOT_DATABASE_URL"]) {
+for (const key of ["NODE_ENV", "PORT", "JWT_SECRET"]) {
   if (!report.env.presence[key]) report.env.missingCore.push(key);
+}
+if (!report.env.presence.FLOOT_DATABASE_URL && !report.env.presence.DATABASE_URL) {
+  report.env.missingCore.push("FLOOT_DATABASE_URL or DATABASE_URL");
 }
 if (!report.env.presence.LOCAL_DOCUMENT_STORAGE_PATH && !report.env.presence.DOCUMENT_STORAGE_PATH) {
   report.env.missingCore.push("LOCAL_DOCUMENT_STORAGE_PATH or DOCUMENT_STORAGE_PATH");
@@ -672,6 +867,7 @@ function evaluateEnvProbe(env) {
       port: env.port,
       deterministicOcrEnabled: env.deterministicOcrEnabled,
       storageRoot: env.storageRoot,
+      databaseUrlEnvPresent: Boolean(env.presence?.FLOOT_DATABASE_URL || env.presence?.DATABASE_URL),
       providerKeysPresent: providerPresence(env.presence),
     });
   } else {
@@ -780,6 +976,23 @@ function evaluateFilesystemProbe(filesystem) {
       cwd: filesystem?.cwd,
     });
   }
+
+  const rows = Array.isArray(filesystem?.diskUsage) ? filesystem.diskUsage : [];
+  if (rows.length > 0) {
+    for (const row of rows) {
+      if (row.usePercent >= 95) {
+        failCheck("Disk Space", `Container disk usage ${row.mountedOn}`, `Container disk usage is ${row.usePercent}%.`, row);
+      } else if (row.usePercent >= 85) {
+        warnCheck("Disk Space", `Container disk usage ${row.mountedOn}`, `Container disk usage is ${row.usePercent}%.`, row);
+      } else {
+        passCheck("Disk Space", `Container disk usage ${row.mountedOn}`, `Container disk usage is ${row.usePercent}%.`, row);
+      }
+    }
+  } else {
+    warnCheck("Disk Space", "Container filesystem usage", filesystem?.diskError ?? "Container df rows unavailable.", {
+      cwd: filesystem?.cwd,
+    });
+  }
 }
 
 function evaluateQueueProbe(queues) {
@@ -791,10 +1004,10 @@ function evaluateQueueProbe(queues) {
   }
 }
 
-async function runRemoteDiskAndLogChecks(options) {
+async function runHostDiskAndLogChecks(options, executor) {
   try {
     const paths = ["/", "/tmp", options.remoteAppDir, `${options.remoteAppDir}/document-storage`];
-    const output = runSsh(options, `df -P -k ${paths.map(shellQuote).join(" ")} 2>/dev/null || true`);
+    const output = executor.run(`df -P -k ${paths.map(shellQuote).join(" ")} 2>/dev/null || true`);
     const rows = parseDf(output);
     if (rows.length === 0) {
       warnCheck("Disk Space", "Filesystem usage", "No df rows returned.", { paths });
@@ -813,8 +1026,8 @@ async function runRemoteDiskAndLogChecks(options) {
   }
 
   try {
-    const appLogs = runSsh(options, `docker logs --tail=${Number(options.logTail)} ${shellQuote(options.appContainer)} 2>&1 || true`);
-    const workerLogs = runSsh(options, `docker logs --tail=${Number(options.logTail)} ${shellQuote(options.workerContainer)} 2>&1 || true`);
+    const appLogs = executor.run(`docker logs --tail=${Number(options.logTail)} ${shellQuote(options.appContainer)} 2>&1 || true`);
+    const workerLogs = executor.run(`docker logs --tail=${Number(options.logTail)} ${shellQuote(options.workerContainer)} 2>&1 || true`);
     analyzeLogs("App container logs", appLogs);
     analyzeLogs("Worker container logs", workerLogs);
   } catch (error) {
@@ -853,13 +1066,20 @@ function analyzeLogs(name, logText) {
   const warnings = lines.filter((line) => /\bwarn(?:ing)?\b|vite/i.test(line));
   const errors = lines.filter((line) => /\berror\b|exception|5\d\d/i.test(line));
 
+  if (storageNotFound.length > 0) {
+    warnCheck("Logging/Error Reporting", `${name} storage_read_failed:not_found scan`, `${storageNotFound.length} storage_read_failed:not_found log line(s) found.`, {
+      samples: storageNotFound.slice(-5).map(sanitizeLine),
+    });
+  } else {
+    passCheck("Logging/Error Reporting", `${name} storage_read_failed:not_found scan`, `No storage_read_failed:not_found entries in ${lines.length} tailed line(s).`, {
+      linesAnalyzed: lines.length,
+      rawLogsPrinted: false,
+    });
+  }
+
   if (fatal.length > 0) {
     failCheck("Logging/Error Reporting", name, `${fatal.length} fatal/unhandled log line(s) found.`, {
       samples: fatal.slice(-5).map(sanitizeLine),
-    });
-  } else if (storageNotFound.length > 0) {
-    warnCheck("Logging/Error Reporting", name, `${storageNotFound.length} storage_read_failed:not_found log line(s) found.`, {
-      samples: storageNotFound.slice(-5).map(sanitizeLine),
     });
   } else if (errors.length > 0) {
     warnCheck("Logging/Error Reporting", name, `${errors.length} non-fatal error-like log line(s) found in tail window.`, {
@@ -896,8 +1116,33 @@ function expectedComposeMapping() {
 function buildReport(options) {
   const failCount = checks.filter((check) => check.status === "FAIL").length;
   const warnCount = checks.filter((check) => check.status === "WARN").length;
+  const accessFailure = checks.some((check) =>
+    check.status === "FAIL" && ["SSH Diagnostics", "Audit Access"].includes(check.subsystem)
+  );
+  const completion =
+    options.executionMode === "public-only"
+      ? "PUBLIC_ONLY_PARTIAL_PASS"
+      : accessFailure
+        ? "AUDIT_ACCESS_FAILURE"
+        : failCount > 0
+          ? "PLATFORM_FAILURE"
+          : options.executionMode === "container-local"
+            ? "CONTAINER_LOCAL_PARTIAL_PASS"
+            : warnCount > 0
+              ? "FULL_RUNTIME_PASS_WITH_WARNINGS"
+              : "FULL_RUNTIME_PASS";
+  const status =
+    failCount > 0
+      ? "FAIL"
+      : options.executionMode === "public-only"
+        ? "PARTIAL"
+        : warnCount > 0
+          ? "WARN"
+          : "PASS";
   return {
     audit: "CreditRegulatorPro Level 2 Runtime/System Audit",
+    mode: options.executionMode,
+    completion,
     target: {
       baseUrl: options.baseUrl,
       sshHost: options.sshHost,
@@ -905,7 +1150,7 @@ function buildReport(options) {
       workerContainer: options.workerContainer,
       remoteAppDir: options.remoteAppDir,
     },
-    status: failCount > 0 ? "FAIL" : warnCount > 0 ? "WARN" : "PASS",
+    status,
     summary: {
       pass: checks.filter((check) => check.status === "PASS").length,
       warn: warnCount,
@@ -926,6 +1171,8 @@ function buildReport(options) {
 
 function printReport(report) {
   console.log(report.audit);
+  console.log(`Mode: ${report.mode}`);
+  console.log(`Completion: ${report.completion}`);
   console.log(`Target: ${report.target.baseUrl}`);
   console.log(`Status: ${report.status} (${report.summary.pass} pass, ${report.summary.warn} warn, ${report.summary.fail} fail)`);
   console.log("");
@@ -953,10 +1200,11 @@ function compactEvidence(evidence) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   try {
+    options.executionMode = resolveExecutionMode(options);
     validateTargetUrl(options.baseUrl, options.allowLocal);
     expectedComposeMapping();
     await runPublicChecks(options);
-    await runSshBackedChecks(options);
+    await runRuntimeChecks(options, options.executionMode);
     const report = buildReport(options);
     if (options.json) console.log(JSON.stringify(report, null, 2));
     else printReport(report);
