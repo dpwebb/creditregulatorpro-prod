@@ -1,10 +1,10 @@
 # Migration Governance Drift Evidence
 
 Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.
-Generated at: 2026-05-26T16:16:01.471Z
+Generated at: 2026-05-26T22:10:22.475Z
 CERTIFYING:false
 Current branch: staging
-Current commit hash: 950e7ee9765e0676f957c0c3cb29dbfa99a756c7
+Current commit hash: f58ffdb3831754399b6f48bb664a7d57c99237ea
 Scan roots: helpers, scripts, endpoints/migration
 Ledger directory: migrations
 Checker mode: production-promotion-gate-inventory
@@ -58,8 +58,8 @@ Production promotion gate command: pnpm run migrations:gate
 - helpers/regulationRuntimeBridgeMappingService.ts: 12 matched schema mutation pattern(s)
 - helpers/responseDocumentSchema.ts: 54 matched schema mutation pattern(s)
 - helpers/violationCorrectionSchema.tsx: 14 matched schema mutation pattern(s)
-- scripts/bootstrap-local-app-fixtures.ts: 47 matched schema mutation pattern(s)
-- scripts/bootstrap-local-auth-schema.ts: 16 matched schema mutation pattern(s)
+- scripts/bootstrap-local-app-fixtures.ts: 53 matched schema mutation pattern(s)
+- scripts/bootstrap-local-auth-schema.ts: 17 matched schema mutation pattern(s)
 
 ## Unknown Or Unledgered Schema Mutation Points
 - Unknown source: none.

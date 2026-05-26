@@ -1,10 +1,10 @@
 {
   "reportName": "migration-governance-drift-evidence",
   "CERTIFYING": false,
-  "generatedAt": "2026-05-26T16:16:01.471Z",
-  "evidenceTimestamp": "2026-05-26T16:16:01.471Z",
+  "generatedAt": "2026-05-26T22:10:22.475Z",
+  "evidenceTimestamp": "2026-05-26T22:10:22.475Z",
   "branch": "staging",
-  "commit": "950e7ee9765e0676f957c0c3cb29dbfa99a756c7",
+  "commit": "f58ffdb3831754399b6f48bb664a7d57c99237ea",
   "safety": {
     "nonMutating": true,
     "requiresDatabase": false,
@@ -1226,225 +1226,255 @@
         {
           "line": 74,
           "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.licensed_collection_agency ("
+        },
+        {
+          "line": 88,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_licensed_collection_agency_normalized_province"
+        },
+        {
+          "line": 92,
+          "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_artifact ("
         },
         {
-          "line": 93,
+          "line": 111,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.tradeline ("
         },
         {
-          "line": 154,
+          "line": 172,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.tradeline_artifact_presence ("
         },
         {
-          "line": 162,
+          "line": 180,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.tradeline_snapshot ("
         },
         {
-          "line": 192,
+          "line": 210,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.obligation_instance ("
         },
         {
-          "line": 226,
+          "line": 244,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.creditor_obligation_test ("
         },
         {
-          "line": 259,
+          "line": 277,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.packet ("
         },
         {
-          "line": 294,
+          "line": 312,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.evidence_event ("
+        },
+        {
+          "line": 324,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_evidence_event_packet_id on public.evidence_event(packet_id)`;"
+        },
+        {
+          "line": 326,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.evidence_attachment ("
+        },
+        {
+          "line": 339,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_evidence_attachment_packet_id on public.evidence_attachment(packet_id)`;"
+        },
+        {
+          "line": 341,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.dispute_packet_findings ("
         },
         {
-          "line": 331,
+          "line": 378,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.success_metric ("
         },
         {
-          "line": 346,
+          "line": 393,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.parser_test_case ("
         },
         {
-          "line": 372,
+          "line": 419,
           "pattern": "alter table",
           "excerpt": "alter table public.parser_test_case"
         },
         {
-          "line": 385,
+          "line": 432,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.parser_test_run ("
         },
         {
-          "line": 396,
+          "line": 443,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.pass_extraction ("
         },
         {
-          "line": 421,
+          "line": 468,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.violation_correction ("
         },
         {
-          "line": 445,
+          "line": 492,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.violation_correction_evidence ("
         },
         {
-          "line": 460,
+          "line": 507,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.violation_regulation_reference ("
         },
         {
-          "line": 485,
+          "line": 532,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.violation_training_example ("
         },
         {
-          "line": 498,
+          "line": 545,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.pass_a_edit_log ("
         },
         {
-          "line": 510,
+          "line": 557,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_consumer_info ("
         },
         {
-          "line": 540,
+          "line": 587,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_credit_score ("
         },
         {
-          "line": 555,
+          "line": 602,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_inquiry ("
         },
         {
-          "line": 569,
+          "line": 616,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_public_record ("
         },
         {
-          "line": 595,
+          "line": 642,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_consumer_statement ("
         },
         {
-          "line": 610,
+          "line": 657,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.report_employment_info ("
         },
         {
-          "line": 632,
+          "line": 679,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.tradeline_payment_history ("
         },
         {
-          "line": 665,
+          "line": 712,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.tradeline_payment_history_detail ("
         },
         {
-          "line": 684,
+          "line": 731,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_report_artifact_user_id on public.report_artifact(user_id)`;"
         },
         {
-          "line": 685,
+          "line": 732,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_report_artifact_fixture_sha on public.report_artifact(sha256)`;"
         },
         {
-          "line": 686,
+          "line": 733,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_tradeline_user_id on public.tradeline(user_id)`;"
         },
         {
-          "line": 687,
+          "line": 734,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_tradeline_report_artifact_id on public.tradeline(report_artifact_id)`;"
         },
         {
-          "line": 688,
+          "line": 735,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_creditor_obligation_test_tradeline_id on public.creditor_obligation_test(tradeline_id)`;"
         },
         {
-          "line": 689,
+          "line": 736,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_correction_run on public.violation_correction(extraction_run_id)`;"
         },
         {
-          "line": 690,
+          "line": 737,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_correction_tradeline on public.violation_correction(tradeline_id)`;"
         },
         {
-          "line": 691,
+          "line": 738,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_correction_original on public.violation_correction(original_violation_id)`;"
         },
         {
-          "line": 692,
+          "line": 739,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_correction_status on public.violation_correction(status)`;"
         },
         {
-          "line": 693,
+          "line": 740,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_correction_evidence_correction on public.violation_correction_evidence(correction_id)`;"
         },
         {
-          "line": 694,
+          "line": 741,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_regulation_reference_correction on public.violation_regulation_reference(correction_id)`;"
         },
         {
-          "line": 695,
+          "line": 742,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_violation_training_example_correction on public.violation_training_example(correction_id)`;"
         },
         {
-          "line": 696,
+          "line": 743,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_packet_tradeline_id on public.packet(tradeline_id)`;"
         },
         {
-          "line": 697,
+          "line": 744,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_creditor_obligation_test_id on public.dispute_packet_findings(creditor_obligation_test_id)`;"
         },
         {
-          "line": 698,
+          "line": 745,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_dispute_packet_id on public.dispute_packet_findings(dispute_packet_id)`;"
         },
         {
-          "line": 699,
+          "line": 746,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_user_created_at on public.dispute_packet_findings(user_id, created_at desc)`;"
         },
         {
-          "line": 700,
+          "line": 747,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_tradeline_created_at on public.dispute_packet_findings(tradeline_id, created_at desc)`;"
         },
         {
-          "line": 701,
+          "line": 748,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_report_artifact_id on public.dispute_packet_findings(report_artifact_id)`;"
         },
         {
-          "line": 702,
+          "line": 749,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_bureau_id on public.dispute_packet_findings(bureau_id)`;"
         }
@@ -1454,84 +1484,89 @@
       "path": "scripts/bootstrap-local-auth-schema.ts",
       "matches": [
         {
-          "line": 93,
+          "line": 106,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.users ("
         },
         {
-          "line": 104,
+          "line": 117,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.user_passwords ("
         },
         {
-          "line": 109,
+          "line": 122,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.subscriptions ("
         },
         {
-          "line": 128,
+          "line": 141,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_subscriptions_user_id on public.subscriptions(user_id)`;"
         },
         {
-          "line": 130,
+          "line": 143,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.user_account ("
         },
         {
-          "line": 150,
+          "line": 163,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.consumer_identification_document ("
         },
         {
-          "line": 163,
+          "line": 176,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_consumer_identification_document_user_id on public.consumer_identification_document(user_id)`;"
         },
         {
-          "line": 165,
+          "line": 178,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.sessions ("
         },
         {
-          "line": 173,
+          "line": 186,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_sessions_user_id on public.sessions(user_id)`;"
         },
         {
-          "line": 174,
+          "line": 187,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_sessions_expires_at on public.sessions(expires_at)`;"
         },
         {
-          "line": 176,
+          "line": 189,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.login_attempts ("
         },
         {
-          "line": 182,
+          "line": 195,
           "pattern": "create index",
           "excerpt": "await sql`create index if not exists idx_login_attempts_email_attempted_at on public.login_attempts(email, attempted_at desc)`;"
         },
         {
-          "line": 184,
+          "line": 197,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.rate_limit_entry ("
         },
         {
-          "line": 192,
+          "line": 205,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.audit_log ("
         },
         {
-          "line": 207,
+          "line": 220,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.email_verification_tokens ("
         },
         {
-          "line": 216,
+          "line": 229,
           "pattern": "create table",
           "excerpt": "await sql`create table if not exists public.password_reset_tokens ("
+        },
+        {
+          "line": 238,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.system_settings ("
         }
       ]
     }
