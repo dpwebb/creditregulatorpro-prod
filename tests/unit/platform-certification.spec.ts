@@ -6,7 +6,9 @@ import {
   buildPlatformBlockers,
   buildPlatformCertificationReport,
   buildSubsystemCertificationMatrix,
+  resolveCertificationGateCommand,
   scoreDeploymentReadiness,
+  stagingAdminE2eCredentialsAvailable,
 } from "../../scripts/platform-certification.mjs";
 
 const RUN_STARTED_AT = "2026-05-25T12:00:00.000Z";
@@ -93,6 +95,67 @@ describe("platform certification command", () => {
     expect(report.unresolvedBlockers).toEqual([]);
   });
 
+  it("detects staging admin credentials for credentialed e2e orchestration", () => {
+    expect(stagingAdminE2eCredentialsAvailable({})).toBe(false);
+    expect(stagingAdminE2eCredentialsAvailable({
+      STAGING_ADMIN_EMAIL: "admin@example.test",
+      STAGING_ADMIN_PASSWORD: "secret-password",
+    })).toBe(true);
+    expect(stagingAdminE2eCredentialsAvailable({
+      STAGING_ADMIN_SESSION_COOKIE: "floot_built_app_session=abc",
+    })).toBe(true);
+  });
+
+  it("switches the operational audit gate to --require-admin when staging admin inputs exist", async () => {
+    const gates = [gate("e2eOperationalAudit", { command: "pnpm run audit:e2e" })];
+    const commands: string[] = [];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      env: {
+        STAGING_ADMIN_EMAIL: "admin@example.test",
+        STAGING_ADMIN_PASSWORD: "secret-password",
+      },
+      runCommand: async (command: string, options: { gate: { id: string } }) => {
+        commands.push(command);
+        return runCommandWithFailures()(command, options);
+      },
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(resolveCertificationGateCommand(gates[0], {})).toBe("pnpm run audit:e2e");
+    expect(commands).toEqual(["pnpm audit:e2e --require-admin"]);
+    expect(report.exactCommandsRun[0]).toMatchObject({
+      gateId: "e2eOperationalAudit",
+      command: "pnpm audit:e2e --require-admin",
+      status: "passed",
+    });
+    expect(report.certificationStatus).toBe("PASS");
+  });
+
+  it("keeps the non-admin e2e path when staging admin inputs are absent", async () => {
+    const gates = [gate("e2eOperationalAudit", { command: "pnpm run audit:e2e" })];
+    const commands: string[] = [];
+    await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      env: {},
+      runCommand: async (command: string, options: { gate: { id: string } }) => {
+        commands.push(command);
+        return runCommandWithFailures()(command, options);
+      },
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(commands).toEqual(["pnpm run audit:e2e"]);
+  });
+
   it("classifies missing admin credentials as input-blocked certification", async () => {
     const gates = [gate("runtimeAudit"), gate("adminClickThrough")];
     const report = await buildPlatformCertificationReport({
@@ -134,6 +197,37 @@ describe("platform certification command", () => {
     ]);
 
     expect(score).toBe(70);
+  });
+
+  it("certifies PASS_WITH_WARNINGS when mandatory gates pass with runtime warn-only findings", async () => {
+    const gates = [gate("runtimeAudit")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      runCommand: async () => ({
+        exitCode: 0,
+        timedOut: false,
+        startedAt: "2026-05-25T12:00:01.000Z",
+        completedAt: "2026-05-25T12:00:02.000Z",
+        durationMs: 1000,
+        stdoutTail: '{"completion":"FULL_RUNTIME_PASS_WITH_WARNINGS","status":"WARN"}',
+        stderrTail: "",
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.certificationStatus).toBe("PASS_WITH_WARNINGS");
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.warnOnlyFindings).toEqual([
+      expect.objectContaining({
+        severity: "WARN_ONLY",
+        gateId: "runtimeAudit",
+      }),
+    ]);
+    expect(report.unresolvedBlockers).toEqual([]);
   });
 
   it("builds a subsystem matrix from failed gate results", () => {

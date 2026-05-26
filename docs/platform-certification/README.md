@@ -35,6 +35,17 @@ STAGING_ADMIN_SESSION_COOKIE="<cookie>" pnpm audit:admin-auth
 STAGING_ADMIN_SESSION_COOKIE="<cookie>" pnpm audit:e2e --require-admin
 ```
 
+When `STAGING_ADMIN_EMAIL` plus `STAGING_ADMIN_PASSWORD`, or
+`STAGING_ADMIN_SESSION_COOKIE`, is available to `pnpm certify:platform`, the
+Level 3 operational gate automatically runs:
+
+```bash
+pnpm audit:e2e --require-admin
+```
+
+Without those inputs, certification keeps the non-admin E2E workflow and reports
+the admin packet workflow as `INCOMPLETE` / `BLOCKED_BY_INPUTS`.
+
 Browser admin click-through:
 
 ```bash

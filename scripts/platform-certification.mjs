@@ -287,6 +287,25 @@ function appendTail(buffer, chunk, maxLength = 40000) {
   return next.length > maxLength ? next.slice(next.length - maxLength) : next;
 }
 
+function nonEmptyEnv(env, key) {
+  const value = String(env?.[key] ?? "").trim();
+  return value.length > 0 ? value : null;
+}
+
+export function stagingAdminE2eCredentialsAvailable(env = process.env) {
+  const sessionCookie = nonEmptyEnv(env, "STAGING_ADMIN_SESSION_COOKIE");
+  const email = nonEmptyEnv(env, "STAGING_ADMIN_EMAIL");
+  const password = nonEmptyEnv(env, "STAGING_ADMIN_PASSWORD");
+  return Boolean(sessionCookie || (email && password));
+}
+
+export function resolveCertificationGateCommand(gate, env = process.env) {
+  if (gate.id === "e2eOperationalAudit" && stagingAdminE2eCredentialsAvailable(env)) {
+    return "pnpm audit:e2e --require-admin";
+  }
+  return gate.command;
+}
+
 export function normalizeGateStatus(exitCode, timedOut = false) {
   if (timedOut) return "failed";
   return exitCode === 0 ? "passed" : "failed";
@@ -425,6 +444,20 @@ function normalizeGateStatusForResult(gate, result) {
   return normalizeGateStatus(result.exitCode, false);
 }
 
+function warningReasonForGate(gate, result, status) {
+  if (status !== "passed") return null;
+  const combined = `${result.stdoutTail ?? ""}\n${result.stderrTail ?? ""}`;
+
+  if (gate.id === "runtimeAudit" && /FULL_RUNTIME_PASS_WITH_WARNINGS|"status"\s*:\s*"WARN"|Status:\s*WARN/i.test(combined)) {
+    return [
+      "Runtime audit passed with non-fatal warnings.",
+      "Known warning-only classes include malformed PDF syntax warnings and LiberationSans font substitution warnings when operational flows still pass.",
+    ].join(" ");
+  }
+
+  return null;
+}
+
 function diagnosticDetailsForGate(gate, result, reason, status) {
   if (status === "passed") return null;
   const combined = `${result.stdoutTail ?? ""}\n${result.stderrTail ?? ""}`;
@@ -548,11 +581,12 @@ function diagnosticDetailsForGate(gate, result, reason, status) {
   };
 }
 
-function normalizeCommandResult(gate, result) {
+function normalizeCommandResult(gate, result, resolvedCommand = gate.command) {
   const exitCode = Number.isInteger(result.exitCode) ? result.exitCode : 1;
   const timedOut = result.timedOut === true;
   const normalizedResult = { ...result, exitCode, timedOut };
   const status = normalizeGateStatusForResult(gate, normalizedResult);
+  const warningReason = warningReasonForGate(gate, normalizedResult, status);
   const reason =
     status === "failed"
       ? failureReasonForGate(gate, normalizedResult)
@@ -563,7 +597,7 @@ function normalizeCommandResult(gate, result) {
     id: gate.id,
     label: gate.label,
     subsystem: gate.subsystem,
-    command: gate.command,
+    command: resolvedCommand,
     status,
     exitCode,
     timedOut,
@@ -575,6 +609,7 @@ function normalizeCommandResult(gate, result) {
     certifies: gate.certifies ?? [],
     failureReason: status === "failed" ? reason : null,
     incompleteReason: status === INPUT_BLOCKED_GATE_STATUS ? reason : null,
+    warningReason,
     diagnostic: diagnosticDetailsForGate(gate, normalizedResult, reason, status),
   };
 }
@@ -681,6 +716,7 @@ function buildRiskAssessment(report) {
 function certificationDecision(results) {
   if (results.some((result) => result.status === "failed")) return "FAIL";
   if (results.some((result) => result.status === INPUT_BLOCKED_GATE_STATUS)) return "INCOMPLETE";
+  if (results.some((result) => result.warningReason)) return "PASS_WITH_WARNINGS";
   return "PASS";
 }
 
@@ -688,23 +724,28 @@ export async function buildPlatformCertificationReport(options = {}) {
   const repoRoot = options.repoRoot ?? process.cwd();
   const gates = options.gates ?? PLATFORM_CERTIFICATION_GATES;
   const runCommand = options.runCommand ?? runShellCommand;
+  const runtimeEnv = options.env ?? process.env;
   const runStartedAt = options.runStartedAt ?? new Date().toISOString();
   const currentCommit = options.currentCommit ?? gitValue(["rev-parse", "HEAD"], repoRoot);
   const currentBranch = options.currentBranch ?? gitValue(["branch", "--show-current"], repoRoot);
   const results = [];
 
   for (const gate of gates) {
+    const command = resolveCertificationGateCommand(gate, runtimeEnv);
     if (options.logProgress) {
       console.log(`[certify:platform] ${gate.label}`);
-      console.log(`[certify:platform] command: ${gate.command}`);
+      console.log(`[certify:platform] command: ${command}`);
     }
-    const result = await runCommand(gate.command, {
+    const result = await runCommand(command, {
       cwd: repoRoot,
       timeoutMs: gate.timeoutMs ?? DEFAULT_GATE_TIMEOUT_MS,
-      env: gate.env,
+      env: {
+        ...runtimeEnv,
+        ...(gate.env ?? {}),
+      },
       gate,
     });
-    results.push(normalizeCommandResult(gate, result));
+    results.push(normalizeCommandResult(gate, result, command));
   }
 
   const completedAt = options.completedAt ?? new Date().toISOString();
@@ -723,7 +764,7 @@ export async function buildPlatformCertificationReport(options = {}) {
     targetEnvironment: "staging",
     targetBaseUrl: DEFAULT_STAGING_BASE_URL,
     certificationStatus,
-    CERTIFYING: certificationStatus === "PASS",
+    CERTIFYING: certificationStatus === "PASS" || certificationStatus === "PASS_WITH_WARNINGS",
     BLOCKED_BY_INPUTS: certificationStatus === "INCOMPLETE",
     strictMode: options.strict === true,
     deploymentReadinessScore,
@@ -732,11 +773,21 @@ export async function buildPlatformCertificationReport(options = {}) {
       passed: results.filter((result) => result.status === "passed").length,
       failed: results.filter((result) => result.status === "failed").length,
       incomplete: results.filter((result) => result.status === INPUT_BLOCKED_GATE_STATUS).length,
+      warned: results.filter((result) => result.warningReason).length,
     },
     gateStatus,
     gates: results,
     subsystemCertificationMatrix,
     unresolvedBlockers,
+    warnOnlyFindings: results
+      .filter((result) => result.warningReason)
+      .map((result) => ({
+        severity: "WARN_ONLY",
+        subsystem: result.subsystem,
+        gateId: result.id,
+        gateLabel: result.label,
+        reason: result.warningReason,
+      })),
     exactCommandsRun: results.map((result) => ({
       gateId: result.id,
       command: result.command,
@@ -771,6 +822,8 @@ export async function buildPlatformCertificationReport(options = {}) {
     operationalStabilitySummary:
       certificationStatus === "PASS"
         ? "Operational stability is certified by the mandatory static, runtime, E2E, resilience, admin, deployment, rollback, storage, and parity gates."
+        : certificationStatus === "PASS_WITH_WARNINGS"
+          ? "Operational stability is certified with warning-only runtime findings that did not break mandatory workflows."
         : certificationStatus === "INCOMPLETE"
           ? "Operational stability is not certified because one or more mandatory gates were blocked by missing credentials or unavailable diagnostics."
         : "Operational stability is not certified; at least one mandatory Level 5 gate failed or could not run to completion.",
@@ -799,7 +852,7 @@ export function renderPlatformCertificationMarkdown(report) {
     "",
     "## Summary",
     "",
-    `- Commands: ${report.commandCounts.passed} passed, ${report.commandCounts.incomplete} incomplete, ${report.commandCounts.failed} failed, ${report.commandCounts.total} total`,
+    `- Commands: ${report.commandCounts.passed} passed, ${report.commandCounts.warned} warning-only, ${report.commandCounts.incomplete} incomplete, ${report.commandCounts.failed} failed, ${report.commandCounts.total} total`,
     `- Infrastructure readiness: ${report.infrastructureReadinessStatus}`,
     `- Storage lifecycle: ${report.storageLifecycleStatus}`,
     `- Packet lifecycle: ${report.packetLifecycleStatus}`,
@@ -836,6 +889,16 @@ export function renderPlatformCertificationMarkdown(report) {
   } else {
     for (const blocker of report.unresolvedBlockers) {
       lines.push(`- [${blocker.severity}] ${blocker.subsystem}: ${blocker.reason}`);
+    }
+  }
+
+  lines.push("", "## Warning-Only Findings", "");
+
+  if ((report.warnOnlyFindings ?? []).length === 0) {
+    lines.push("- None.");
+  } else {
+    for (const warning of report.warnOnlyFindings) {
+      lines.push(`- [${warning.severity}] ${warning.subsystem}: ${warning.reason}`);
     }
   }
 
