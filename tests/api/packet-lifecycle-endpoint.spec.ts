@@ -826,6 +826,122 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
     expect(await deniedPdfResponse.json()).toEqual({ error: "Unauthorized access to packet" });
   });
 
+  it("reuses an existing packet for repeated creation of the same finding set and context", async () => {
+    const marker = syntheticMarker();
+    const owner = await createFixtureUser(marker, "owner");
+    const nonOwner = await createFixtureUser(marker, "non-owner");
+    const fixture = await createPacketSourceFixture(owner, marker);
+    const singleIssueBody = {
+      packetType: "credit_bureau",
+      selectedIssueIds: [fixture.readyIssueId],
+      recipientBureauId: fixture.bureauId,
+    };
+    const multiIssueBody = {
+      packetType: "credit_bureau",
+      selectedIssueIds: [fixture.readyIssueId, fixture.secondaryReadyIssueId],
+      recipientBureauId: fixture.bureauId,
+    };
+
+    auth.user = owner;
+    const firstResponse = await createPacket(postRequest("/_api/packet/create", singleIssueBody));
+    expect(firstResponse.status).toBe(200);
+    const firstCreated = await firstResponse.json();
+    expect(firstCreated).toMatchObject({
+      success: true,
+      duplicatePolicy: "created_new",
+      reusedExistingPacket: false,
+    });
+    track(created.packetIds, firstCreated.packetId);
+
+    const repeatResponse = await createPacket(postRequest("/_api/packet/create", singleIssueBody));
+    expect(repeatResponse.status).toBe(200);
+    const repeated = await repeatResponse.json();
+    expect(repeated).toMatchObject({
+      success: true,
+      packetId: firstCreated.packetId,
+      duplicatePolicy: "idempotent_reuse",
+      reusedExistingPacket: true,
+      existingPacketId: firstCreated.packetId,
+    });
+    expect(repeated.packet.metadata.selectedIssueIds).toEqual([fixture.readyIssueId]);
+
+    const packetRowsForSingleIssue = await db
+      .selectFrom("packet")
+      .select(["id", "type", "creditorObligationTestId", "userId", "bureauId", "tradelineId"])
+      .where("userId", "=", owner.id)
+      .where("type", "=", "credit_bureau_dispute")
+      .where("creditorObligationTestId", "=", fixture.readyIssueId)
+      .execute();
+    expect(packetRowsForSingleIssue).toHaveLength(1);
+
+    const generatedEvents = await db
+      .selectFrom("evidenceEvent")
+      .select(["id", "packetId", "eventType"])
+      .where("packetId", "=", firstCreated.packetId)
+      .where("eventType", "=", "PACKET_GENERATED")
+      .execute();
+    expect(generatedEvents).toHaveLength(1);
+
+    const packetAuditRows = await db
+      .selectFrom("auditLog")
+      .select(["actionType", "entityId", "details"])
+      .where("entityType", "=", "PACKET")
+      .where("entityId", "=", firstCreated.packetId)
+      .orderBy("id", "asc")
+      .execute();
+    expect(packetAuditRows.filter((row) => row.actionType === "PACKET_GENERATED")).toHaveLength(1);
+    expect(packetAuditRows.filter((row) => row.actionType === "READ")).toEqual([
+      expect.objectContaining({
+        details: expect.objectContaining({
+          packetDuplicatePolicy: "idempotent_reuse",
+          selectedIssueIds: [fixture.readyIssueId],
+        }),
+      }),
+    ]);
+
+    const pdfResponse = await getPacketPdf(pdfRequest(repeated.packetId));
+    expect(pdfResponse.status).toBe(200);
+    expect(pdfResponse.headers.get("Content-Type")).toContain("application/pdf");
+    expect((await pdfResponse.arrayBuffer()).byteLength).toBeGreaterThan(100);
+
+    const multiResponse = await createPacket(postRequest("/_api/packet/create", multiIssueBody));
+    expect(multiResponse.status).toBe(200);
+    const multiCreated = await multiResponse.json();
+    expect(multiCreated).toMatchObject({
+      success: true,
+      duplicatePolicy: "created_new",
+      reusedExistingPacket: false,
+    });
+    expect(multiCreated.packetId).not.toBe(firstCreated.packetId);
+    track(created.packetIds, multiCreated.packetId);
+
+    const multiRepeatResponse = await createPacket(postRequest("/_api/packet/create", multiIssueBody));
+    expect(multiRepeatResponse.status).toBe(200);
+    await expect(multiRepeatResponse.json()).resolves.toMatchObject({
+      success: true,
+      packetId: multiCreated.packetId,
+      duplicatePolicy: "idempotent_reuse",
+      reusedExistingPacket: true,
+      existingPacketId: multiCreated.packetId,
+    });
+
+    const ownerPacketRows = await db
+      .selectFrom("packet")
+      .select(["id"])
+      .where("userId", "=", owner.id)
+      .where("type", "=", "credit_bureau_dispute")
+      .orderBy("id", "asc")
+      .execute();
+    expect(ownerPacketRows.map((row) => row.id).sort()).toEqual(
+      [firstCreated.packetId, multiCreated.packetId].sort(),
+    );
+
+    auth.user = nonOwner;
+    const deniedRepeat = await createPacket(postRequest("/_api/packet/create", singleIssueBody));
+    expect(deniedRepeat.status).toBe(403);
+    expect(await deniedRepeat.json()).toEqual({ error: "Unauthorized access to disputed items." });
+  });
+
   it("creates one additive finding row per ready multi-issue packet item without setting the legacy single-issue link", async () => {
     const marker = syntheticMarker();
     const owner = await createFixtureUser(marker, "owner");

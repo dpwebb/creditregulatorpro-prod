@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
+import { sql, type Kysely, type Transaction } from "kysely";
 
 import { db } from "./db";
 import { getBureauDisputeAddress } from "./bureauDisputeAddresses";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { ensureDisputePacketFindingsSchema } from "./disputePacketFindingsSchema";
 import type { User } from "./User";
+import type { DB } from "./schema";
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
 import {
   actionForIssue,
@@ -262,6 +264,19 @@ interface DisputePacketPreview {
   issueRows: IssueRow[];
   readiness: PacketReadinessResult;
 }
+
+type PacketPersistenceExecutor = Kysely<DB> | Transaction<DB>;
+
+export type PacketDuplicatePolicy = "created_new" | "idempotent_reuse";
+
+export type DisputePacketCreateResult = {
+  packetId: number;
+  packet: SimpleDisputePacketContent;
+  status: string;
+  duplicatePolicy: PacketDuplicatePolicy;
+  reusedExistingPacket: boolean;
+  existingPacketId?: number;
+};
 
 function hashEvent(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -913,6 +928,142 @@ function packetTypesForRow(row: IssueRow): DisputePacketType[] {
 
 function dedupeIssueIds(issueIds: number[]): number[] {
   return Array.from(new Set(issueIds.map((id) => Number(id)).filter((id) => Number.isFinite(id))));
+}
+
+function packetPersistenceType(input: DisputePacketBuildInput): string {
+  return input.packetType === "collection_agency" ? "collection_agency_dispute" : "credit_bureau_dispute";
+}
+
+function selectedIssueKey(issueIds: number[]): string {
+  return dedupeIssueIds(issueIds).sort((left, right) => left - right).join(",");
+}
+
+function numericId(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function packetIdempotencyLockParts(preview: DisputePacketPreview, packetType: string): [number, number] {
+  const key = [
+    "packet-create-v1",
+    preview.ownerUserId,
+    packetType,
+    preview.firstTradelineId,
+    preview.bureauId ?? "none",
+    selectedIssueKey(preview.selectedIssueIds),
+  ].join(":");
+  const digest = createHash("sha256").update(key).digest();
+  return [digest.readInt32BE(0), digest.readInt32BE(4)];
+}
+
+function hasSameSelectedIssueSet(left: number[], right: unknown[]): boolean {
+  const leftKey = selectedIssueKey(left);
+  const rightKey = selectedIssueKey(right.map(numericId).filter((value): value is number => value !== null));
+  return leftKey === rightKey;
+}
+
+function parseExistingPacketContent(content: string | null): SimpleDisputePacketContent | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content);
+    return parsed && typeof parsed === "object" ? parsed as SimpleDisputePacketContent : null;
+  } catch {
+    return null;
+  }
+}
+
+async function findIdempotentExistingPacket(
+  executor: PacketPersistenceExecutor,
+  preview: DisputePacketPreview,
+  packetType: string,
+): Promise<{ id: number; status: string | null; content: SimpleDisputePacketContent } | null> {
+  let query = executor
+    .selectFrom("packet")
+    .select(["id", "status", "content"])
+    .where("userId", "=", preview.ownerUserId)
+    .where("tradelineId", "=", preview.firstTradelineId)
+    .where("type", "=", packetType)
+    .where("processingStatus", "=", "completed")
+    .where("content", "is not", null)
+    .orderBy("createdAt", "asc")
+    .orderBy("id", "asc")
+    .limit(50);
+
+  query = preview.bureauId === null
+    ? query.where("bureauId", "is", null)
+    : query.where("bureauId", "=", preview.bureauId);
+
+  const candidates = await query.execute();
+  if (candidates.length === 0) return null;
+
+  const candidateIds = candidates.map((candidate) => candidate.id);
+  const findingRows = await executor
+    .selectFrom("disputePacketFindings")
+    .select(["disputePacketId", "creditorObligationTestId", "userId", "tradelineId", "bureauId", "packetType"])
+    .where("disputePacketId", "in", candidateIds)
+    .execute();
+
+  for (const candidate of candidates) {
+    const candidateId = numericId(candidate.id);
+    const packetFindings = findingRows.filter((row) => numericId(row.disputePacketId) === candidateId);
+    if (
+      packetFindings.length > 0 &&
+      hasSameSelectedIssueSet(
+        preview.selectedIssueIds,
+        packetFindings.map((row) => row.creditorObligationTestId),
+      ) &&
+      packetFindings.every((row) =>
+        numericId(row.userId) === preview.ownerUserId &&
+        numericId(row.tradelineId) === preview.firstTradelineId &&
+        (preview.bureauId === null ? row.bureauId === null : numericId(row.bureauId) === preview.bureauId) &&
+        row.packetType === preview.packet.packetType
+      )
+    ) {
+      const content = parseExistingPacketContent(candidate.content);
+      if (content) {
+        return {
+          id: candidate.id,
+          status: candidate.status,
+          content,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+async function writePacketIdempotentReuseAudit(
+  executor: PacketPersistenceExecutor,
+  params: {
+    packetId: number;
+    actorUserId: number;
+    ownerUserId: number;
+    packetType: string;
+    selectedIssueIds: number[];
+    linkedFindingId: number | null;
+    now: Date;
+  },
+): Promise<void> {
+  await executor
+    .insertInto("auditLog")
+    .values({
+      actionType: "READ",
+      entityType: "PACKET",
+      entityId: params.packetId,
+      userId: params.actorUserId,
+      details: {
+        packetDuplicatePolicy: "idempotent_reuse",
+        ownerUserId: params.ownerUserId,
+        packetType: params.packetType,
+        selectedIssueIds: params.selectedIssueIds,
+        creditorObligationTestId: params.linkedFindingId,
+      } as any,
+      status: "SUCCESS",
+      timestamp: params.now,
+      region: "CA",
+    })
+    .execute();
 }
 
 function readStoredExtractionGate(value: unknown): { packetReady: boolean | null; status: string | null } {
@@ -1726,14 +1877,39 @@ export async function buildDisputePacketPreview(
 export async function createDisputePacketRecord(
   user: User,
   input: DisputePacketBuildInput,
-): Promise<{ packetId: number; packet: SimpleDisputePacketContent; status: string }> {
+): Promise<DisputePacketCreateResult> {
   const preview = await buildDisputePacketPreview(user, input);
   const now = new Date();
-  const packetType = input.packetType === "collection_agency" ? "collection_agency_dispute" : "credit_bureau_dispute";
+  const packetType = packetPersistenceType(input);
   assertPacketFindingRowsCanBeWritten(user, preview);
   await ensureDisputePacketFindingsSchema();
 
-  const inserted = await db.transaction().execute(async (trx) => {
+  const result = await db.transaction().execute(async (trx) => {
+    const [lockKey1, lockKey2] = packetIdempotencyLockParts(preview, packetType);
+    await sql`select pg_advisory_xact_lock(${lockKey1}, ${lockKey2})`.execute(trx);
+
+    const existing = await findIdempotentExistingPacket(trx, preview, packetType);
+    if (existing) {
+      await writePacketIdempotentReuseAudit(trx, {
+        packetId: existing.id,
+        actorUserId: user.id,
+        ownerUserId: preview.ownerUserId,
+        packetType,
+        selectedIssueIds: preview.packet.metadata.selectedIssueIds,
+        linkedFindingId: preview.linkedFindingId,
+        now,
+      });
+
+      return {
+        packetId: existing.id,
+        packet: existing.content,
+        status: existing.status ?? "generated",
+        duplicatePolicy: "idempotent_reuse" as const,
+        reusedExistingPacket: true,
+        existingPacketId: existing.id,
+      };
+    }
+
     const packet = await trx
       .insertInto("packet")
       .values({
@@ -1791,12 +1967,14 @@ export async function createDisputePacketRecord(
       })
       .execute();
 
-    return packet;
+    return {
+      packetId: packet.id,
+      packet: preview.packet,
+      status: packet.status ?? "generated",
+      duplicatePolicy: "created_new" as const,
+      reusedExistingPacket: false,
+    };
   });
 
-  return {
-    packetId: inserted.id,
-    packet: preview.packet,
-    status: inserted.status ?? "generated",
-  };
+  return result;
 }

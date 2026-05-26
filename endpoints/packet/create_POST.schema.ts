@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { SimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import type { PacketDuplicatePolicy } from "../../helpers/disputePacketService";
 import { schema as buildPacketSchema } from "./build_POST.schema";
 
 export const schema = buildPacketSchema;
@@ -11,6 +12,9 @@ export type OutputType = {
   packetId: number;
   status: string;
   packet: SimpleDisputePacketContent;
+  duplicatePolicy: PacketDuplicatePolicy;
+  reusedExistingPacket: boolean;
+  existingPacketId?: number;
 };
 
 export const postPacketCreate = async (body: InputType, init?: RequestInit): Promise<OutputType> => {

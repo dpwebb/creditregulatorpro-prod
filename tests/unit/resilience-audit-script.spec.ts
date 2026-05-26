@@ -96,6 +96,9 @@ describe("resilience audit script", () => {
     expect(pkg.scripts["audit:resilience"]).toBe("tsx scripts/resilience-audit.ts");
     expect(source).toContain("storage_outage_fault_injection");
     expect(source).toContain("db_disconnect_fault_injection");
+    expect(source).toContain("duplicate_packet_policy");
+    expect(source).toContain("idempotent_reuse");
+    expect(source).toContain("Repeated packet creation for a valid finding is idempotent");
     expect(source).toContain("Not executed by this command.");
     expect(source).not.toMatch(/docker\s+(stop|kill|rm)|DROP\s+DATABASE|TRUNCATE\s+TABLE|delete\s+from\s+public\.users/i);
   });

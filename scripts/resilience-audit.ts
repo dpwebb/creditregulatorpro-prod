@@ -106,6 +106,9 @@ type PacketCreateResponse = {
   success: boolean;
   packetId: number;
   status: string;
+  duplicatePolicy?: "created_new" | "idempotent_reuse";
+  reusedExistingPacket?: boolean;
+  existingPacketId?: number;
 };
 
 type SseProbeResult = {
@@ -1037,6 +1040,8 @@ async function runResilienceAudit(env: NodeJS.ProcessEnv): Promise<ResilienceAud
       });
     } else {
       const createdPackets: number[] = [];
+      const duplicatePolicies: Array<PacketCreateResponse["duplicatePolicy"]> = [];
+      const reusedExistingPacketFlags: Array<boolean | undefined> = [];
       const pdfs: Awaited<ReturnType<typeof packetPdfProbe>>[] = [];
       for (let i = 0; i < 2; i++) {
         const created = await owner.api.json<PacketCreateResponse>(AUTH_WORKFLOW_ENDPOINTS.packetCreate, {
@@ -1047,10 +1052,19 @@ async function runResilienceAudit(env: NodeJS.ProcessEnv): Promise<ResilienceAud
           },
         });
         createdPackets.push(created.packetId);
+        duplicatePolicies.push(created.duplicatePolicy);
+        reusedExistingPacketFlags.push(created.reusedExistingPacket);
         pdfs.push(await packetPdfProbe(owner.api, created.packetId));
       }
       const nonOwnerPdf = await packetPdfProbe(other.api, createdPackets[0]);
+      const uniquePacketIds = Array.from(new Set(createdPackets));
+      const repeatedCreationIdempotent =
+        uniquePacketIds.length === 1 &&
+        duplicatePolicies[0] === "created_new" &&
+        duplicatePolicies[1] === "idempotent_reuse" &&
+        reusedExistingPacketFlags[1] === true;
       const packetPass =
+        repeatedCreationIdempotent &&
         pdfs.every((pdf) => pdf.ok && pdf.contentType.includes("application/pdf") && pdf.startsWithPdf && pdf.byteLength > 1000) &&
         !nonOwnerPdf.ok &&
         [403, 404].includes(nonOwnerPdf.status);
@@ -1059,32 +1073,40 @@ async function runResilienceAudit(env: NodeJS.ProcessEnv): Promise<ResilienceAud
         category: "packet_integrity",
         status: packetPass ? "PASS" : "FAIL",
         title: "Repeated packet generation",
-        expected: "Repeated packet creation for a valid finding creates valid PDFs without corrupting auth boundaries.",
-        observed: `packets=${createdPackets.join(",")}, pdfStatuses=${pdfs.map((pdf) => pdf.status).join(",")}, nonOwnerPdf=${nonOwnerPdf.status}`,
+        expected: "Repeated packet creation for a valid finding is idempotent, keeps PDF retrieval valid, and preserves auth boundaries.",
+        observed: `packets=${createdPackets.join(",")}, policies=${duplicatePolicies.join(",")}, pdfStatuses=${pdfs.map((pdf) => pdf.status).join(",")}, nonOwnerPdf=${nonOwnerPdf.status}`,
         details: packetPass
-          ? "Repeated packet generation returned valid PDFs and non-owner PDF access was rejected."
-          : "Repeated packet generation produced invalid PDF output or leaked packet PDF access.",
+          ? "Repeated packet generation returned the existing packet on retry, returned valid PDFs, and rejected non-owner PDF access."
+          : "Repeated packet generation was not idempotent, produced invalid PDF output, or leaked packet PDF access.",
         evidence: {
           issueId: ownerCandidate.issueId,
           packetIds: createdPackets,
+          uniquePacketIds,
+          duplicatePolicies,
+          reusedExistingPacketFlags,
+          repeatedCreationIdempotent,
           pdfs,
           nonOwnerPdf,
         },
       });
 
-      if (createdPackets.length > 1) {
-        addVector(vectors, {
-          id: "duplicate_packet_policy",
-          category: "packet_integrity",
-          status: "WARN",
-          exploitability: "low",
-          title: "Duplicate packet policy",
-          expected: "Repeated generation is either idempotent or explicitly allowed as separate packet history.",
-          observed: `Created packet IDs ${createdPackets.join(", ")}`,
-          details: "Repeated generation is permitted and creates separate packet records. This is not a corruption vector in the observed flow, but product policy should confirm whether duplicates are desired.",
-          evidence: { packetIds: createdPackets },
-        });
-      }
+      addVector(vectors, {
+        id: "duplicate_packet_policy",
+        category: "packet_integrity",
+        status: repeatedCreationIdempotent ? "PASS" : "FAIL",
+        title: "Duplicate packet policy",
+        expected: "Option A is enforced: same owner, finding set, packet type, bureau, and report context return the existing packet.",
+        observed: `packetIds=${createdPackets.join(", ")}, policies=${duplicatePolicies.join(", ")}`,
+        details: repeatedCreationIdempotent
+          ? "Repeated generation followed the idempotent packet policy and returned the existing packet record."
+          : "Repeated generation created a separate packet record or did not expose idempotent reuse metadata.",
+        evidence: {
+          packetIds: createdPackets,
+          uniquePacketIds,
+          duplicatePolicies,
+          reusedExistingPacketFlags,
+        },
+      });
     }
 
     addVector(vectors, {
