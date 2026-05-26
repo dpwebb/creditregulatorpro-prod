@@ -71,6 +71,24 @@ async function createCoreAppTables(sql: Sql) {
     created_at timestamptz null default now()
   )`;
 
+  await sql`create table if not exists public.licensed_collection_agency (
+    id bigserial primary key,
+    agency_name text not null,
+    agency_name_normalized text not null,
+    province text not null,
+    license_number text null,
+    license_status text not null default 'active',
+    license_expiry_date timestamptz null,
+    data_source text not null default 'admin_manual',
+    verified_at timestamptz null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  )`;
+  await sql`
+    create unique index if not exists idx_licensed_collection_agency_normalized_province
+      on public.licensed_collection_agency(agency_name_normalized, province)
+  `;
+
   await sql`create table if not exists public.report_artifact (
     id bigserial primary key,
     user_id bigint null references public.users(id) on delete set null,
