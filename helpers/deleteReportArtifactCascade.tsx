@@ -4,6 +4,8 @@ import { DB } from "./schema";
 import { logDelete, logAudit } from "./auditLogger";
 import { sql } from "kysely";
 
+let optionalStepCounter = 0;
+
 function isOptionalSchemaError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -14,10 +16,28 @@ function isOptionalSchemaError(error: unknown): boolean {
   );
 }
 
-async function runOptionalStep(stepName: string, fn: () => Promise<void>): Promise<void> {
+function nextOptionalStepSavepoint(): string {
+  optionalStepCounter += 1;
+  return `optional_cleanup_${optionalStepCounter}`;
+}
+
+async function runOptionalStep(
+  trx: Transaction<DB>,
+  stepName: string,
+  fn: () => Promise<void>
+): Promise<void> {
+  const savepoint = nextOptionalStepSavepoint();
+  await sql.raw(`savepoint ${savepoint}`).execute(trx);
+
   try {
     await fn();
+    await sql.raw(`release savepoint ${savepoint}`).execute(trx);
   } catch (error) {
+    await sql.raw(`rollback to savepoint ${savepoint}`).execute(trx).catch((rollbackError) => {
+      console.error(`[Cascade Delete] Failed to roll back optional step savepoint (${stepName}).`, rollbackError);
+    });
+    await sql.raw(`release savepoint ${savepoint}`).execute(trx).catch(() => undefined);
+
     if (!isOptionalSchemaError(error)) {
       throw error;
     }
@@ -84,7 +104,7 @@ export async function deleteReportArtifactCascade(
     // Delete the tradeline itself. The DB relation from tradeline.report_artifact_id can be SET NULL,
     // so relying on the report artifact delete can leave stale accounts behind.
     if (tradelineIds.length > 0) {
-      await runOptionalStep("reportArtifact.tradelineId nullification", async () => {
+      await runOptionalStep(trx, "reportArtifact.tradelineId nullification", async () => {
         await trx
           .updateTable("reportArtifact")
           .set({ tradelineId: null })
@@ -110,7 +130,7 @@ export async function deleteReportArtifactCascade(
     if (orphanSnapshotIds.length > 0) {
       console.log(`Found ${orphanSnapshotIds.length} orphaned tradeline snapshots for report artifact ${reportArtifactId}`);
 
-      await runOptionalStep("packetImpactAssessment cleanup (orphan snapshots)", async () => {
+      await runOptionalStep(trx, "packetImpactAssessment cleanup (orphan snapshots)", async () => {
         await trx
           .deleteFrom("packetImpactAssessment")
           .where((eb) => eb.or([
@@ -120,7 +140,7 @@ export async function deleteReportArtifactCascade(
           .executeTakeFirst();
       });
 
-      await runOptionalStep("obligationChallengeLog.sourceSnapshotId nullify", async () => {
+      await runOptionalStep(trx, "obligationChallengeLog.sourceSnapshotId nullify", async () => {
         await trx
           .updateTable("obligationChallengeLog")
           .set({ sourceSnapshotId: null })
@@ -128,7 +148,7 @@ export async function deleteReportArtifactCascade(
           .executeTakeFirst();
       });
       
-      await runOptionalStep("obligationChallengeLog.comparisonSnapshotId nullify", async () => {
+      await runOptionalStep(trx, "obligationChallengeLog.comparisonSnapshotId nullify", async () => {
         await trx
           .updateTable("obligationChallengeLog")
           .set({ comparisonSnapshotId: null })
@@ -136,7 +156,7 @@ export async function deleteReportArtifactCascade(
           .executeTakeFirst();
       });
 
-      await runOptionalStep("packet.baselineSnapshotId nullify", async () => {
+      await runOptionalStep(trx, "packet.baselineSnapshotId nullify", async () => {
         await trx
           .updateTable("packet")
           .set({ baselineSnapshotId: null })
@@ -151,80 +171,80 @@ export async function deleteReportArtifactCascade(
     }
 
     // Step 3a: Best-effort cleanup for artifact child tables that may not have ON DELETE CASCADE in older schemas.
-    await runOptionalStep("passAEditLog cleanup", async () => {
+    await runOptionalStep(trx, "passAEditLog cleanup", async () => {
       await trx
         .deleteFrom("passAEditLog")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("passExtraction cleanup", async () => {
+    await runOptionalStep(trx, "passExtraction cleanup", async () => {
       await trx
         .deleteFrom("passExtraction")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("reportConsumerInfo cleanup", async () => {
+    await runOptionalStep(trx, "reportConsumerInfo cleanup", async () => {
       await trx
         .deleteFrom("reportConsumerInfo")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("reportConsumerStatement cleanup", async () => {
+    await runOptionalStep(trx, "reportConsumerStatement cleanup", async () => {
       await trx
         .deleteFrom("reportConsumerStatement")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("reportCreditScore cleanup", async () => {
+    await runOptionalStep(trx, "reportCreditScore cleanup", async () => {
       await trx
         .deleteFrom("reportCreditScore")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("reportEmploymentInfo cleanup", async () => {
+    await runOptionalStep(trx, "reportEmploymentInfo cleanup", async () => {
       await trx
         .deleteFrom("reportEmploymentInfo")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("reportInquiry cleanup", async () => {
+    await runOptionalStep(trx, "reportInquiry cleanup", async () => {
       await trx
         .deleteFrom("reportInquiry")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("reportPublicRecord cleanup", async () => {
+    await runOptionalStep(trx, "reportPublicRecord cleanup", async () => {
       await trx
         .deleteFrom("reportPublicRecord")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("tradelineArtifactPresence cleanup (artifact)", async () => {
+    await runOptionalStep(trx, "tradelineArtifactPresence cleanup (artifact)", async () => {
       await trx
         .deleteFrom("tradelineArtifactPresence")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("tradelinePaymentHistoryDetail cleanup (artifact)", async () => {
+    await runOptionalStep(trx, "tradelinePaymentHistoryDetail cleanup (artifact)", async () => {
       await trx
         .deleteFrom("tradelinePaymentHistoryDetail")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("tradelinePaymentHistory cleanup (artifact)", async () => {
+    await runOptionalStep(trx, "tradelinePaymentHistory cleanup (artifact)", async () => {
       await trx
         .deleteFrom("tradelinePaymentHistory")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
-    await runOptionalStep("obligationChallengeLog cleanup (artifact)", async () => {
+    await runOptionalStep(trx, "obligationChallengeLog cleanup (artifact)", async () => {
       await trx
         .deleteFrom("obligationChallengeLog")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
 
-    await runOptionalStep("ingest processing queue cleanup (artifact)", async () => {
+    await runOptionalStep(trx, "ingest processing queue cleanup (artifact)", async () => {
       const jobIdsResult = await sql<{ id: number }>`
         select id
         from public.ingest_processing_job
@@ -337,7 +357,7 @@ export async function deleteUserReportDataCascade(
       deletedPostalTransactions: 0,
     };
 
-    await runOptionalStep("orphan packet cleanup by user", async () => {
+    await runOptionalStep(trx, "orphan packet cleanup by user", async () => {
       const packets = await trx
         .selectFrom("packet")
         .select("id")
@@ -354,7 +374,7 @@ export async function deleteUserReportDataCascade(
         .where("packetId", "in", packetIds)
         .executeTakeFirst();
 
-      await runOptionalStep("packetImpactAssessment cleanup (orphan packets)", async () => {
+      await runOptionalStep(trx, "packetImpactAssessment cleanup (orphan packets)", async () => {
         await trx
           .deleteFrom("packetImpactAssessment")
           .where("packetId", "in", packetIds)
@@ -376,14 +396,14 @@ export async function deleteUserReportDataCascade(
         .where("packetId", "in", packetIds)
         .executeTakeFirst();
 
-      await runOptionalStep("discriminationClaim cleanup (orphan packets)", async () => {
+      await runOptionalStep(trx, "discriminationClaim cleanup (orphan packets)", async () => {
         await trx
           .deleteFrom("discriminationClaim")
           .where("packetId", "in", packetIds)
           .executeTakeFirst();
       });
 
-      await runOptionalStep("obligationChallengeLog cleanup (orphan packets)", async () => {
+      await runOptionalStep(trx, "obligationChallengeLog cleanup (orphan packets)", async () => {
         await trx
           .deleteFrom("obligationChallengeLog")
           .where("packetId", "in", packetIds)
@@ -403,7 +423,7 @@ export async function deleteUserReportDataCascade(
       residual.deletedPackets += deletedCount(packetResult);
     });
 
-    await runOptionalStep("orphan obligationInstance cleanup by user", async () => {
+    await runOptionalStep(trx, "orphan obligationInstance cleanup by user", async () => {
       const obligationInstances = await trx
         .selectFrom("obligationInstance")
         .select("id")
@@ -430,7 +450,7 @@ export async function deleteUserReportDataCascade(
         .where("obligationInstanceId", "in", obligationInstanceIds)
         .executeTakeFirst();
 
-      await runOptionalStep("discriminationClaim cleanup (orphan obligations)", async () => {
+      await runOptionalStep(trx, "discriminationClaim cleanup (orphan obligations)", async () => {
         await trx
           .deleteFrom("discriminationClaim")
           .where("obligationInstanceId", "in", obligationInstanceIds)
@@ -444,7 +464,7 @@ export async function deleteUserReportDataCascade(
       residual.deletedObligationInstances += deletedCount(obligationResult);
     });
 
-    await runOptionalStep("bankruptcyRecord cleanup by user", async () => {
+    await runOptionalStep(trx, "bankruptcyRecord cleanup by user", async () => {
       const bankruptcyResult = await trx
         .deleteFrom("bankruptcyRecord")
         .where("userId", "=", targetUserId)
@@ -452,7 +472,7 @@ export async function deleteUserReportDataCascade(
       residual.deletedBankruptcyRecords += deletedCount(bankruptcyResult);
     });
 
-    await runOptionalStep("postalTransaction cleanup by user", async () => {
+    await runOptionalStep(trx, "postalTransaction cleanup by user", async () => {
       const postalResult = await trx
         .deleteFrom("postalTransaction")
         .where("userId", "=", targetUserId)
@@ -486,21 +506,21 @@ export async function deleteTradeline(
   console.log(`Deleting tradeline ${tradelineId} and all associated records`);
 
   // Best-effort cleanup for child tables that may not be configured with ON DELETE CASCADE.
-  await runOptionalStep("tradelinePaymentHistoryDetail cleanup (tradeline)", async () => {
+  await runOptionalStep(trx, "tradelinePaymentHistoryDetail cleanup (tradeline)", async () => {
     await trx
       .deleteFrom("tradelinePaymentHistoryDetail")
       .where("tradelineId", "=", tradelineId)
       .executeTakeFirst();
   });
 
-  await runOptionalStep("tradelinePaymentHistory cleanup (tradeline)", async () => {
+  await runOptionalStep(trx, "tradelinePaymentHistory cleanup (tradeline)", async () => {
     await trx
       .deleteFrom("tradelinePaymentHistory")
       .where("tradelineId", "=", tradelineId)
       .executeTakeFirst();
   });
 
-  await runOptionalStep("tradelineArtifactPresence cleanup (tradeline)", async () => {
+  await runOptionalStep(trx, "tradelineArtifactPresence cleanup (tradeline)", async () => {
     await trx
       .deleteFrom("tradelineArtifactPresence")
       .where("tradelineId", "=", tradelineId)
@@ -527,7 +547,7 @@ export async function deleteTradeline(
     console.log(`Found ${snapshotIds.length} tradeline snapshots for tradeline ${tradelineId}`);
 
     // Delete packet_impact_assessment referencing these snapshots
-    await runOptionalStep("packetImpactAssessment cleanup (tradeline snapshots)", async () => {
+    await runOptionalStep(trx, "packetImpactAssessment cleanup (tradeline snapshots)", async () => {
       const impactAssessmentResult = await trx
         .deleteFrom("packetImpactAssessment")
         .where((eb) => eb.or([
@@ -541,7 +561,7 @@ export async function deleteTradeline(
     // Null out obligation_challenge_log snapshot references
     let challengeSourceUpdated = 0;
     let challengeComparisonUpdated = 0;
-    await runOptionalStep("obligationChallengeLog snapshot nullification", async () => {
+    await runOptionalStep(trx, "obligationChallengeLog snapshot nullification", async () => {
       const challengeSourceResult = await trx
         .updateTable("obligationChallengeLog")
         .set({ sourceSnapshotId: null })
@@ -561,7 +581,7 @@ export async function deleteTradeline(
     console.log(`Nulled out snapshot references in ${challengeSourceUpdated + challengeComparisonUpdated} obligation challenge logs`);
 
     // Null out packet baseline_snapshot_id references
-    await runOptionalStep("packet baseline snapshot nullification", async () => {
+    await runOptionalStep(trx, "packet baseline snapshot nullification", async () => {
       const packetSnapshotResult = await trx
         .updateTable("packet")
         .set({ baselineSnapshotId: null })
@@ -572,7 +592,7 @@ export async function deleteTradeline(
     });
 
     // Delete the tradeline snapshots
-    await runOptionalStep("tradelineSnapshot cleanup", async () => {
+    await runOptionalStep(trx, "tradelineSnapshot cleanup", async () => {
       const snapshotDeleteResult = await trx
         .deleteFrom("tradelineSnapshot")
         .where("tradelineId", "=", tradelineId)
@@ -669,7 +689,7 @@ export async function deleteTradeline(
   }
 
     // f. Delete discrimination_claim where tradelineId OR packetId OR obligationInstanceId matches
-  await runOptionalStep("discriminationClaim cleanup", async () => {
+  await runOptionalStep(trx, "discriminationClaim cleanup", async () => {
     const discriminationResult = await trx
       .deleteFrom("discriminationClaim")
       .where((eb) => {
@@ -695,7 +715,7 @@ export async function deleteTradeline(
     console.log(`Deleted ${postalTransactionResult.numDeletedRows || 0} postal transactions for tradeline ${tradelineId}`);
 
     // g2. Delete packetImpactAssessment by direct packetId FK (not covered by snapshotId deletion above)
-    await runOptionalStep("packetImpactAssessment cleanup (by packet)", async () => {
+    await runOptionalStep(trx, "packetImpactAssessment cleanup (by packet)", async () => {
       const packetImpactByPacketResult = await trx
         .deleteFrom("packetImpactAssessment")
         .where("packetId", "in", packetIds)

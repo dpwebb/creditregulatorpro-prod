@@ -25,9 +25,11 @@ describe("self-service data deletion", () => {
     expect(deleteDataEndpoint).toContain('user.role !== "user"');
     expect(deleteDataEndpoint).toContain("deleteUserDataCategories");
     expect(deleteDataEndpoint).toContain('action: "SELF_DATA_DELETION"');
+    expect(deleteDataEndpoint).not.toContain("reset-platform");
     expect(deleteAccountEndpoint).toContain('user.role !== "user"');
     expect(deleteAccountEndpoint).toContain("deleteUserAccountCascade");
     expect(deleteAccountEndpoint).toContain("clearServerSession(response)");
+    expect(deleteAccountEndpoint).not.toContain("reset-platform");
   });
 
   it("requires selected-category confirmation and account deletion phrase", () => {
@@ -56,6 +58,15 @@ describe("self-service data deletion", () => {
       helper.indexOf("deleteUserAuthAndAccountRows")
     );
     expect(helper).toContain('action: "SELF_ACCOUNT_DELETION"');
+  });
+
+  it("keeps optional user cleanup steps transaction-safe when optional tables are missing", () => {
+    const helper = source("helpers/deleteReportArtifactCascade.tsx");
+
+    expect(helper).toContain("savepoint ${savepoint}");
+    expect(helper).toContain("rollback to savepoint ${savepoint}");
+    expect(helper).toContain('runOptionalStep(trx, "ingest processing queue cleanup (artifact)"');
+    expect(helper).not.toContain('runOptionalStep("ingest processing queue cleanup (artifact)"');
   });
 
   it("adds the deletion controls to profile settings", () => {
