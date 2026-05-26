@@ -62,3 +62,25 @@ Use strict mode for production gates:
 ```bash
 pnpm certify:platform --strict
 ```
+
+## Production Go-Live Guard
+
+The production promotion guard uses the committed Level 5 platform certification
+evidence, production SSH host-key pinning, and the production worker policy.
+
+Set the production SSH host-key fingerprint as either a GitHub Actions variable
+or secret on `dpwebb/creditregulatorpro-prod`:
+
+```bash
+gh variable set PRODUCTION_SSH_HOST_KEY_SHA256 \
+  --repo dpwebb/creditregulatorpro-prod \
+  --body "SHA256:<fingerprint>[,SHA256:<fingerprint>...]"
+```
+
+The deploy workflow refuses to write `known_hosts` until the scanned production
+host key matches `PRODUCTION_SSH_HOST_KEY_SHA256`.
+
+For first go-live, the production ingest worker is intentionally no-worker by
+default. Normal production deploys start only `creditregulatorpro`; any
+production ingest worker dry-run or bounded apply requires explicit
+`workflow_dispatch` inputs.

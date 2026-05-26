@@ -189,7 +189,8 @@ function validateWorkflow(text, workflow) {
       check(
         "production compose file is passed explicitly",
         !text.includes("cp docker-compose.production.yml docker-compose.yml") &&
-          text.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker") &&
+          text.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro") &&
+          !text.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker") &&
           text.includes("compose_file=docker-compose.production.yml"),
       ),
     );

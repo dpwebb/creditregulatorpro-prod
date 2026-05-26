@@ -30,6 +30,10 @@ function makeActivationTempRoot({ includeStagingEvidence = true } = {}) {
     readFileSync(path.join(process.cwd(), ".github", "workflows", "deploy-production.yml"), "utf8"),
   );
   writeFileSync(
+    path.join(root, "docker-compose.production.yml"),
+    readFileSync(path.join(process.cwd(), "docker-compose.production.yml"), "utf8"),
+  );
+  writeFileSync(
     path.join(root, "scripts", "ingest-processing-worker.ts"),
     readFileSync(path.join(process.cwd(), "scripts", "ingest-processing-worker.ts"), "utf8"),
   );

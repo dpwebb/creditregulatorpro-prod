@@ -19,6 +19,7 @@ export const STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH =
   "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json";
 
 const WORKFLOW_PATH = ".github/workflows/deploy-production.yml";
+const PRODUCTION_COMPOSE_PATH = "docker-compose.production.yml";
 const WORKER_PATH = "scripts/ingest-processing-worker.ts";
 
 function normalizeRelativePath(value) {
@@ -114,6 +115,7 @@ export function buildProductionWorkerActivationEvidenceReport({
   generatedAt = new Date().toISOString(),
 } = {}) {
   const workflowText = readText(rootDir, WORKFLOW_PATH);
+  const productionComposeText = readText(rootDir, PRODUCTION_COMPOSE_PATH);
   const workerText = readText(rootDir, WORKER_PATH);
   const stagingWorkerEvidence = summarizeStagingWorkerEvidence(rootDir);
 
@@ -122,8 +124,11 @@ export function buildProductionWorkerActivationEvidenceReport({
       "production worker default-off",
       workflowText.includes("run_ingest_worker:") &&
         workflowText.includes("default: false") &&
-        workflowText.includes("Skipping production ingest worker. Manual workflow_dispatch input is required.") &&
+      workflowText.includes("Skipping production ingest worker. Manual workflow_dispatch input is required.") &&
         workflowText.includes('RUN_PRODUCTION_INGEST_WORKER: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker || false }}') &&
+        workflowText.includes("production ingest worker started during default no-worker deploy") &&
+        !workflowText.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker") &&
+        !/^\s{2}creditregulatorpro-ingest-worker:/m.test(productionComposeText) &&
         !/docker compose up -d --build ingest/i.test(workflowText) &&
         !/restart:\s*unless-stopped\s+ingest/i.test(workflowText),
     ),

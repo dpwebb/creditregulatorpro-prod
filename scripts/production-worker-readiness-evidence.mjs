@@ -26,6 +26,7 @@ export const PRODUCTION_WORKER_APPLY_CONFIRMATION = "explicit-bounded-production
 export const PRODUCTION_WORKER_MAX_JOBS_LIMIT = 5;
 
 const WORKFLOW_PATH = ".github/workflows/deploy-production.yml";
+const PRODUCTION_COMPOSE_PATH = "docker-compose.production.yml";
 const WORKER_PATH = "scripts/ingest-processing-worker.ts";
 
 export const PRODUCTION_WORKER_APPLY_GUARDS = [
@@ -241,6 +242,7 @@ export function buildProductionWorkerReadinessEvidenceReport({
   productionWorkerRuntimeProofEvidence = null,
 } = {}) {
   const workflowText = readText(rootDir, WORKFLOW_PATH);
+  const productionComposeText = readText(rootDir, PRODUCTION_COMPOSE_PATH);
   const workerText = readText(rootDir, WORKER_PATH);
   const runtimeProof =
     productionWorkerRuntimeProofEvidence ?? buildProductionWorkerRuntimeProofReport({ rootDir, generatedAt });
@@ -293,6 +295,9 @@ export function buildProductionWorkerReadinessEvidenceReport({
         workflowText.includes("run_ingest_worker_apply:") &&
         workflowText.includes("default: false") &&
         workflowText.includes("Skipping production ingest worker. Manual workflow_dispatch input is required.") &&
+        workflowText.includes("production ingest worker started during default no-worker deploy") &&
+        !workflowText.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker") &&
+        !/^\s{2}creditregulatorpro-ingest-worker:/m.test(productionComposeText) &&
         !/docker compose up -d --build ingest/i.test(workflowText),
     ),
     staticCheck(

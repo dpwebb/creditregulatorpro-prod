@@ -140,7 +140,8 @@ describe("production deploy workflow verification", () => {
     const source = workflowSource();
 
     expect(source).toContain("Production deploy evidence: target_sha=${TARGET_SHA} checked_out_sha=${deployed_sha} compose_file=docker-compose.production.yml.");
-    expect(source).toContain("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker");
+    expect(source).toContain("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro");
+    expect(source).not.toContain("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker");
     expect(source).not.toContain("cp docker-compose.production.yml docker-compose.yml");
   });
 
@@ -155,11 +156,13 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("choose dry-run or apply when run_ingest_worker=true.");
     expect(source).toContain("ingest_worker_max_jobs must be explicitly set to 1-5 when a worker run is requested.");
     expect(source).toContain("Skipping production ingest worker. Manual workflow_dispatch input is required.");
+    expect(source).toContain("production ingest worker started during default no-worker deploy");
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker || false }}');
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_DRY_RUN: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_dry_run || false }}');
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_APPLY: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_apply || false }}');
     expect(source).toContain("production_worker_requested=\"false\"");
     expect(source).not.toContain("docker compose up -d --build ingest");
+    expect(source).not.toContain("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker");
     expect(source).not.toContain("restart: unless-stopped ingest");
   });
 

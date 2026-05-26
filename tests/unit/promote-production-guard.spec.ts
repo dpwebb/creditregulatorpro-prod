@@ -1,11 +1,18 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  PLATFORM_CERTIFICATION_JSON_PATH,
+  certifiedCommitAcceptedByGoLiveEvidencePolicy,
+  renderControlledGoLivePromotionSummary,
   renderPromotionGuardSummary,
+  validateControlledGoLivePromotion,
   validateLatestProductionPromotionPack,
+  validateProductionHostKeyPinning,
+  validateProductionNoWorkerPolicy,
   validatePromotionPackForProduction,
 } from "../../scripts/production-promotion-guard.mjs";
 
@@ -101,6 +108,46 @@ function certifyingPack(overrides: Record<string, unknown> = {}) {
 
 function tempRoot() {
   return mkdtempSync(join(tmpdir(), "crp-promotion-guard-"));
+}
+
+function platformCertification(overrides: Record<string, unknown> = {}) {
+  return {
+    reportName: "creditregulatorpro-level-5-platform-certification",
+    currentCommit: HEAD,
+    certificationStatus: "PASS",
+    CERTIFYING: true,
+    BLOCKED_BY_INPUTS: false,
+    deploymentReadinessScore: 100,
+    unresolvedBlockers: [],
+    ...overrides,
+  };
+}
+
+function writeControlledGoLiveFixture(root: string, certification = platformCertification()) {
+  mkdirSync(join(root, "docs", "platform-certification"), { recursive: true });
+  mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+  writeFileSync(
+    join(root, ...PLATFORM_CERTIFICATION_JSON_PATH.split("/")),
+    `${JSON.stringify(certification, null, 2)}\n`,
+    "utf8",
+  );
+  writeFileSync(
+    join(root, ".github", "workflows", "deploy-production.yml"),
+    readFileSync(join(process.cwd(), ".github", "workflows", "deploy-production.yml"), "utf8"),
+    "utf8",
+  );
+  writeFileSync(
+    join(root, "docker-compose.production.yml"),
+    readFileSync(join(process.cwd(), "docker-compose.production.yml"), "utf8"),
+    "utf8",
+  );
+}
+
+function hostKeyEnv() {
+  return {
+    PRODUCTION_SSH_HOST_KEY_SHA256: "SHA256:abcdefghijklmnopqrstuvwxyzABCDEF0123456789+/=",
+    CRP_DISABLE_GITHUB_HOST_KEY_LOOKUP: "true",
+  };
 }
 
 describe("production promotion guard", () => {
@@ -344,5 +391,107 @@ describe("production promotion guard", () => {
     const result = validateLatestProductionPromotionPack({ rootDir: root, packPath, currentHead: HEAD });
 
     expect(result.allowed).toBe(true);
+  });
+
+  it("allows controlled go-live when Level 5 certification matches the current target and no-worker policy is cleared", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(root);
+
+    const result = validateControlledGoLivePromotion({
+      rootDir: root,
+      currentHead: HEAD,
+      env: hostKeyEnv(),
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.certification).toMatchObject({
+      certificationStatus: "PASS",
+      deploymentReadinessScore: 100,
+      blockers: 0,
+      targetAccepted: true,
+    });
+    expect(result.hostKeyPinning.allowed).toBe(true);
+    expect(result.workerPolicy).toMatchObject({
+      allowed: true,
+      policy: "no-worker-production-deploy",
+    });
+  });
+
+  it("blocks controlled go-live when host-key pinning input is missing", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(root);
+
+    const result = validateProductionHostKeyPinning({
+      rootDir: root,
+      env: { CRP_DISABLE_GITHUB_HOST_KEY_LOOKUP: "true" },
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toContain("host-key-input-missing");
+  });
+
+  it("blocks controlled go-live when production worker would start by default", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(root);
+    writeFileSync(
+      join(root, "docker-compose.production.yml"),
+      "services:\n  creditregulatorpro-ingest-worker:\n    restart: unless-stopped\n",
+      "utf8",
+    );
+
+    const result = validateProductionNoWorkerPolicy({ rootDir: root });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toContain("worker-compose-service-present");
+  });
+
+  it("allows evidence-only descendants of a certified app-source commit", () => {
+    const root = tempRoot();
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "test@example.invalid"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+    mkdirSync(join(root, "docs", "platform-certification"), { recursive: true });
+    writeFileSync(join(root, "app.ts"), "export const app = true;\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "app"], { cwd: root, stdio: "ignore" });
+    const appCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    writeFileSync(join(root, "docs", "platform-certification", "latest-platform-certification.json"), "{}\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "evidence"], { cwd: root, stdio: "ignore" });
+    const evidenceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    expect(certifiedCommitAcceptedByGoLiveEvidencePolicy(root, appCommit, evidenceCommit)).toBe(true);
+  });
+
+  it("blocks descendants that changed source after certification", () => {
+    const root = tempRoot();
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "test@example.invalid"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+    writeFileSync(join(root, "app.ts"), "export const app = true;\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "app"], { cwd: root, stdio: "ignore" });
+    const appCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    writeFileSync(join(root, "app.ts"), "export const app = false;\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "source"], { cwd: root, stdio: "ignore" });
+    const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    expect(certifiedCommitAcceptedByGoLiveEvidencePolicy(root, appCommit, sourceCommit)).toBe(false);
+  });
+
+  it("redacts controlled go-live blocker output", () => {
+    const result = validateControlledGoLivePromotion({
+      rootDir: tempRoot(),
+      currentHead: "not-a-sha",
+      env: { CRP_DISABLE_GITHUB_HOST_KEY_LOOKUP: "true" },
+    });
+    const output = renderControlledGoLivePromotionSummary(result);
+
+    expect(output).toContain("Controlled production go-live guard blocked promotion.");
+    expect(output).not.toContain("-----BEGIN");
+    expect(output).not.toContain("sk-proj-");
   });
 });

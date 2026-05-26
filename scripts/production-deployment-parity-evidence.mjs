@@ -350,6 +350,8 @@ export function validateProductionDeployWorkflowParity(workflowText) {
       workflowText.includes("run_ingest_worker:") &&
         workflowText.includes("default: false") &&
         workflowText.includes("Skipping production ingest worker. Manual workflow_dispatch input is required.") &&
+        workflowText.includes("production ingest worker started during default no-worker deploy") &&
+        !workflowText.includes("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker") &&
         !/docker compose up -d --build ingest/i.test(workflowText) &&
         !/restart:\s*unless-stopped\s+ingest/i.test(workflowText),
     ),

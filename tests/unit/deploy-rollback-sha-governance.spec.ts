@@ -89,8 +89,8 @@ describe("rollback SHA governance workflow validation", () => {
     );
 
     const copiedCompose = workflowSource("production").replace(
-      "docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker",
-      "cp docker-compose.production.yml docker-compose.yml\n            docker compose up -d --build creditregulatorpro creditregulatorpro-ingest-worker",
+      "docker compose -f docker-compose.production.yml up -d --build creditregulatorpro",
+      "cp docker-compose.production.yml docker-compose.yml\n            docker compose up -d --build creditregulatorpro",
     );
     expect(reportWith({ production: copiedCompose }).status).toBe("failed");
   }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);

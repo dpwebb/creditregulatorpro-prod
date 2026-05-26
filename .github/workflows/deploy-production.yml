@@ -166,6 +166,7 @@ jobs:
         env:
           VALIDATION_BASE_SHA: ${{ github.event.before || '' }}
           VALIDATION_HEAD_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+          PRODUCTION_SSH_HOST_KEY_SHA256: ${{ secrets.PRODUCTION_SSH_HOST_KEY_SHA256 || vars.PRODUCTION_SSH_HOST_KEY_SHA256 || '' }}
         run: pnpm run validate:release -- --head "$VALIDATION_HEAD_SHA"
 
   deploy:
@@ -483,9 +484,12 @@ jobs:
             pnpm run build
             docker rm -f creditregulatorpro-app 2>/dev/null || true
             docker rm -f creditregulatorpro-ingest-worker 2>/dev/null || true
-            docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker
+            docker compose -f docker-compose.production.yml up -d --build creditregulatorpro
             docker ps --filter name=creditregulatorpro-app
-            docker ps --filter name=creditregulatorpro-ingest-worker
+            if docker ps --format '{{.Names}}' | grep -qx 'creditregulatorpro-ingest-worker'; then
+              echo "Refusing production deploy: production ingest worker started during default no-worker deploy."
+              exit 1
+            fi
 
             run_production_ingest_worker_plan() {
               if [ "${RUN_PRODUCTION_INGEST_WORKER:-false}" != "true" ]; then
@@ -676,7 +680,7 @@ jobs:
                 pnpm run build
                 docker rm -f creditregulatorpro-app 2>/dev/null || true
                 docker rm -f creditregulatorpro-ingest-worker 2>/dev/null || true
-                docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker
+                docker compose -f docker-compose.production.yml up -d --build creditregulatorpro
               ); then
                 echo "Production previous SHA rebuild failed; attempting captured previous image restore."
                 if [ -n "$PREVIOUS_APP_IMAGE" ] && docker image inspect "$PREVIOUS_APP_IMAGE" >/dev/null 2>&1; then
@@ -684,14 +688,17 @@ jobs:
                   docker tag "$PREVIOUS_APP_IMAGE" app-creditregulatorpro
                   docker rm -f creditregulatorpro-app 2>/dev/null || true
                   docker rm -f creditregulatorpro-ingest-worker 2>/dev/null || true
-                  docker compose -f docker-compose.production.yml up -d --no-build --force-recreate creditregulatorpro creditregulatorpro-ingest-worker
+                  docker compose -f docker-compose.production.yml up -d --no-build --force-recreate creditregulatorpro
                 else
                   echo "Production automatic rollback failed: captured previous image is unavailable."
                   exit 1
                 fi
               fi
               docker ps --filter name=creditregulatorpro-app --format '{{.Status}}' | grep -q '^Up '
-              docker ps --filter name=creditregulatorpro-ingest-worker --format '{{.Status}}' | grep -q '^Up '
+              if docker ps --format '{{.Names}}' | grep -qx 'creditregulatorpro-ingest-worker'; then
+                echo "Production rollback restored app, but ingest worker is unexpectedly running."
+                exit 1
+              fi
               echo "Production automatic rollback restored ${PREVIOUS_SHA}."
           REMOTE
 

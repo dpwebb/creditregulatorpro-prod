@@ -62,6 +62,10 @@ function makeReadinessTempRoot() {
     readFileSync(path.join(process.cwd(), ".github", "workflows", "deploy-production.yml"), "utf8"),
   );
   writeFileSync(
+    path.join(root, "docker-compose.production.yml"),
+    readFileSync(path.join(process.cwd(), "docker-compose.production.yml"), "utf8"),
+  );
+  writeFileSync(
     path.join(root, "scripts", "ingest-processing-worker.ts"),
     readFileSync(path.join(process.cwd(), "scripts", "ingest-processing-worker.ts"), "utf8"),
   );
@@ -145,6 +149,7 @@ describe("production worker readiness evidence", () => {
     mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
     mkdirSync(path.join(root, "scripts"), { recursive: true });
     writeFileSync(path.join(root, ".github", "workflows", "deploy-production.yml"), "run_ingest_worker_apply: true\n");
+    writeFileSync(path.join(root, "docker-compose.production.yml"), "services:\n  creditregulatorpro-ingest-worker:\n    restart: unless-stopped\n");
     writeFileSync(path.join(root, "scripts", "ingest-processing-worker.ts"), "export const unsafe = true;\n");
 
     const report = buildProductionWorkerReadinessEvidenceReport({
