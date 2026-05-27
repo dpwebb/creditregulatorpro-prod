@@ -142,7 +142,6 @@ export async function generateSignatureImage(fullName: string): Promise<string> 
       return "";
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = (await response.json()) as any;
 
     if (data.error) {
@@ -150,7 +149,6 @@ export async function generateSignatureImage(fullName: string): Promise<string> 
       return "";
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const part = data.candidates?.[0]?.content?.parts?.find(
       (p: any) => p.inlineData?.data && p.inlineData?.mimeType
     ) || data.candidates?.[0]?.content?.parts?.[0];

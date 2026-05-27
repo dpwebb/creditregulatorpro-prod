@@ -56,7 +56,6 @@ export async function handle(request: Request) {
     // We avoid an explicit Partial<...> annotation here because Kysely's UpdateObject
     // type is stricter than a plain Partial and causes TS2769 when the types don't
     // align exactly (e.g. Json vs Record<string, unknown>).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {};
     const data = jsonRecord(input.data);
 
@@ -87,7 +86,6 @@ export async function handle(request: Request) {
 
     let updateQuery = db
       .updateTable("reportArtifact")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .set(updateData as any)
       .where("id", "=", input.id);
 

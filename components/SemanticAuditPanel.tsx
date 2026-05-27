@@ -42,7 +42,6 @@ export const SemanticAuditPanel = () => {
   };
 
   // Typecasting assuming standard AuditReport shape with findings array
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const auditData = data as any;
   const findings: any[] = auditData?.findings || [];
   const categories = Array.from(new Set(findings.map(f => f.category))).filter(Boolean) as string[];
