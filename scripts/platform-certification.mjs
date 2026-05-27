@@ -11,6 +11,14 @@ export const DEFAULT_STAGING_BASE_URL = "https://staging.creditregulatorpro.com"
 const DEFAULT_GATE_TIMEOUT_MS = 15 * 60 * 1000;
 const INPUT_BLOCKED_GATE_STATUS = "incomplete";
 
+export const DEPLOYMENT_CERTIFICATION_MODES = Object.freeze({
+  LIVE_PRODUCTION: "LIVE_PRODUCTION",
+  NON_PUBLIC_PRODUCTION_TEST: "NON_PUBLIC_PRODUCTION_TEST",
+  OFFLINE_DEPLOYMENT: "OFFLINE_DEPLOYMENT",
+});
+
+const DEPLOYMENT_CERTIFICATION_MODE_VALUES = new Set(Object.values(DEPLOYMENT_CERTIFICATION_MODES));
+
 const STAGING_BROWSER_ENV = {
   E2E_BASE_URL: DEFAULT_STAGING_BASE_URL,
   STAGING_BASE_URL: DEFAULT_STAGING_BASE_URL,
@@ -290,6 +298,20 @@ function appendTail(buffer, chunk, maxLength = 40000) {
 function nonEmptyEnv(env, key) {
   const value = String(env?.[key] ?? "").trim();
   return value.length > 0 ? value : null;
+}
+
+export function resolveDeploymentCertificationMode(env = process.env) {
+  const rawValue = String(env?.CRP_DEPLOYMENT_CERTIFICATION_MODE ?? "").trim().toUpperCase();
+  return DEPLOYMENT_CERTIFICATION_MODE_VALUES.has(rawValue)
+    ? rawValue
+    : DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION;
+}
+
+export function isNonPublicDeploymentCertificationMode(mode) {
+  return (
+    mode === DEPLOYMENT_CERTIFICATION_MODES.NON_PUBLIC_PRODUCTION_TEST ||
+    mode === DEPLOYMENT_CERTIFICATION_MODES.OFFLINE_DEPLOYMENT
+  );
 }
 
 export function stagingAdminE2eCredentialsAvailable(env = process.env) {
@@ -614,6 +636,56 @@ function normalizeCommandResult(gate, result, resolvedCommand = gate.command) {
   };
 }
 
+function deferrableCandidateText(candidate) {
+  return [
+    candidate?.reason,
+    candidate?.failureReason,
+    candidate?.incompleteReason,
+    candidate?.diagnostic?.observedFailure,
+    candidate?.diagnostic?.blockedStage,
+    candidate?.diagnostic?.missingInputs?.join?.(" "),
+    candidate?.diagnostic?.commandExamples?.join?.(" "),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function isDeferrableAdminCredentialLiveBlocker(candidate) {
+  if (!candidate || typeof candidate !== "object") return false;
+  if (candidate.deferrableForNonPublicDeployment === true) return true;
+
+  const gateId = candidate.gateId ?? candidate.id;
+  const status = candidate.status;
+  const severity = candidate.severity;
+  const isInputBlocked =
+    status === INPUT_BLOCKED_GATE_STATUS ||
+    severity === "BLOCKED_BY_INPUTS" ||
+    Boolean(candidate.incompleteReason);
+  if (!isInputBlocked) return false;
+
+  const text = deferrableCandidateText(candidate);
+
+  if (gateId === "adminClickThrough") {
+    if (/admin-navigation-timeout|audit-log-filter-empty|audit-log filter|Security & Compliance/i.test(text)) {
+      return false;
+    }
+    return /E2E_ADMIN_EMAIL|E2E_ADMIN_PASSWORD|STAGING_ADMIN_EMAIL|STAGING_ADMIN_PASSWORD|STAGING_ADMIN_SESSION_COOKIE|credential|credentials|failed login|FAIL_AUTH/i.test(text);
+  }
+
+  if (gateId === "e2eOperationalAudit") {
+    const isAdminPacketStage =
+      candidate?.diagnostic?.blockedStage === "admin_packet_workflow" ||
+      /admin packet workflow|ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING|ADMIN_PROBE_AUTH_FAILED/i.test(text);
+    const isCredentialOnly =
+      /credential|credentials|session cookie|authenticate|authentication|FAIL_AUTH|ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING|ADMIN_PROBE_AUTH_FAILED/i.test(text);
+    const assertsNonAdminFlowPassed =
+      /without a platform failure|non-admin workflow completed|not a packet workflow failure/i.test(text);
+    return isAdminPacketStage && isCredentialOnly && assertsNonAdminFlowPassed;
+  }
+
+  return false;
+}
+
 export function scoreDeploymentReadiness(gates, results) {
   const resultById = new Map(results.map((entry) => [entry.id, entry]));
   const totalWeight = gates.reduce((sum, gate) => sum + Number(gate.weight ?? 0), 0);
@@ -666,14 +738,21 @@ export function buildPlatformBlockers(gates, results) {
     .map((result) => {
       const gate = gateById.get(result.id);
       const inputBlocked = result.status === INPUT_BLOCKED_GATE_STATUS;
+      const reason = result.failureReason ?? result.incompleteReason ?? `${result.label} failed.`;
+      const deferrableForNonPublicDeployment = isDeferrableAdminCredentialLiveBlocker({
+        ...result,
+        reason,
+      });
       return {
         severity: inputBlocked ? "BLOCKED_BY_INPUTS" : "BLOCKER",
         subsystem: result.subsystem,
         gateId: result.id,
         gateLabel: result.label,
         command: result.command,
-        reason: result.failureReason ?? result.incompleteReason ?? `${result.label} failed.`,
+        reason,
         requiredBeforeProduction: true,
+        deferrableForNonPublicDeployment,
+        deferredUntilCertificationMode: deferrableForNonPublicDeployment ? DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION : null,
         weight: gate?.weight ?? null,
       };
     });
@@ -689,6 +768,15 @@ function statusFromGateIds(gateIds, results) {
 
 function buildRiskAssessment(report) {
   const blockers = report.unresolvedBlockers;
+  if (report.nonPublicDeploymentAcceptable === true && (report.deferredLiveProductionBlockers?.length ?? 0) > 0) {
+    return {
+      level: "MEDIUM",
+      summary:
+        "Non-public/offline deployment is acceptable because core platform gates passed and only admin credential/click-through proof is deferred. LIVE Production remains uncertified.",
+      reasons: report.deferredLiveProductionBlockers.map((blocker) => `${blocker.subsystem}: ${blocker.reason}`),
+    };
+  }
+
   if (blockers.length === 0) {
     return {
       level: "LOW",
@@ -720,11 +808,33 @@ function certificationDecision(results) {
   return "PASS";
 }
 
+function safetyFlagsClean(safety) {
+  return Object.values(safety).every((value) => value === false);
+}
+
+function runtimeAuditIncomplete(results) {
+  return results.some((result) => result.id === "runtimeAudit" && result.status === INPUT_BLOCKED_GATE_STATUS);
+}
+
+function buildDeferredLiveProductionBlockers(unresolvedBlockers, certificationMode) {
+  if (!isNonPublicDeploymentCertificationMode(certificationMode)) return [];
+  return unresolvedBlockers
+    .filter(isDeferrableAdminCredentialLiveBlocker)
+    .map((blocker) => ({
+      ...blocker,
+      severity: "DEFERRED_LIVE_PRODUCTION_BLOCKER",
+      requiredBeforeProduction: false,
+      requiredBeforeLiveProduction: true,
+      deferredUntilCertificationMode: DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION,
+    }));
+}
+
 export async function buildPlatformCertificationReport(options = {}) {
   const repoRoot = options.repoRoot ?? process.cwd();
   const gates = options.gates ?? PLATFORM_CERTIFICATION_GATES;
   const runCommand = options.runCommand ?? runShellCommand;
   const runtimeEnv = options.env ?? process.env;
+  const certificationMode = options.certificationMode ?? resolveDeploymentCertificationMode(runtimeEnv);
   const runStartedAt = options.runStartedAt ?? new Date().toISOString();
   const currentCommit = options.currentCommit ?? gitValue(["rev-parse", "HEAD"], repoRoot);
   const currentBranch = options.currentBranch ?? gitValue(["branch", "--show-current"], repoRoot);
@@ -754,6 +864,34 @@ export async function buildPlatformCertificationReport(options = {}) {
   const unresolvedBlockers = buildPlatformBlockers(gates, results);
   const deploymentReadinessScore = scoreDeploymentReadiness(gates, results);
   const certificationStatus = certificationDecision(results);
+  const deferredLiveProductionBlockers = buildDeferredLiveProductionBlockers(unresolvedBlockers, certificationMode);
+  const deferredBlockerKeys = new Set(deferredLiveProductionBlockers.map((blocker) => blocker.gateId));
+  const hardUnresolvedBlockers = unresolvedBlockers.filter((blocker) => !deferredBlockerKeys.has(blocker.gateId));
+  const safety = {
+    productionDataMutated: false,
+    productionConfigurationModified: false,
+    infrastructureModifiedAutomatically: false,
+    schemasModified: false,
+    destructiveCleanupRun: false,
+    secretsPrinted: false,
+  };
+  const liveProductionCertified =
+    certificationMode === DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION &&
+    (certificationStatus === "PASS" || certificationStatus === "PASS_WITH_WARNINGS") &&
+    deploymentReadinessScore === 100 &&
+    unresolvedBlockers.length === 0 &&
+    safetyFlagsClean(safety);
+  const nonPublicDeploymentAcceptable =
+    isNonPublicDeploymentCertificationMode(certificationMode) &&
+    hardUnresolvedBlockers.length === 0 &&
+    !results.some((result) => result.status === "failed") &&
+    !runtimeAuditIncomplete(results) &&
+    safetyFlagsClean(safety) &&
+    (
+      certificationStatus === "PASS" ||
+      certificationStatus === "PASS_WITH_WARNINGS" ||
+      deferredLiveProductionBlockers.length > 0
+    );
   const baseReport = {
     reportName: "creditregulatorpro-level-5-platform-certification",
     generatedAt: completedAt,
@@ -763,9 +901,14 @@ export async function buildPlatformCertificationReport(options = {}) {
     currentCommit,
     targetEnvironment: "staging",
     targetBaseUrl: DEFAULT_STAGING_BASE_URL,
+    certificationMode,
     certificationStatus,
-    CERTIFYING: certificationStatus === "PASS" || certificationStatus === "PASS_WITH_WARNINGS",
+    CERTIFYING: liveProductionCertified,
     BLOCKED_BY_INPUTS: certificationStatus === "INCOMPLETE",
+    liveProductionCertified,
+    nonPublicDeploymentAcceptable,
+    deferredLiveProductionBlockers,
+    hardUnresolvedBlockers,
     strictMode: options.strict === true,
     deploymentReadinessScore,
     commandCounts: {
@@ -806,21 +949,16 @@ export async function buildPlatformCertificationReport(options = {}) {
       ["buildReproducibility", "migrationConsistency", "storageDurability", "rollbackSimulation", "productionParity"],
       results,
     ),
-    safety: {
-      productionDataMutated: false,
-      productionConfigurationModified: false,
-      infrastructureModifiedAutomatically: false,
-      schemasModified: false,
-      destructiveCleanupRun: false,
-      secretsPrinted: false,
-    },
+    safety,
   };
 
   return {
     ...baseReport,
     productionRiskAssessment: buildRiskAssessment(baseReport),
     operationalStabilitySummary:
-      certificationStatus === "PASS"
+      nonPublicDeploymentAcceptable && !liveProductionCertified
+        ? "Non-public/offline deployment acceptance is available, but LIVE Production certification remains blocked until admin credential/click-through proof is verified."
+        : certificationStatus === "PASS"
         ? "Operational stability is certified by the mandatory static, runtime, E2E, resilience, admin, deployment, rollback, storage, and parity gates."
         : certificationStatus === "PASS_WITH_WARNINGS"
           ? "Operational stability is certified with warning-only runtime findings that did not break mandatory workflows."
@@ -845,8 +983,11 @@ export function renderPlatformCertificationMarkdown(report) {
     `Target: ${report.targetBaseUrl}`,
     `Branch: \`${report.currentBranch}\``,
     `Commit: \`${report.currentCommit}\``,
+    `Certification mode: **${report.certificationMode ?? DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION}**`,
     `Formal certification: **${report.certificationStatus}**`,
     `CERTIFYING:${report.CERTIFYING ? "true" : "false"}`,
+    `LIVE production certified:${report.liveProductionCertified ? "true" : "false"}`,
+    `Non-public deployment acceptable:${report.nonPublicDeploymentAcceptable ? "true" : "false"}`,
     `BLOCKED_BY_INPUTS:${report.BLOCKED_BY_INPUTS ? "true" : "false"}`,
     `Deployment readiness score: **${report.deploymentReadinessScore}/100**`,
     "",
@@ -889,6 +1030,16 @@ export function renderPlatformCertificationMarkdown(report) {
   } else {
     for (const blocker of report.unresolvedBlockers) {
       lines.push(`- [${blocker.severity}] ${blocker.subsystem}: ${blocker.reason}`);
+    }
+  }
+
+  lines.push("", "## Deferred LIVE-Production Blockers", "");
+
+  if ((report.deferredLiveProductionBlockers ?? []).length === 0) {
+    lines.push("- None.");
+  } else {
+    for (const blocker of report.deferredLiveProductionBlockers) {
+      lines.push(`- [LIVE_PRODUCTION] ${blocker.subsystem}: ${blocker.reason}`);
     }
   }
 
@@ -972,7 +1123,10 @@ async function main() {
   if (options.json) {
     console.log(JSON.stringify(report, null, 2));
   } else {
+    console.log(`[certify:platform] certification mode: ${report.certificationMode}`);
     console.log(`[certify:platform] formal certification: ${report.certificationStatus}`);
+    console.log(`[certify:platform] LIVE production certified: ${report.liveProductionCertified ? "yes" : "no"}`);
+    console.log(`[certify:platform] non-public deployment acceptable: ${report.nonPublicDeploymentAcceptable ? "yes" : "no"}`);
     console.log(`[certify:platform] blocked by inputs: ${report.BLOCKED_BY_INPUTS ? "yes" : "no"}`);
     console.log(`[certify:platform] deployment readiness score: ${report.deploymentReadinessScore}/100`);
     console.log(`[certify:platform] blockers: ${report.unresolvedBlockers.length}`);
@@ -982,7 +1136,10 @@ async function main() {
     }
   }
 
-  process.exitCode = report.CERTIFYING || (!options.strict && report.certificationStatus === "INCOMPLETE") ? 0 : 1;
+  process.exitCode =
+    report.CERTIFYING || (!options.strict && (report.nonPublicDeploymentAcceptable || report.certificationStatus === "INCOMPLETE"))
+      ? 0
+      : 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -3,6 +3,11 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  isNonPublicDeploymentCertificationMode,
+  resolveDeploymentCertificationMode,
+} from "./platform-certification.mjs";
+
 export const TIER_NAMES = ["fast", "changed", "staging", "release", "admin"];
 
 const DEFAULT_STAGING_BASE_URL = "https://staging.creditregulatorpro.com";
@@ -156,8 +161,6 @@ const RELEASE_SAFETY_COMMAND_IDS = [
   "productionPromotionPack",
   "productionPromotionGuard",
 ];
-
-const ADMIN_CERTIFICATION_COMMAND_IDS = ["adminStatic", "adminClickThrough"];
 
 const SUBSYSTEM_COMMANDS = {
   parserIngestion: ["deterministicIngestion", "creditRegression"],
@@ -455,6 +458,22 @@ function pushCommand(queue, commandOrId) {
   queue.push(command);
 }
 
+function pushAdminCertificationCommands(queue, { certificationMode, adminClickThroughConfigured }) {
+  pushCommand(queue, "adminStatic");
+  if (adminClickThroughConfigured || !isNonPublicDeploymentCertificationMode(certificationMode)) {
+    pushCommand(queue, "adminClickThrough");
+    return { adminClickThroughRequired: true, adminClickThroughDeferred: false };
+  }
+
+  pushCommand(queue, {
+    id: "adminClickThroughDeferred",
+    label: "Admin click-through certification deferred",
+    note:
+      `Admin click-through proof is deferred until LIVE_PRODUCTION because CRP_DEPLOYMENT_CERTIFICATION_MODE=${certificationMode} and remote E2E admin credentials are unavailable.`,
+  });
+  return { adminClickThroughRequired: false, adminClickThroughDeferred: true };
+}
+
 function appendChangedAreaCommands(queue, classification) {
   const directTests = existingDirectTestFiles(classification.files);
   const relatedTests = relatedTestFiles(classification.files);
@@ -472,12 +491,16 @@ export function adminClickThroughAvailable(env = process.env) {
   return /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::|\/|$)/i.test(baseUrl);
 }
 
-export function buildValidationPlan({ tier, changedFiles = [], forceFullRegression = false, requireAdmin = false } = {}) {
+export function buildValidationPlan({ tier, changedFiles = [], forceFullRegression = false, requireAdmin = false, env = process.env } = {}) {
   if (!TIER_NAMES.includes(tier)) throw new Error(`Unknown validation tier '${tier}'`);
   const classification = classifyChangedFiles(changedFiles);
   const queue = [];
   const fullRegression = forceFullRegression || classification.fullRegressionRequired;
   const adminRequired = requireAdmin || (tier === "release" && classification.adminCritical);
+  const certificationMode = resolveDeploymentCertificationMode(env);
+  const adminClickThroughConfigured = adminClickThroughAvailable(env);
+  let adminClickThroughRequired = false;
+  let adminClickThroughDeferred = false;
 
   if (tier === "fast") {
     pushCommand(queue, "typecheck");
@@ -503,10 +526,16 @@ export function buildValidationPlan({ tier, changedFiles = [], forceFullRegressi
     for (const id of FULL_BASELINE_COMMAND_IDS) pushCommand(queue, id);
     for (const id of RELEASE_SAFETY_COMMAND_IDS) pushCommand(queue, id);
     if (adminRequired) {
-      for (const id of ADMIN_CERTIFICATION_COMMAND_IDS) pushCommand(queue, id);
+      ({ adminClickThroughRequired, adminClickThroughDeferred } = pushAdminCertificationCommands(queue, {
+        certificationMode,
+        adminClickThroughConfigured,
+      }));
     }
   } else if (tier === "admin") {
-    for (const id of ADMIN_CERTIFICATION_COMMAND_IDS) pushCommand(queue, id);
+    ({ adminClickThroughRequired, adminClickThroughDeferred } = pushAdminCertificationCommands(queue, {
+      certificationMode,
+      adminClickThroughConfigured,
+    }));
   }
 
   return {
@@ -515,6 +544,9 @@ export function buildValidationPlan({ tier, changedFiles = [], forceFullRegressi
     classification,
     fullRegression,
     adminRequired,
+    certificationMode,
+    adminClickThroughRequired,
+    adminClickThroughDeferred,
     commands: queue,
   };
 }
@@ -554,9 +586,12 @@ function runCommand(entry, { dryRun }) {
 
 function renderPlan(plan) {
   console.log(`[validation] tier=${plan.tier}`);
+  console.log(`[validation] certification_mode=${plan.certificationMode}`);
   console.log(`[validation] changed_files=${plan.changedFiles.length ? plan.changedFiles.join(", ") : "unknown-or-none"}`);
   console.log(`[validation] full_regression=${plan.fullRegression ? "yes" : "no"}`);
-  console.log(`[validation] admin_click_through_required=${plan.adminRequired ? "yes" : "no"}`);
+  console.log(`[validation] admin_required=${plan.adminRequired ? "yes" : "no"}`);
+  console.log(`[validation] admin_click_through_required=${plan.adminClickThroughRequired ? "yes" : "no"}`);
+  console.log(`[validation] admin_click_through_deferred=${plan.adminClickThroughDeferred ? "yes" : "no"}`);
   console.log("[validation] commands:");
   for (const command of plan.commands) {
     console.log(`- ${command.command ?? command.note}`);
@@ -572,11 +607,12 @@ function main() {
       changedFiles,
       forceFullRegression: options.forceFullRegression,
       requireAdmin: options.requireAdmin,
+      env: process.env,
     });
 
     renderPlan(plan);
 
-    if (plan.adminRequired && !adminClickThroughAvailable(process.env)) {
+    if (plan.adminClickThroughRequired && !adminClickThroughAvailable(process.env)) {
       throw new Error(
         "Admin click-through certification is required but E2E admin credentials are unavailable. Set E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD or run against localhost with local admin auth.",
       );

@@ -475,6 +475,171 @@ describe("production promotion guard", () => {
     );
   });
 
+  it("allows non-public production test promotion when only admin credential proof is deferred", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(
+      root,
+      platformCertification({
+        certificationMode: "NON_PUBLIC_PRODUCTION_TEST",
+        certificationStatus: "INCOMPLETE",
+        CERTIFYING: false,
+        BLOCKED_BY_INPUTS: true,
+        liveProductionCertified: false,
+        nonPublicDeploymentAcceptable: true,
+        deploymentReadinessScore: 92,
+        commandCounts: { failed: 0 },
+        gateStatus: {
+          runtimeAudit: "passed",
+          adminClickThrough: "incomplete",
+        },
+        unresolvedBlockers: [
+          {
+            severity: "BLOCKED_BY_INPUTS",
+            subsystem: "Admin Certification",
+            gateId: "adminClickThrough",
+            gateLabel: "Admin click-through certification",
+            reason: "Admin click-through certification is blocked because E2E admin credentials are not configured.",
+            deferrableForNonPublicDeployment: true,
+            deferredUntilCertificationMode: "LIVE_PRODUCTION",
+          },
+        ],
+        deferredLiveProductionBlockers: [
+          {
+            severity: "DEFERRED_LIVE_PRODUCTION_BLOCKER",
+            subsystem: "Admin Certification",
+            gateId: "adminClickThrough",
+            reason: "Admin click-through certification is blocked because E2E admin credentials are not configured.",
+            requiredBeforeLiveProduction: true,
+          },
+        ],
+      }),
+    );
+
+    const result = validateControlledGoLivePromotion({
+      rootDir: root,
+      currentHead: HEAD,
+      env: {
+        ...hostKeyEnv(),
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
+      },
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.certification).toMatchObject({
+      certificationMode: "NON_PUBLIC_PRODUCTION_TEST",
+      reportCertificationMode: "NON_PUBLIC_PRODUCTION_TEST",
+      liveProductionCertified: false,
+      nonPublicDeploymentAcceptable: true,
+      blockers: 1,
+      targetAccepted: true,
+    });
+  });
+
+  it("blocks non-public production test promotion when runtime audit is incomplete", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(
+      root,
+      platformCertification({
+        certificationMode: "NON_PUBLIC_PRODUCTION_TEST",
+        certificationStatus: "INCOMPLETE",
+        CERTIFYING: false,
+        BLOCKED_BY_INPUTS: true,
+        liveProductionCertified: false,
+        nonPublicDeploymentAcceptable: true,
+        commandCounts: { failed: 0 },
+        gateStatus: {
+          runtimeAudit: "incomplete",
+          adminClickThrough: "incomplete",
+        },
+        unresolvedBlockers: [
+          {
+            severity: "BLOCKED_BY_INPUTS",
+            subsystem: "Infrastructure Readiness",
+            gateId: "runtimeAudit",
+            reason: "Runtime audit diagnostics are unavailable.",
+          },
+          {
+            severity: "BLOCKED_BY_INPUTS",
+            subsystem: "Admin Certification",
+            gateId: "adminClickThrough",
+            reason: "Admin click-through certification is blocked because E2E admin credentials are not configured.",
+            deferrableForNonPublicDeployment: true,
+          },
+        ],
+        deferredLiveProductionBlockers: [
+          {
+            severity: "DEFERRED_LIVE_PRODUCTION_BLOCKER",
+            subsystem: "Admin Certification",
+            gateId: "adminClickThrough",
+            reason: "Admin click-through certification is blocked because E2E admin credentials are not configured.",
+          },
+        ],
+      }),
+    );
+
+    const result = validateControlledGoLivePromotion({
+      rootDir: root,
+      currentHead: HEAD,
+      env: {
+        ...hostKeyEnv(),
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
+      },
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.certification.reasons.map((reason) => reason.code)).toEqual(
+      expect.arrayContaining([
+        "platform-certification-runtime-incomplete",
+        "platform-certification-hard-blockers",
+        "platform-certification-non-deferrable-blockers",
+      ]),
+    );
+  });
+
+  it("does not accept non-public certification evidence unless the guard is explicitly in non-public mode", () => {
+    const root = tempRoot();
+    writeControlledGoLiveFixture(
+      root,
+      platformCertification({
+        certificationMode: "NON_PUBLIC_PRODUCTION_TEST",
+        certificationStatus: "INCOMPLETE",
+        CERTIFYING: false,
+        BLOCKED_BY_INPUTS: true,
+        liveProductionCertified: false,
+        nonPublicDeploymentAcceptable: true,
+        commandCounts: { failed: 0 },
+        gateStatus: {
+          runtimeAudit: "passed",
+          adminClickThrough: "incomplete",
+        },
+        unresolvedBlockers: [
+          {
+            severity: "BLOCKED_BY_INPUTS",
+            subsystem: "Admin Certification",
+            gateId: "adminClickThrough",
+            reason: "Admin click-through certification is blocked because E2E admin credentials are not configured.",
+            deferrableForNonPublicDeployment: true,
+          },
+        ],
+      }),
+    );
+
+    const result = validateControlledGoLivePromotion({
+      rootDir: root,
+      currentHead: HEAD,
+      env: hostKeyEnv(),
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.certification.reasons.map((reason) => reason.code)).toEqual(
+      expect.arrayContaining([
+        "platform-certification-not-pass",
+        "platform-certification-blocked-inputs",
+        "platform-certification-not-certifying",
+      ]),
+    );
+  });
+
   it("blocks controlled go-live when host-key pinning input is missing", () => {
     const root = tempRoot();
     writeControlledGoLiveFixture(root);

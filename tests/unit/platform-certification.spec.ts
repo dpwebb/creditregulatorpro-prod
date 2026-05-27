@@ -2,10 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
+  DEPLOYMENT_CERTIFICATION_MODES,
   PLATFORM_CERTIFICATION_GATES,
   buildPlatformBlockers,
   buildPlatformCertificationReport,
   buildSubsystemCertificationMatrix,
+  isDeferrableAdminCredentialLiveBlocker,
+  resolveDeploymentCertificationMode,
   resolveCertificationGateCommand,
   scoreDeploymentReadiness,
   stagingAdminE2eCredentialsAvailable,
@@ -46,6 +49,16 @@ describe("platform certification command", () => {
   it("exposes pnpm certify:platform", () => {
     const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
     expect(packageJson.scripts["certify:platform"]).toBe("node scripts/platform-certification.mjs");
+  });
+
+  it("defaults deployment certification mode to LIVE_PRODUCTION", () => {
+    expect(resolveDeploymentCertificationMode({})).toBe(DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION);
+    expect(resolveDeploymentCertificationMode({ CRP_DEPLOYMENT_CERTIFICATION_MODE: "invalid" })).toBe(
+      DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION,
+    );
+    expect(resolveDeploymentCertificationMode({ CRP_DEPLOYMENT_CERTIFICATION_MODE: "offline_deployment" })).toBe(
+      DEPLOYMENT_CERTIFICATION_MODES.OFFLINE_DEPLOYMENT,
+    );
   });
 
   it("runs required Level 5 certification gates without destructive commands", () => {
@@ -180,6 +193,9 @@ describe("platform certification command", () => {
     expect(report.certificationStatus).toBe("INCOMPLETE");
     expect(report.CERTIFYING).toBe(false);
     expect(report.BLOCKED_BY_INPUTS).toBe(true);
+    expect(report.certificationMode).toBe(DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION);
+    expect(report.liveProductionCertified).toBe(false);
+    expect(report.nonPublicDeploymentAcceptable).toBe(false);
     expect(report.deploymentReadinessScore).toBe(50);
     expect(report.unresolvedBlockers).toEqual(
       expect.arrayContaining([
@@ -190,6 +206,112 @@ describe("platform certification command", () => {
         }),
       ]),
     );
+  });
+
+  it("defers only admin credential click-through blockers in non-public production test mode", async () => {
+    const gates = [gate("runtimeAudit"), gate("adminClickThrough")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      env: {
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
+      },
+      runCommand: runCommandWithFailures(["adminClickThrough"], {
+        adminClickThrough:
+          "Admin click-through certification is required but E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD are unavailable.",
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.certificationStatus).toBe("INCOMPLETE");
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.liveProductionCertified).toBe(false);
+    expect(report.nonPublicDeploymentAcceptable).toBe(true);
+    expect(report.deferredLiveProductionBlockers).toEqual([
+      expect.objectContaining({
+        gateId: "adminClickThrough",
+        severity: "DEFERRED_LIVE_PRODUCTION_BLOCKER",
+        requiredBeforeLiveProduction: true,
+      }),
+    ]);
+    expect(report.hardUnresolvedBlockers).toEqual([]);
+  });
+
+  it("defers e2e admin probe credential gaps only when the non-admin workflow otherwise passed", async () => {
+    const gates = [gate("runtimeAudit"), gate("e2eOperationalAudit")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      env: {
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "OFFLINE_DEPLOYMENT",
+      },
+      runCommand: runCommandWithFailures(["e2eOperationalAudit"], {
+        e2eOperationalAudit:
+          '{"status":"INCOMPLETE","certification":"Operational INCOMPLETE: non-admin staging workflow passed, but the admin packet workflow probe was skipped because admin credentials were missing.","metrics":{"adminProbeSkipCode":"ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING"}}',
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.nonPublicDeploymentAcceptable).toBe(true);
+    expect(report.deferredLiveProductionBlockers).toEqual([
+      expect.objectContaining({
+        gateId: "e2eOperationalAudit",
+        requiredBeforeLiveProduction: true,
+      }),
+    ]);
+  });
+
+  it("does not defer runtime audit incompleteness in non-public mode", async () => {
+    const gates = [gate("runtimeAudit"), gate("adminClickThrough")];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      env: {
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
+      },
+      runCommand: runCommandWithFailures(["runtimeAudit", "adminClickThrough"], {
+        runtimeAudit: '{"completion":"AUDIT_ACCESS_FAILURE","status":"FAIL"}',
+        adminClickThrough:
+          "Admin click-through certification is required but E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD are unavailable.",
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.nonPublicDeploymentAcceptable).toBe(false);
+    expect(report.deferredLiveProductionBlockers).toEqual([
+      expect.objectContaining({ gateId: "adminClickThrough" }),
+    ]);
+    expect(report.hardUnresolvedBlockers).toEqual([
+      expect.objectContaining({ gateId: "runtimeAudit" }),
+    ]);
+  });
+
+  it("does not classify admin navigation or app behavior failures as deferrable credential blockers", () => {
+    expect(
+      isDeferrableAdminCredentialLiveBlocker({
+        gateId: "adminClickThrough",
+        severity: "BLOCKED_BY_INPUTS",
+        reason: "Admin click-through certification timed out while loading staging login or admin routes.",
+        diagnostic: { observedFailure: "admin-navigation-timeout" },
+      }),
+    ).toBe(false);
+    expect(
+      isDeferrableAdminCredentialLiveBlocker({
+        gateId: "adminClickThrough",
+        severity: "BLOCKED_BY_INPUTS",
+        reason: "Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login.",
+        diagnostic: { observedFailure: "FAIL_AUTH" },
+      }),
+    ).toBe(true);
   });
 
   it("scores readiness by gate weights", () => {

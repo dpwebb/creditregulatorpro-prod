@@ -3,6 +3,51 @@
 `pnpm certify:platform` distinguishes platform failures from certification
 inputs that are unavailable on the current machine.
 
+## Deployment Certification Mode
+
+The certification scripts fail closed by default:
+
+```bash
+CRP_DEPLOYMENT_CERTIFICATION_MODE=LIVE_PRODUCTION pnpm certify:platform
+```
+
+Accepted values are:
+
+- `LIVE_PRODUCTION`
+- `NON_PUBLIC_PRODUCTION_TEST`
+- `OFFLINE_DEPLOYMENT`
+
+Missing or invalid values resolve to `LIVE_PRODUCTION`.
+
+`NON_PUBLIC_PRODUCTION_TEST` and `OFFLINE_DEPLOYMENT` are only for the
+current offline/non-public deployment target. They are not LIVE Production
+approval. In these modes, only admin credential/session or browser
+click-through incompleteness may be deferred into
+`deferredLiveProductionBlockers`. Build, migration, runtime, storage,
+parser/packet, resilience, rollback, parity, host-key, destructive-risk, and
+data-safety gates remain hard blockers.
+
+The platform JSON records:
+
+- `certificationMode`
+- `liveProductionCertified`
+- `nonPublicDeploymentAcceptable`
+- `deferredLiveProductionBlockers`
+
+Before any LIVE Production declaration, rerun strict LIVE certification with
+verified admin credentials or a verified admin session:
+
+```bash
+CRP_DEPLOYMENT_CERTIFICATION_MODE=LIVE_PRODUCTION \
+  STAGING_ADMIN_EMAIL="<email>" \
+  STAGING_ADMIN_PASSWORD="<password>" \
+  E2E_ADMIN_EMAIL="<email>" \
+  E2E_ADMIN_PASSWORD="<password>" \
+  pnpm certify:platform --strict
+```
+
+Missing admin click-through proof remains a LIVE-production blocker.
+
 ## Runtime Diagnostics
 
 Workstation with SSH:
@@ -54,8 +99,11 @@ STAGING_ADMIN_EMAIL="<email>" STAGING_ADMIN_PASSWORD="<password>" pnpm certify:p
 ```
 
 Missing credentials or unavailable SSH diagnostics produce `INCOMPLETE` /
-`BLOCKED_BY_INPUTS` in the default development certification mode. They still
-block production certification because `CERTIFYING` remains false.
+`BLOCKED_BY_INPUTS` in the default certification mode. Runtime diagnostics
+cannot be deferred. Admin credential/click-through incompleteness can be
+deferred only under `NON_PUBLIC_PRODUCTION_TEST` or `OFFLINE_DEPLOYMENT`; it
+still blocks LIVE Production because `liveProductionCertified` and
+`CERTIFYING` remain false.
 
 Use strict mode for production gates:
 

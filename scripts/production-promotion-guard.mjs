@@ -3,6 +3,12 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  DEPLOYMENT_CERTIFICATION_MODES,
+  isDeferrableAdminCredentialLiveBlocker,
+  isNonPublicDeploymentCertificationMode,
+  resolveDeploymentCertificationMode,
+} from "./platform-certification.mjs";
 import { DEFAULT_PROMOTION_PACK_JSON } from "./production-promotion-pack.mjs";
 
 export const PLATFORM_CERTIFICATION_JSON_PATH = "docs/platform-certification/latest-platform-certification.json";
@@ -396,6 +402,27 @@ function unresolvedBlockerCount(report) {
   return null;
 }
 
+function commandFailureCount(report) {
+  const failedFromCounts = Number(report?.commandCounts?.failed ?? 0);
+  const failedFromGates = Array.isArray(report?.gates)
+    ? report.gates.filter((gate) => gate?.status === "failed").length
+    : 0;
+  return Math.max(failedFromCounts, failedFromGates);
+}
+
+function runtimeAuditIsIncomplete(report) {
+  if (report?.gateStatus?.runtimeAudit === "incomplete") return true;
+  return Array.isArray(report?.gates)
+    ? report.gates.some((gate) => gate?.id === "runtimeAudit" && gate?.status === "incomplete")
+    : false;
+}
+
+function safetyFlagsClean(report) {
+  const safety = report?.safety;
+  if (!safety || typeof safety !== "object" || Array.isArray(safety)) return true;
+  return Object.values(safety).every((value) => value === false);
+}
+
 function acceptedPlatformCertificationStatus(status) {
   return status === "PASS" || status === "PASS_WITH_WARNINGS";
 }
@@ -404,11 +431,32 @@ export function validatePlatformCertificationForGoLive(report, {
   rootDir = repoRootFromScript(),
   currentHead = null,
   platformCertificationPath = PLATFORM_CERTIFICATION_JSON_PATH,
+  env = process.env,
 } = {}) {
   const reasons = [];
   const current = currentHead && strictSha(currentHead) ? currentHead : null;
   const certifiedCommit = firstString(report?.currentCommit);
   const blockers = unresolvedBlockerCount(report);
+  const certificationMode = resolveDeploymentCertificationMode(env);
+  const reportCertificationMode = firstString(report?.certificationMode) ?? DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION;
+  const nonPublicMode = isNonPublicDeploymentCertificationMode(certificationMode);
+  const unresolvedBlockers = Array.isArray(report?.unresolvedBlockers) ? report.unresolvedBlockers : [];
+  const deferredLiveProductionBlockers = Array.isArray(report?.deferredLiveProductionBlockers)
+    ? report.deferredLiveProductionBlockers
+    : [];
+  const hardUnresolvedBlockers = unresolvedBlockers.filter((blocker) => !isDeferrableAdminCredentialLiveBlocker(blocker));
+  const failedCommands = commandFailureCount(report);
+  const runtimeIncomplete = runtimeAuditIsIncomplete(report);
+  const safetyClean = safetyFlagsClean(report);
+  const nonPublicDeploymentAcceptable =
+    nonPublicMode &&
+    report?.nonPublicDeploymentAcceptable === true &&
+    isNonPublicDeploymentCertificationMode(reportCertificationMode) &&
+    hardUnresolvedBlockers.length === 0 &&
+    unresolvedBlockers.every(isDeferrableAdminCredentialLiveBlocker) &&
+    failedCommands === 0 &&
+    runtimeIncomplete === false &&
+    safetyClean;
   const targetAccepted =
     current && certifiedCommit
       ? certifiedCommitAcceptedByGoLiveEvidencePolicy(rootDir, certifiedCommit, current)
@@ -417,20 +465,65 @@ export function validatePlatformCertificationForGoLive(report, {
   if (!report || typeof report !== "object" || Array.isArray(report)) {
     addReason(reasons, "invalid-platform-certification", "Platform certification JSON did not parse to an object.");
   }
-  if (!acceptedPlatformCertificationStatus(report?.certificationStatus)) {
-    addReason(reasons, "platform-certification-not-pass", "Platform certification status is not PASS or PASS_WITH_WARNINGS.");
-  }
-  if (report?.deploymentReadinessScore !== 100) {
-    addReason(reasons, "platform-certification-score", "Platform certification readiness score is not 100.");
-  }
-  if (report?.BLOCKED_BY_INPUTS !== false) {
-    addReason(reasons, "platform-certification-blocked-inputs", "Platform certification is still blocked by inputs.");
-  }
-  if (report?.CERTIFYING !== true) {
-    addReason(reasons, "platform-certification-not-certifying", "Platform certification CERTIFYING flag is not true.");
-  }
-  if (blockers !== 0) {
-    addReason(reasons, "platform-certification-blockers", "Platform certification has unresolved blockers.");
+
+  if (nonPublicMode) {
+    if (!isNonPublicDeploymentCertificationMode(reportCertificationMode)) {
+      addReason(
+        reasons,
+        "platform-certification-mode-mismatch",
+        "Platform certification evidence was not generated in a non-public/offline deployment mode.",
+        { requestedMode: certificationMode, reportCertificationMode },
+      );
+    }
+    if (report?.nonPublicDeploymentAcceptable !== true) {
+      addReason(
+        reasons,
+        "platform-certification-non-public-not-acceptable",
+        "Platform certification does not mark non-public deployment as acceptable.",
+      );
+    }
+    if (report?.certificationStatus === "FAIL") {
+      addReason(reasons, "platform-certification-failed", "Platform certification has failed commands.");
+    }
+    if (failedCommands !== 0) {
+      addReason(reasons, "platform-certification-failed-commands", "Platform certification has failed command results.");
+    }
+    if (runtimeIncomplete) {
+      addReason(reasons, "platform-certification-runtime-incomplete", "Runtime audit is incomplete and cannot be deferred in non-public mode.");
+    }
+    if (hardUnresolvedBlockers.length > 0) {
+      addReason(
+        reasons,
+        "platform-certification-hard-blockers",
+        "Platform certification has unresolved blockers outside the deferrable admin credential/click-through class.",
+      );
+    }
+    if (!unresolvedBlockers.every(isDeferrableAdminCredentialLiveBlocker)) {
+      addReason(
+        reasons,
+        "platform-certification-non-deferrable-blockers",
+        "Platform certification unresolved blockers are not exclusively deferrable admin credential/click-through blockers.",
+      );
+    }
+    if (!safetyClean) {
+      addReason(reasons, "platform-certification-safety-flags", "Platform certification safety flags are not clean.");
+    }
+  } else {
+    if (!acceptedPlatformCertificationStatus(report?.certificationStatus)) {
+      addReason(reasons, "platform-certification-not-pass", "Platform certification status is not PASS or PASS_WITH_WARNINGS.");
+    }
+    if (report?.deploymentReadinessScore !== 100) {
+      addReason(reasons, "platform-certification-score", "Platform certification readiness score is not 100.");
+    }
+    if (report?.BLOCKED_BY_INPUTS !== false) {
+      addReason(reasons, "platform-certification-blocked-inputs", "Platform certification is still blocked by inputs.");
+    }
+    if (report?.CERTIFYING !== true) {
+      addReason(reasons, "platform-certification-not-certifying", "Platform certification CERTIFYING flag is not true.");
+    }
+    if (blockers !== 0) {
+      addReason(reasons, "platform-certification-blockers", "Platform certification has unresolved blockers.");
+    }
   }
   if (!strictSha(certifiedCommit)) {
     addReason(reasons, "platform-certification-missing-target", "Platform certification is missing a strict currentCommit target.");
@@ -452,9 +545,17 @@ export function validatePlatformCertificationForGoLive(report, {
     currentHead: current,
     certifiedCommit,
     certificationStatus: report?.certificationStatus ?? null,
+    certificationMode,
+    reportCertificationMode,
     deploymentReadinessScore: report?.deploymentReadinessScore ?? null,
     blockedByInputs: report?.BLOCKED_BY_INPUTS ?? null,
     certifying: report?.CERTIFYING === true,
+    liveProductionCertified: report?.liveProductionCertified === true,
+    nonPublicDeploymentAcceptable,
+    deferredLiveProductionBlockers,
+    hardUnresolvedBlockers,
+    failedCommands,
+    runtimeIncomplete,
     blockers,
     targetAccepted,
     reasons,
@@ -607,6 +708,7 @@ export function validateControlledGoLivePromotion({
     rootDir,
     currentHead: resolvedCurrentHead,
     platformCertificationPath,
+    env,
   });
   const hostKeyPinning = validateProductionHostKeyPinning({ rootDir, env, productionRepo });
   const workerPolicy = validateProductionNoWorkerPolicy({ rootDir });
@@ -677,7 +779,11 @@ export function renderPromotionGuardSummary(result) {
 export function renderControlledGoLivePromotionSummary(result) {
   const lines = [];
   if (result.allowed) {
-    lines.push("Controlled production go-live guard passed.");
+    if (isNonPublicDeploymentCertificationMode(result.certification?.certificationMode)) {
+      lines.push("Non-public production test promotion guard passed. LIVE Production remains uncertified.");
+    } else {
+      lines.push("Controlled production go-live guard passed.");
+    }
   } else {
     lines.push("Controlled production go-live guard blocked promotion.");
   }
@@ -685,7 +791,12 @@ export function renderControlledGoLivePromotionSummary(result) {
   lines.push(`Mode: ${result.mode ?? "controlled-go-live"}`);
   lines.push(`Current HEAD: ${sanitizePromotionGuardText(result.currentHead ?? "unknown")}`);
   lines.push(`Platform certification: ${sanitizePromotionGuardText(result.platformCertificationPath ?? PLATFORM_CERTIFICATION_JSON_PATH)}`);
+  lines.push(`Requested certification mode: ${sanitizePromotionGuardText(result.certification?.certificationMode ?? "unknown")}`);
+  lines.push(`Report certification mode: ${sanitizePromotionGuardText(result.certification?.reportCertificationMode ?? "unknown")}`);
   lines.push(`Certification status: ${sanitizePromotionGuardText(result.certification?.certificationStatus ?? "unknown")}`);
+  lines.push(`LIVE production certified: ${result.certification?.liveProductionCertified ? "true" : "false"}`);
+  lines.push(`Non-public deployment acceptable: ${result.certification?.nonPublicDeploymentAcceptable ? "true" : "false"}`);
+  lines.push(`Deferred LIVE blockers: ${sanitizePromotionGuardText(result.certification?.deferredLiveProductionBlockers?.length ?? 0)}`);
   lines.push(`Readiness score: ${sanitizePromotionGuardText(result.certification?.deploymentReadinessScore ?? "unknown")}`);
   lines.push(`Certification blockers: ${sanitizePromotionGuardText(result.certification?.blockers ?? "unknown")}`);
   lines.push(`Certified commit: ${sanitizePromotionGuardText(result.certification?.certifiedCommit ?? "unknown")}`);

@@ -113,8 +113,8 @@ describe("tiered validation workflow", () => {
   });
 
   it("adds admin click-through only when release changes touch admin-critical surfaces", () => {
-    const docsPlan = buildValidationPlan({ tier: "release", changedFiles: ["docs/validation-tiers.md"] });
-    const adminPlan = buildValidationPlan({ tier: "release", changedFiles: ["pages/admin-security.tsx"] });
+    const docsPlan = buildValidationPlan({ tier: "release", changedFiles: ["docs/validation-tiers.md"], env: {} });
+    const adminPlan = buildValidationPlan({ tier: "release", changedFiles: ["pages/admin-security.tsx"], env: {} });
 
     expect(docsPlan.adminRequired).toBe(false);
     expect(commands(docsPlan)).not.toContain(
@@ -122,6 +122,45 @@ describe("tiered validation workflow", () => {
     );
     expect(adminPlan.adminRequired).toBe(true);
     expect(commands(adminPlan)).toContain(
+      "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
+    );
+  });
+
+  it("defers admin click-through in non-public mode when remote admin credentials are unavailable", () => {
+    const plan = buildValidationPlan({
+      tier: "release",
+      changedFiles: ["pages/admin-security.tsx"],
+      env: {
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
+        E2E_BASE_URL: "https://staging.creditregulatorpro.com",
+      },
+    });
+
+    expect(plan.adminRequired).toBe(true);
+    expect(plan.adminClickThroughRequired).toBe(false);
+    expect(plan.adminClickThroughDeferred).toBe(true);
+    expect(commands(plan)).toContain(
+      "pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
+    );
+    expect(commands(plan)).not.toContain(
+      "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
+    );
+    expect(commands(plan).join("\n")).toContain("deferred until LIVE_PRODUCTION");
+  });
+
+  it("keeps admin click-through required in LIVE_PRODUCTION for remote admin-critical release changes", () => {
+    const plan = buildValidationPlan({
+      tier: "release",
+      changedFiles: ["pages/admin-security.tsx"],
+      env: {
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "LIVE_PRODUCTION",
+        E2E_BASE_URL: "https://staging.creditregulatorpro.com",
+      },
+    });
+
+    expect(plan.adminClickThroughRequired).toBe(true);
+    expect(plan.adminClickThroughDeferred).toBe(false);
+    expect(commands(plan)).toContain(
       "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
     );
   });
