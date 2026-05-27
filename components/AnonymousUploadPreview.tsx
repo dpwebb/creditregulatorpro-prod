@@ -26,9 +26,11 @@ export type SampleProblem = {
 };
 
 interface AnonymousUploadPreviewProps {
-  problemCount: number;
+  problemCount?: number | null;
   sampleProblems: (string | SampleProblem)[];
 }
+
+const PREVIEW_FINDING_LIMIT = 3;
 
 const getProblemDetails = (problem: string | SampleProblem) => {
   if (typeof problem === "string") {
@@ -121,32 +123,66 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
   problemCount,
   sampleProblems,
 }) => {
+  const totalFindings =
+    typeof problemCount === "number" && Number.isFinite(problemCount)
+      ? Math.max(0, problemCount)
+      : null;
+  const previewProblems = sampleProblems.slice(0, PREVIEW_FINDING_LIMIT);
+  const previewShown =
+    totalFindings === null
+      ? previewProblems.length
+      : Math.min(totalFindings, previewProblems.length);
+  const hasKnownAdditionalFindings =
+    totalFindings !== null && totalFindings > previewShown;
+  const hasDetectedFindings =
+    totalFindings === null ? previewProblems.length > 0 : totalFindings > 0;
+  const previewSummary =
+    previewShown > 0
+      ? `Showing ${previewShown} sample ${
+          previewShown === 1 ? "finding" : "findings"
+        } from your report preview.`
+      : "No sample findings are shown in this preview.";
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.iconWrapper}>
-          {problemCount > 0 ? (
+          {hasDetectedFindings ? (
             <ShieldAlert size={32} className={styles.alertIcon} />
           ) : (
             <CheckCircle2 size={32} className={styles.successIcon} />
           )}
         </div>
-        <h2 className={styles.title}>
-          {problemCount > 0
-            ? `We found ${problemCount} potential ${
-                problemCount === 1 ? "problem" : "problems"
-              } in your report.`
-            : "Initial scan complete. Deep analysis pending."}
-        </h2>
-        <p className={styles.subtitle}>
-          Here's what we spotted in your report:
-        </p>
+        <h2 className={styles.title}>Preliminary scan complete.</h2>
+        <div
+          className={styles.summaryBlock}
+          role="note"
+          aria-label="Preview findings summary"
+        >
+          <p className={styles.subtitle}>{previewSummary}</p>
+          {hasKnownAdditionalFindings && (
+            <p className={styles.additionalNotice}>
+              Your report has additional findings not shown in this preview.
+            </p>
+          )}
+          {totalFindings === null && (
+            <p className={styles.additionalNotice}>
+              Additional findings may be available after secure account
+              creation.
+            </p>
+          )}
+          {totalFindings !== null && (
+            <div className={styles.countSummary}>
+              <span>Findings detected: {totalFindings}</span>
+              <span>Preview shown: {previewShown}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {sampleProblems.length > 0 && (
+      {previewProblems.length > 0 && (
         <ul className={styles.problemList}>
-          {sampleProblems.map((problem, idx) => {
+          {previewProblems.map((problem, idx) => {
             const { title, detail, icon, accentClass } =
               getProblemDetails(problem);
             const p = typeof problem === "object" ? problem : null;
@@ -196,7 +232,7 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
         <Lock size={24} className={styles.lockIcon} />
         <h3 className={styles.gateTitle}>Unlock Your Full Report</h3>
         <p className={styles.gateSubtitle}>
-          {problemCount > 0
+          {hasDetectedFindings
             ? "Create an account to view all findings and generate draft dispute letters."
             : "Create an account to run deeper Metro-2 compliance checks and review possible findings."}
         </p>
