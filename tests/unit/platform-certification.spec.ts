@@ -240,8 +240,13 @@ describe("platform certification command", () => {
     expect(report.hardUnresolvedBlockers).toEqual([]);
   });
 
-  it("defers e2e admin probe credential gaps only when the non-admin workflow otherwise passed", async () => {
-    const gates = [gate("runtimeAudit"), gate("e2eOperationalAudit")];
+  it("treats admin probe skipped for missing credentials as a deferred LIVE blocker for non-public parser and packet rollups", async () => {
+    const gates = [
+      gate("staticAudit"),
+      gate("runtimeAudit"),
+      gate("e2eOperationalAudit"),
+      gate("resilienceAudit"),
+    ];
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
@@ -258,11 +263,58 @@ describe("platform certification command", () => {
       completedAt: RUN_COMPLETED_AT,
     });
 
+    expect(report.certificationStatus).toBe("INCOMPLETE");
+    expect(report.gateStatus.e2eOperationalAudit).toBe("incomplete");
+    expect(report.parserConfidenceCertification).toBe("PASS");
+    expect(report.packetLifecycleStatus).toBe("PASS");
+    expect(report.subsystemCertificationMatrix).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          subsystem: "Packet Lifecycle Workflow",
+          status: "PASS",
+          deferredLiveProductionGateIds: ["e2eOperationalAudit"],
+        }),
+      ]),
+    );
     expect(report.nonPublicDeploymentAcceptable).toBe(true);
     expect(report.deferredLiveProductionBlockers).toEqual([
       expect.objectContaining({
         gateId: "e2eOperationalAudit",
         requiredBeforeLiveProduction: true,
+      }),
+    ]);
+  });
+
+  it("keeps parser and packet rollups incomplete for e2e admin auth failure", async () => {
+    const gates = [
+      gate("staticAudit"),
+      gate("runtimeAudit"),
+      gate("e2eOperationalAudit"),
+      gate("resilienceAudit"),
+    ];
+    const report = await buildPlatformCertificationReport({
+      repoRoot: process.cwd(),
+      gates,
+      env: {
+        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
+      },
+      runCommand: runCommandWithFailures(["e2eOperationalAudit"], {
+        e2eOperationalAudit:
+          '{"status":"FAIL_AUTH","certification":"Operational FAIL_AUTH: configured admin credentials failed authentication, so the admin packet workflow probe could not run.","metrics":{"adminProbeAuthFailureCode":"ADMIN_PROBE_AUTH_FAILED"}}',
+      }),
+      currentCommit: COMMIT,
+      currentBranch: "staging",
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+    });
+
+    expect(report.parserConfidenceCertification).toBe("INCOMPLETE");
+    expect(report.packetLifecycleStatus).toBe("INCOMPLETE");
+    expect(report.nonPublicDeploymentAcceptable).toBe(false);
+    expect(report.hardUnresolvedBlockers).toEqual([
+      expect.objectContaining({
+        gateId: "e2eOperationalAudit",
+        deferrableForNonPublicDeployment: false,
       }),
     ]);
   });

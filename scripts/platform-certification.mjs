@@ -673,17 +673,36 @@ export function isDeferrableAdminCredentialLiveBlocker(candidate) {
   }
 
   if (gateId === "e2eOperationalAudit") {
-    const isAdminPacketStage =
-      candidate?.diagnostic?.blockedStage === "admin_packet_workflow" ||
-      /admin packet workflow|ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING|ADMIN_PROBE_AUTH_FAILED/i.test(text);
-    const isCredentialOnly =
-      /credential|credentials|session cookie|authenticate|authentication|FAIL_AUTH|ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING|ADMIN_PROBE_AUTH_FAILED/i.test(text);
-    const assertsNonAdminFlowPassed =
-      /without a platform failure|non-admin workflow completed|not a packet workflow failure/i.test(text);
-    return isAdminPacketStage && isCredentialOnly && assertsNonAdminFlowPassed;
+    return isDeferrableAdminProbeSkippedForMissingCredentials(candidate);
   }
 
   return false;
+}
+
+export function isDeferrableAdminProbeSkippedForMissingCredentials(candidate) {
+  if (!candidate || typeof candidate !== "object") return false;
+  const gateId = candidate.gateId ?? candidate.id;
+  if (gateId !== "e2eOperationalAudit") return false;
+
+  const status = candidate.status;
+  const severity = candidate.severity;
+  const isInputBlocked =
+    status === INPUT_BLOCKED_GATE_STATUS ||
+    severity === "BLOCKED_BY_INPUTS" ||
+    Boolean(candidate.incompleteReason);
+  if (!isInputBlocked) return false;
+
+  const text = deferrableCandidateText(candidate);
+  const saysWorkflowPassed =
+    /workflow completed without a platform failure|non-admin staging workflow passed|non-admin workflow completed/i.test(text);
+  const saysAdminProbeSkipped =
+    /admin packet workflow probe was skipped|ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING/i.test(text);
+  const saysCredentialsMissing =
+    /admin credentials were not supplied|admin credentials were missing|credentials were missing|credentials were not supplied|STAGING_ADMIN_EMAIL|STAGING_ADMIN_PASSWORD|STAGING_ADMIN_SESSION_COOKIE/i.test(text);
+  const saysAuthFailed =
+    /FAIL_AUTH|ADMIN_PROBE_AUTH_FAILED|could not authenticate|failed authentication|auth_failed/i.test(text);
+
+  return saysWorkflowPassed && saysAdminProbeSkipped && saysCredentialsMissing && !saysAuthFailed;
 }
 
 export function scoreDeploymentReadiness(gates, results) {
@@ -699,16 +718,30 @@ export function scoreDeploymentReadiness(gates, results) {
   return Math.round((passedWeight / totalWeight) * 100);
 }
 
-export function buildSubsystemCertificationMatrix(results, subsystems = PLATFORM_SUBSYSTEMS) {
+function effectiveStatusForAggregate(result, certificationMode) {
+  if (
+    isNonPublicDeploymentCertificationMode(certificationMode) &&
+    isDeferrableAdminProbeSkippedForMissingCredentials(result)
+  ) {
+    return "passed";
+  }
+  return result?.status;
+}
+
+export function buildSubsystemCertificationMatrix(results, subsystems = PLATFORM_SUBSYSTEMS, options = {}) {
+  const certificationMode = options.certificationMode ?? DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION;
   const resultById = new Map(results.map((entry) => [entry.id, entry]));
   return subsystems.map((subsystem) => {
     const gateResults = subsystem.gateIds
       .map((gateId) => resultById.get(gateId))
       .filter(Boolean);
     const missingGateIds = subsystem.gateIds.filter((gateId) => !resultById.has(gateId));
-    const failedGateIds = gateResults.filter((entry) => entry.status === "failed").map((entry) => entry.id);
-    const incompleteGateIds = gateResults.filter((entry) => entry.status === INPUT_BLOCKED_GATE_STATUS).map((entry) => entry.id);
-    const passedGateIds = gateResults.filter((entry) => entry.status === "passed").map((entry) => entry.id);
+    const failedGateIds = gateResults.filter((entry) => effectiveStatusForAggregate(entry, certificationMode) === "failed").map((entry) => entry.id);
+    const incompleteGateIds = gateResults.filter((entry) => effectiveStatusForAggregate(entry, certificationMode) === INPUT_BLOCKED_GATE_STATUS).map((entry) => entry.id);
+    const passedGateIds = gateResults.filter((entry) => effectiveStatusForAggregate(entry, certificationMode) === "passed").map((entry) => entry.id);
+    const deferredLiveProductionGateIds = gateResults
+      .filter((entry) => isDeferrableAdminProbeSkippedForMissingCredentials(entry))
+      .map((entry) => entry.id);
     const status =
       failedGateIds.length > 0
         ? "FAIL"
@@ -727,6 +760,7 @@ export function buildSubsystemCertificationMatrix(results, subsystems = PLATFORM
       failedGateIds,
       incompleteGateIds,
       missingGateIds,
+      deferredLiveProductionGateIds,
     };
   });
 }
@@ -758,10 +792,11 @@ export function buildPlatformBlockers(gates, results) {
     });
 }
 
-function statusFromGateIds(gateIds, results) {
+function statusFromGateIds(gateIds, results, options = {}) {
+  const certificationMode = options.certificationMode ?? DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION;
   const resultById = new Map(results.map((entry) => [entry.id, entry]));
-  if (gateIds.some((gateId) => resultById.get(gateId)?.status === "failed")) return "FAIL";
-  if (gateIds.some((gateId) => resultById.get(gateId)?.status === INPUT_BLOCKED_GATE_STATUS)) return "INCOMPLETE";
+  if (gateIds.some((gateId) => effectiveStatusForAggregate(resultById.get(gateId), certificationMode) === "failed")) return "FAIL";
+  if (gateIds.some((gateId) => effectiveStatusForAggregate(resultById.get(gateId), certificationMode) === INPUT_BLOCKED_GATE_STATUS)) return "INCOMPLETE";
   if (gateIds.some((gateId) => !resultById.has(gateId))) return "SKIP";
   return "PASS";
 }
@@ -860,7 +895,12 @@ export async function buildPlatformCertificationReport(options = {}) {
 
   const completedAt = options.completedAt ?? new Date().toISOString();
   const gateStatus = Object.fromEntries(results.map((result) => [result.id, result.status]));
-  const subsystemCertificationMatrix = buildSubsystemCertificationMatrix(results, options.subsystems ?? PLATFORM_SUBSYSTEMS);
+  const aggregateStatusOptions = { certificationMode };
+  const subsystemCertificationMatrix = buildSubsystemCertificationMatrix(
+    results,
+    options.subsystems ?? PLATFORM_SUBSYSTEMS,
+    aggregateStatusOptions,
+  );
   const unresolvedBlockers = buildPlatformBlockers(gates, results);
   const deploymentReadinessScore = scoreDeploymentReadiness(gates, results);
   const certificationStatus = certificationDecision(results);
@@ -939,15 +979,20 @@ export async function buildPlatformCertificationReport(options = {}) {
       durationMs: result.durationMs,
       envKeys: result.envKeys,
     })),
-    rollbackReadinessStatus: statusFromGateIds(["rollbackSimulation"], results),
-    infrastructureReadinessStatus: statusFromGateIds(["runtimeAudit", "stagingRoutingGate"], results),
-    parserConfidenceCertification: statusFromGateIds(["e2eOperationalAudit", "resilienceAudit", "staticAudit"], results),
-    storageLifecycleStatus: statusFromGateIds(["runtimeAudit", "storageDurability"], results),
-    adminCertificationStatus: statusFromGateIds(["adminStaticCertification", "adminClickThrough"], results),
-    packetLifecycleStatus: statusFromGateIds(["e2eOperationalAudit", "resilienceAudit"], results),
+    rollbackReadinessStatus: statusFromGateIds(["rollbackSimulation"], results, aggregateStatusOptions),
+    infrastructureReadinessStatus: statusFromGateIds(["runtimeAudit", "stagingRoutingGate"], results, aggregateStatusOptions),
+    parserConfidenceCertification: statusFromGateIds(
+      ["e2eOperationalAudit", "resilienceAudit", "staticAudit"],
+      results,
+      aggregateStatusOptions,
+    ),
+    storageLifecycleStatus: statusFromGateIds(["runtimeAudit", "storageDurability"], results, aggregateStatusOptions),
+    adminCertificationStatus: statusFromGateIds(["adminStaticCertification", "adminClickThrough"], results, aggregateStatusOptions),
+    packetLifecycleStatus: statusFromGateIds(["e2eOperationalAudit", "resilienceAudit"], results, aggregateStatusOptions),
     reproducibilityStatus: statusFromGateIds(
       ["buildReproducibility", "migrationConsistency", "storageDurability", "rollbackSimulation", "productionParity"],
       results,
+      aggregateStatusOptions,
     ),
     safety,
   };

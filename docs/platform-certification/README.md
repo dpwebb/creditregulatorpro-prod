@@ -27,6 +27,12 @@ click-through incompleteness may be deferred into
 parser/packet, resilience, rollback, parity, host-key, destructive-risk, and
 data-safety gates remain hard blockers.
 
+For the Level 3 E2E operational audit, the parser/packet rollups are treated
+as non-public acceptable only when the audit explicitly reports that the
+non-admin workflow completed without a platform failure and the admin packet
+workflow probe was skipped solely because admin credentials/session were not
+supplied. Parser, packet, or non-admin operational failures are never deferred.
+
 The platform JSON records:
 
 - `certificationMode`
