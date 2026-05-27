@@ -426,11 +426,11 @@ function expectCategory(handlerFile: string, category: AuthCategory): void {
 }
 
 function hasSessionGuard(source: string): boolean {
-  return /getServerUserSession|getServerSessionOrThrow|resolveUserSession|requirePlatformResetAdmin/.test(source);
+  return /getServerUserSession|getServerSessionOrThrow|resolveUserSession|requireAdminUser|requirePlatformResetAdmin/.test(source);
 }
 
 function hasAdminGuard(source: string): boolean {
-  return /\b[a-zA-Z0-9_]+\.role\s*!==\s*["']admin["']|!\s*isAdmin\([a-zA-Z0-9_]+\)|Admin (?:privileges|access|role|required)|Admin only endpoint|Forbidden: Admin access required|requirePlatformResetAdmin/i.test(
+  return /\b[a-zA-Z0-9_]+\.role\s*!==\s*["']admin["']|!\s*isAdmin\([a-zA-Z0-9_]+\)|Admin (?:privileges|access|role|required)|Admin only endpoint|Forbidden: Admin access required|requireAdminUser|requirePlatformResetAdmin/i.test(
     source
   );
 }

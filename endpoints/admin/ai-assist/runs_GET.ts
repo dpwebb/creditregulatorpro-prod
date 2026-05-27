@@ -1,20 +1,14 @@
 import { sql } from "kysely";
 
 import { db } from "../../../helpers/db";
-import {
-  BusinessRuleError,
-  handleEndpointError,
-} from "../../../helpers/endpointErrorHandler";
+import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
 import { ensureAiAssistRunSchema } from "../../../helpers/aiAssistRunStore";
-import { getServerUserSession } from "../../../helpers/getServerUserSession";
+import { requireAdminUser } from "../../../helpers/requireAdminUser";
 import { schema, OutputType } from "./runs_GET.schema";
 
 export async function handle(request: Request) {
   try {
-    const { user } = await getServerUserSession(request);
-    if (user.role !== "admin") {
-      throw new BusinessRuleError("Admin privileges required", 403);
-    }
+    await requireAdminUser(request);
 
     const url = new URL(request.url);
     const input = schema.parse(Object.fromEntries(url.searchParams.entries()));

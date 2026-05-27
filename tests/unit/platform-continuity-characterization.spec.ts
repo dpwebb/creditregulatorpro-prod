@@ -270,5 +270,29 @@ describe("admin authorization continuity characterization", () => {
     expect(platformResetShared).toContain("admin");
     expect(platformResetShared).toContain("super_admin");
   });
+
+  it("documents the Phase 3A shared admin helper and bounded read-only endpoint migration", () => {
+    const adr = source("docs/architecture/adr-006-admin-authorization-policy.md");
+    const helper = source("helpers/requireAdminUser.tsx");
+    const migratedEndpoints = [
+      "endpoints/admin/ai-assist/runs_GET.ts",
+      "endpoints/admin/ai-assist/findings_GET.ts",
+    ];
+
+    expect(adr).toContain("`helpers/requireAdminUser.tsx`");
+    expect(adr).toContain("`endpoints/admin/ai-assist/runs_GET.ts`");
+    expect(adr).toContain("`endpoints/admin/ai-assist/findings_GET.ts`");
+    expect(adr).toContain("delete/reset/platform/admin truth-layer endpoints require separate approval");
+    expect(helper).toContain("getServerUserSession");
+    expect(helper).toContain('session.user.role !== "admin"');
+    expect(helper).toContain('BusinessRuleError("Admin privileges required", 403)');
+
+    for (const filePath of migratedEndpoints) {
+      const handler = source(filePath);
+      expect(handler).toContain("requireAdminUser");
+      expect(handler).not.toContain("getServerUserSession");
+      expect(handler).not.toContain('user.role !== "admin"');
+    }
+  });
 });
 

@@ -1,11 +1,8 @@
 import { sql } from "kysely";
 
 import { db } from "../../../helpers/db";
-import {
-  BusinessRuleError,
-  handleEndpointError,
-} from "../../../helpers/endpointErrorHandler";
-import { getServerUserSession } from "../../../helpers/getServerUserSession";
+import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
+import { requireAdminUser } from "../../../helpers/requireAdminUser";
 import { getViolationDisplayLabel } from "../../../helpers/getViolationLabel";
 import { schema, OutputType } from "./findings_GET.schema";
 
@@ -33,10 +30,7 @@ function toIsoString(value: unknown): string | null {
 
 export async function handle(request: Request) {
   try {
-    const { user } = await getServerUserSession(request);
-    if (user.role !== "admin") {
-      throw new BusinessRuleError("Admin privileges required", 403);
-    }
+    await requireAdminUser(request);
 
     const url = new URL(request.url);
     const input = schema.parse(Object.fromEntries(url.searchParams.entries()));

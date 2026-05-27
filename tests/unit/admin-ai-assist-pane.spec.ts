@@ -47,13 +47,15 @@ describe("admin AI assist pane", () => {
     const queryHelper = source("helpers/adminAiAssistQueries.tsx");
     const server = source("server.ts");
 
-    expect(runsEndpoint).toContain("getServerUserSession");
-    expect(runsEndpoint).toContain('user.role !== "admin"');
+    expect(runsEndpoint).toContain("requireAdminUser");
+    expect(runsEndpoint).not.toContain("getServerUserSession");
+    expect(runsEndpoint).not.toContain('user.role !== "admin"');
     expect(runsEndpoint).toContain("ensureAiAssistRunSchema");
     expect(runsEndpoint).toContain("input_hash");
     expect(runsEndpoint).not.toContain("userPrompt");
-    expect(findingsEndpoint).toContain("getServerUserSession");
-    expect(findingsEndpoint).toContain('user.role !== "admin"');
+    expect(findingsEndpoint).toContain("requireAdminUser");
+    expect(findingsEndpoint).not.toContain("getServerUserSession");
+    expect(findingsEndpoint).not.toContain('user.role !== "admin"');
     expect(findingsEndpoint).toContain("maskAccountNumber");
     expect(findingsEndpoint).toContain("report_artifact ra");
     expect(findingsEndpoint).toContain("packet_owner");

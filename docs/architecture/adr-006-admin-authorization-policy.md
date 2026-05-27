@@ -23,3 +23,15 @@ Repeated inline checks such as `user.role !== "admin"` across admin endpoints ar
 
 Future work should introduce a shared `requireAdminUser` helper, but only in small endpoint groups with tests. The migration must preserve response status codes, audit logging, role semantics, support-role behavior, platform reset special cases, and route-auth classification tests.
 
+## Phase 3A Helper Boundary
+
+`helpers/requireAdminUser.tsx` is the first shared server-side admin authorization helper. It loads the session through `helpers/getServerUserSession.tsx`, rejects non-admin users with the existing `Admin privileges required` / `403` behavior used by the migrated endpoints, and does not introduce new auth concepts.
+
+Phase 3A migrated only these read-only admin endpoints:
+
+- `endpoints/admin/ai-assist/runs_GET.ts`
+- `endpoints/admin/ai-assist/findings_GET.ts`
+
+Endpoints intentionally not migrated in this pass include user delete/reset, platform reset, billing, evidence mutation, packet mutation, parser, ingestion, scanner, violation correction, compliance configuration, and admin truth-layer routes. These remain on their existing inline or specialized checks until separately approved and covered by endpoint-specific regression tests.
+
+delete/reset/platform/admin truth-layer endpoints require separate approval before any helper migration. Future migrations must stay in small endpoint groups and must preserve current status codes, response shapes, audit behavior, role semantics, and route-auth classification coverage.
