@@ -1,15 +1,15 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-23T02:39:23.351Z
+Generated at: 2026-05-27T00:03:49.483Z
 Current branch: `staging`
-Current commit hash: `fe8231ffe2500e2c7ed7d82e1f60570b4820061c`
+Current commit hash: `8eb5827f8addbb3b038671ad25c6403c4c23a58a`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
 All 25 blockers represented: yes
 Any checks skipped: yes (55 dashboard SKIP row(s))
 Dashboard exact commands recorded: yes
-Ingest worker boundary static proof: passed
+Ingest worker boundary static proof: failed
 
 ## Required Warnings
 
