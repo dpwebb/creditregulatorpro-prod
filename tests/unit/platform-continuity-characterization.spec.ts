@@ -249,12 +249,10 @@ describe("admin authorization continuity characterization", () => {
     }
   });
 
-  it("keeps high-risk admin endpoints guarded by server session and role checks before migration", () => {
+  it("keeps remaining high-risk admin endpoints guarded by server session and role checks before migration", () => {
     const adminEndpoints = [
       "endpoints/admin/delete-user_POST.ts",
       "endpoints/admin/reset-user_POST.ts",
-      "endpoints/admin/users_GET.ts",
-      "endpoints/admin/audit-logs_GET.ts",
       "endpoints/admin/compliance-config_POST.ts",
     ];
 
@@ -292,6 +290,40 @@ describe("admin authorization continuity characterization", () => {
       expect(handler).toContain("requireAdminUser");
       expect(handler).not.toContain("getServerUserSession");
       expect(handler).not.toContain('user.role !== "admin"');
+    }
+  });
+
+  it("documents the Phase 3C safe read-only admin endpoint migration", () => {
+    const adr = source("docs/architecture/adr-006-admin-authorization-policy.md");
+    const migratedEndpoints = [
+      "endpoints/admin/audit-logs_GET.ts",
+      "endpoints/admin/users_GET.ts",
+      "endpoints/admin/user-detail_GET.ts",
+    ];
+    const highRiskEndpoints = [
+      "endpoints/admin/delete-user_POST.ts",
+      "endpoints/admin/reset-user_POST.ts",
+      "endpoints/admin/platform-reset/shared.ts",
+      "endpoints/admin/compliance-config_POST.ts",
+      "endpoints/admin/ingest-queue-remediation_POST.ts",
+      "endpoints/admin/violation-correction/update_POST.ts",
+    ];
+
+    expect(adr).toContain("Phase 3C migrated only these safe read-only admin endpoints");
+    expect(adr).toContain("`endpoints/admin/audit-logs_GET.ts`");
+    expect(adr).toContain("`endpoints/admin/users_GET.ts`");
+    expect(adr).toContain("`endpoints/admin/user-detail_GET.ts`");
+    expect(adr).toContain("`helpers/requireAdminUser.tsx` must remain narrow");
+
+    for (const filePath of migratedEndpoints) {
+      const handler = source(filePath);
+      expect(handler).toContain("requireAdminUser");
+      expect(handler).not.toContain("getServerUserSession");
+      expect(handler).not.toContain('user.role !== "admin"');
+    }
+
+    for (const filePath of highRiskEndpoints) {
+      expect(source(filePath)).not.toContain("requireAdminUser");
     }
   });
 });

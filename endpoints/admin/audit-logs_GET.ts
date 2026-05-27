@@ -1,8 +1,8 @@
 import { schema, OutputType } from "./audit-logs_GET.schema";
 
-import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { db } from "../../helpers/db";
 import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { requireAdminUser } from "../../helpers/requireAdminUser";
 import { sql } from "kysely";
 import { sanitizeAuditLogDetails } from "../../helpers/auditLogSanitizer";
 import {
@@ -38,14 +38,7 @@ function getEndOfDayExclusive(dateValue: string | undefined): Date | undefined {
 export async function handle(request: Request) {
   try {
     // 1. Authorization Check
-    const { user } = await getServerUserSession(request);
-    if (user.role !== "admin") {
-      console.warn(`Unauthorized admin endpoint access attempt by user ${user.id} (role: ${user.role}) on ${request.url}`);
-      return new Response(
-        JSON.stringify({ error: "Admin privileges required" }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
-    }
+    await requireAdminUser(request);
 
     // 2. Parse Input
     const url = new URL(request.url);
