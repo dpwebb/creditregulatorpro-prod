@@ -20,6 +20,7 @@
     "certify:admin": "node scripts/validation-tier.mjs admin --require-admin",
     "certify:platform": "node scripts/platform-certification.mjs",
     "ai:classify": "node scripts/classify-ai-task.mjs",
+    "ai:classify:test": "node scripts/classify-ai-task.mjs --self-test",
     "commit-push": "node scripts/commit-push-staging.mjs",
     "commit-push:quick": "node scripts/commit-push-staging.mjs --local-gate fast",
     "commit-push:full": "node scripts/commit-push-staging.mjs --local-gate full",

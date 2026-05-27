@@ -97,6 +97,11 @@ Examples:
 - Evidence links or evidence binding.
 - Packet generation.
 - Readiness gating.
+- Dispute flows.
+- Bureau matching or bureau-specific parsing.
+- Creditor matching or creditor display.
+- Collector or collection-account handling.
+- Compliance scanner behavior.
 - Database writes.
 - Authentication.
 - User deletion/reset.
@@ -146,7 +151,9 @@ Examples:
 
 - Schema redesign.
 - Compliance rule engine redesign.
+- Rule engine redesign.
 - Parser architecture replacement.
+- Parser replacement.
 - Auth architecture.
 - Deployment architecture.
 - Destructive migrations.
@@ -184,7 +191,11 @@ Treat these as Tier 3 by default unless the request clearly escalates to Tier 4 
 - Credit report parsing.
 - OCR fallback.
 - Canonical tradeline mapping.
+- Bureau-specific parsing or matching.
+- Creditor matching.
+- Collector and collection-account handling.
 - Compliance scanning.
+- Compliance scanner behavior.
 - Evidence location links.
 - Dispute packet creation.
 - Packet PDF generation.
@@ -202,6 +213,12 @@ Use the deterministic classifier for a first-pass routing decision:
 
 ```bash
 pnpm run ai:classify -- "fix parser findings not rendering"
+```
+
+Run the deterministic classifier self-test after changing routing rules:
+
+```bash
+pnpm run ai:classify:test
 ```
 
 The classifier is keyword/risk-rule based. It does not use AI. Highest-risk match wins.

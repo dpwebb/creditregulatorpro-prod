@@ -211,8 +211,8 @@ Files likely affected:
 Risk tiers:
 - Tier 1 - Low risk: copy changes, minor UI text, comments, documentation, unused lint disable cleanup, isolated styling. Recommended setting: Medium/Fast. Validation: documentation review or lint/typecheck if code touched. Commit allowed after validation.
 - Tier 2 - Medium risk: normal UI component edits, low-risk API endpoint additions, isolated helper changes, new tests, bounded admin page improvements. Recommended setting: High. Validation: lint/typecheck plus relevant touched-area tests. Summarize behavior impact before commit.
-- Tier 3 - High risk: parser, ingestion, violation detection, evidence links, packet generation, readiness gating, database writes, authentication, user deletion/reset, payment/billing, production deployment. Recommended setting: Extra High. Add or update regression tests, run full relevant validation, and require human review before production push.
-- Tier 4 - Critical / architecture: schema redesign, compliance rule engine redesign, parser architecture replacement, auth architecture, deployment architecture, destructive migrations, or large cross-cutting refactors. ChatGPT architecture review and an approved plan are required before Codex codes.
+- Tier 3 - High risk: parser, ingestion, OCR, tradeline, bureau, creditor, collector, violation detection, compliance scanner behavior, evidence links, dispute/packet generation, readiness gating, database writes, authentication/admin access, user deletion/reset, payment/billing, production deployment, or migrations. Recommended setting: Extra High. Add or update regression tests, run full relevant validation, and require human review before production push.
+- Tier 4 - Critical / architecture: schema redesign, architecture rewrite, rule engine redesign, compliance rule engine redesign, parser architecture replacement, parser replacement, auth architecture, deployment architecture, destructive migrations, large refactors, or cross-cutting refactors. ChatGPT architecture review and an approved plan are required before Codex codes.
 
 If Tier 3 or Tier 4:
 - Do not broaden scope.

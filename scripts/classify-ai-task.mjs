@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-const task = process.argv.slice(2).join(" ").trim();
+const args = process.argv.slice(2);
+const selfTest = args.includes("--self-test");
+const task = args.filter((arg) => arg !== "--self-test").join(" ").trim();
 
 const TIERS = {
   1: {
@@ -48,6 +50,7 @@ const RULES = [
       /\bschema\b.*\b(redesign|replacement|rewrite|architecture)\b/i,
       /\bauth\b.*\b(architecture|redesign|rewrite|replacement)\b/i,
       /\bdeployment\b.*\b(architecture|redesign|rewrite|replacement)\b/i,
+      /\brule engine\b.*\b(redesign|rewrite|replacement|architecture)\b/i,
       /\bcompliance rule engine\b.*\b(redesign|rewrite|replacement)\b/i,
       /\bparser\b.*\b(architecture|redesign|rewrite|replacement)\b/i,
     ],
@@ -62,9 +65,14 @@ const RULES = [
       /\bocr\b/i,
       /\bcanonical\b/i,
       /\btradeline\b/i,
+      /\bbureau\b|\bbureaus\b/i,
+      /\bcreditor\b|\bcreditors\b/i,
+      /\bcollector\b|\bcollectors\b|\bcollection\b/i,
       /\bcompliance\b/i,
+      /\bcompliance scanner\b|\bscanner\b/i,
       /\bviolation\b/i,
       /\bevidence(?:\s+(?:location|link|binding|ledger))?\b/i,
+      /\bdispute\b/i,
       /\bpacket\b/i,
       /\bpdf\b/i,
       /\breadiness\b/i,
@@ -73,6 +81,7 @@ const RULES = [
       /\bauth\b|\bauthentication\b|\bauthorization\b|\bsession\b/i,
       /\badmin\s+access\b|\badmin\s+permission\b|\badmin\s+role\b/i,
       /\buser\s+(?:delete|deletion|reset|purge|remove|removal)\b/i,
+      /\b(?:delete|deletion|reset|purge|remove|removal)\s+user\b/i,
       /\bpayment\b|\bbilling\b|\bstripe\b/i,
       /\bproduction\b|\bdeploy(?:ment)?\b|\bstaging\b/i,
     ],
@@ -151,7 +160,7 @@ function filesLikelyAffected(tier, description) {
     files.add("pages/");
   }
   if (/\bapi\b|\bendpoint\b|\bauth\b|\badmin\b/.test(lower)) files.add("endpoints/");
-  if (/\bhelper\b|\bparser\b|\bingest\b|\bcompliance\b|\bviolation\b|\bevidence\b|\bpacket\b|\breadiness\b/.test(lower)) {
+  if (/\bhelper\b|\bparser\b|\bingest\b|\bcompliance\b|\bviolation\b|\bevidence\b|\bpacket\b|\breadiness\b|\bdispute\b|\bbureau\b|\bcreditor\b|\bcollector\b|\btradeline\b/.test(lower)) {
     files.add("helpers/");
   }
   if (/\bmigration\b|\bschema\b|\bdatabase\b/.test(lower)) files.add("migrations/");
@@ -163,6 +172,57 @@ function filesLikelyAffected(tier, description) {
 
   if (files.size === 0) files.add(tier === 1 ? "docs/ or isolated source file" : "inspect relevant files first");
   return Array.from(files).join(", ");
+}
+
+function assertClassification(description, expectedTier) {
+  const actual = classify(description).tier;
+  if (actual !== expectedTier) {
+    throw new Error(`Expected Tier ${expectedTier} for "${description}", got Tier ${actual}`);
+  }
+}
+
+function runSelfTest() {
+  const cases = [
+    ["minor copy update", 1],
+    ["normal UI component edit with tests", 2],
+    ["fix parser findings not rendering", 3],
+    ["adjust ingestion replay", 3],
+    ["repair OCR fallback", 3],
+    ["fix canonical tradeline mapping", 3],
+    ["update violation detection", 3],
+    ["repair evidence location links", 3],
+    ["fix packet readiness", 3],
+    ["dispute packet creation bug", 3],
+    ["delete user endpoint hardening", 3],
+    ["reset user admin flow", 3],
+    ["auth session regression", 3],
+    ["admin access role boundary", 3],
+    ["migration gate update", 3],
+    ["production deployment check", 3],
+    ["compliance scanner false positive", 3],
+    ["bureau parser mismatch", 3],
+    ["creditor matching rule", 3],
+    ["collector account display", 3],
+    ["schema redesign", 4],
+    ["architecture rewrite", 4],
+    ["rule engine redesign", 4],
+    ["parser replacement", 4],
+    ["destructive migration", 4],
+    ["auth architecture", 4],
+    ["large refactor", 4],
+    ["cross-cutting refactor", 4],
+  ];
+
+  for (const [description, expectedTier] of cases) {
+    assertClassification(description, expectedTier);
+  }
+
+  console.log(`AI task risk classifier self-test passed (${cases.length} cases).`);
+}
+
+if (selfTest) {
+  runSelfTest();
+  process.exit(0);
 }
 
 if (!task) {
