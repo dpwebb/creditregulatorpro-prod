@@ -1,17 +1,17 @@
 # CreditRegulatorPro Level 5 Platform Certification
 
-Generated: 2026-05-26T23:54:14.373Z
+Generated: 2026-05-27T00:38:24.647Z
 Target: https://staging.creditregulatorpro.com
 Branch: `staging`
-Commit: `8239b6c7ea599ec1130af4fbf767c7faf136460e`
-Formal certification: **PASS_WITH_WARNINGS**
+Commit: `1072d0a6a7b0dd2321eb013507a8c3ee2bb0e81b`
+Formal certification: **PASS**
 CERTIFYING:true
 BLOCKED_BY_INPUTS:false
 Deployment readiness score: **100/100**
 
 ## Summary
 
-- Commands: 12 passed, 1 warning-only, 0 incomplete, 0 failed, 12 total
+- Commands: 12 passed, 0 warning-only, 0 incomplete, 0 failed, 12 total
 - Infrastructure readiness: PASS
 - Storage lifecycle: PASS
 - Packet lifecycle: PASS
@@ -43,13 +43,13 @@ Deployment readiness score: **100/100**
 | Gate | Subsystem | Status | Duration | Command |
 | --- | --- | --- | ---: | --- |
 | Level 1 static code audit | Static Audit | PASS | 100s | `pnpm run audit:static` |
-| Build reproducibility | Deployment Verification | PASS | 21s | `pnpm run build` |
+| Build reproducibility | Deployment Verification | PASS | 22s | `pnpm run build` |
 | Migration consistency | Database Validation | PASS | 1s | `pnpm run check:migrations` |
 | Staging routing and API availability gate | Runtime Validation | PASS | 2s | `pnpm run check:staging-gate` |
-| Level 2 runtime/system audit | Infrastructure Readiness | PASS | 15s | `pnpm run audit:runtime --json` |
+| Level 2 runtime/system audit | Infrastructure Readiness | PASS | 13s | `pnpm run audit:runtime --json` |
 | Storage lifecycle and durability contract | Storage Validation | PASS | 3s | `pnpm run storage:durability-contract --no-write-evidence --json` |
-| Level 3 E2E operational audit | Operational Workflow | PASS | 88s | `pnpm audit:e2e --require-admin` |
-| Level 4 adversarial/resilience audit | Resilience | PASS | 112s | `pnpm run audit:resilience` |
+| Level 3 E2E operational audit | Operational Workflow | PASS | 77s | `pnpm audit:e2e --require-admin` |
+| Level 4 adversarial/resilience audit | Resilience | PASS | 109s | `pnpm run audit:resilience` |
 | Admin static route and permission certification | Admin Certification | PASS | 4s | `pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts` |
 | Admin click-through certification | Admin Certification | PASS | 40s | `pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts` |
 | Rollback simulation | Rollback Readiness | PASS | 8s | `pnpm run deploy:rollback-simulation --json` |
@@ -61,7 +61,7 @@ Deployment readiness score: **100/100**
 
 ## Warning-Only Findings
 
-- [WARN_ONLY] Infrastructure Readiness: Runtime audit passed with non-fatal warnings. Known warning-only classes include malformed PDF syntax warnings and LiberationSans font substitution warnings when operational flows still pass.
+- None.
 
 ## Production Risk Assessment
 
