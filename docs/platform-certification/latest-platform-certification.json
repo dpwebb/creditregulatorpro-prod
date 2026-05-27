@@ -1,13 +1,13 @@
 {
   "reportName": "creditregulatorpro-level-5-platform-certification",
-  "generatedAt": "2026-05-27T01:37:42.471Z",
-  "runStartedAt": "2026-05-27T01:31:07.131Z",
-  "runCompletedAt": "2026-05-27T01:37:42.471Z",
+  "generatedAt": "2026-05-27T02:13:31.160Z",
+  "runStartedAt": "2026-05-27T02:07:12.992Z",
+  "runCompletedAt": "2026-05-27T02:13:31.160Z",
   "currentBranch": "staging",
-  "currentCommit": "1a4f583bf683386aa4cd4c52f5f7c2c1d5a7de54",
+  "currentCommit": "c2b77da0791fe276b358338e885b3b150fd21f24",
   "targetEnvironment": "staging",
   "targetBaseUrl": "https://staging.creditregulatorpro.com",
-  "certificationStatus": "PASS_WITH_WARNINGS",
+  "certificationStatus": "PASS",
   "CERTIFYING": true,
   "BLOCKED_BY_INPUTS": false,
   "strictMode": false,
@@ -17,7 +17,7 @@
     "passed": 12,
     "failed": 0,
     "incomplete": 0,
-    "warned": 1
+    "warned": 0
   },
   "gateStatus": {
     "staticAudit": "passed",
@@ -42,9 +42,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 99074,
-      "startedAt": "2026-05-27T01:31:07.273Z",
-      "completedAt": "2026-05-27T01:32:46.347Z",
+      "durationMs": 98011,
+      "startedAt": "2026-05-27T02:07:13.193Z",
+      "completedAt": "2026-05-27T02:08:51.204Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -67,9 +67,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 21020,
-      "startedAt": "2026-05-27T01:32:46.349Z",
-      "completedAt": "2026-05-27T01:33:07.369Z",
+      "durationMs": 21718,
+      "startedAt": "2026-05-27T02:08:51.207Z",
+      "completedAt": "2026-05-27T02:09:12.925Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -90,9 +90,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 1069,
-      "startedAt": "2026-05-27T01:33:07.370Z",
-      "completedAt": "2026-05-27T01:33:08.439Z",
+      "durationMs": 1187,
+      "startedAt": "2026-05-27T02:09:12.927Z",
+      "completedAt": "2026-05-27T02:09:14.114Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -112,9 +112,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 1665,
-      "startedAt": "2026-05-27T01:33:08.440Z",
-      "completedAt": "2026-05-27T01:33:10.105Z",
+      "durationMs": 2072,
+      "startedAt": "2026-05-27T02:09:14.114Z",
+      "completedAt": "2026-05-27T02:09:16.186Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -140,9 +140,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 13047,
-      "startedAt": "2026-05-27T01:33:10.106Z",
-      "completedAt": "2026-05-27T01:33:23.153Z",
+      "durationMs": 11310,
+      "startedAt": "2026-05-27T02:09:16.187Z",
+      "completedAt": "2026-05-27T02:09:27.497Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -161,7 +161,7 @@
       ],
       "failureReason": null,
       "incompleteReason": null,
-      "warningReason": "Runtime audit passed with non-fatal warnings. Known warning-only classes include malformed PDF syntax warnings and LiberationSans font substitution warnings when operational flows still pass.",
+      "warningReason": null,
       "diagnostic": null
     },
     {
@@ -172,9 +172,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 2916,
-      "startedAt": "2026-05-27T01:33:23.155Z",
-      "completedAt": "2026-05-27T01:33:26.071Z",
+      "durationMs": 2707,
+      "startedAt": "2026-05-27T02:09:27.498Z",
+      "completedAt": "2026-05-27T02:09:30.205Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -196,9 +196,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 91088,
-      "startedAt": "2026-05-27T01:33:26.072Z",
-      "completedAt": "2026-05-27T01:34:57.160Z",
+      "durationMs": 78927,
+      "startedAt": "2026-05-27T02:09:30.206Z",
+      "completedAt": "2026-05-27T02:10:49.133Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -230,9 +230,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 114274,
-      "startedAt": "2026-05-27T01:34:57.161Z",
-      "completedAt": "2026-05-27T01:36:51.435Z",
+      "durationMs": 108482,
+      "startedAt": "2026-05-27T02:10:49.134Z",
+      "completedAt": "2026-05-27T02:12:37.616Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -260,9 +260,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 4266,
-      "startedAt": "2026-05-27T01:36:51.437Z",
-      "completedAt": "2026-05-27T01:36:55.703Z",
+      "durationMs": 4339,
+      "startedAt": "2026-05-27T02:12:37.617Z",
+      "completedAt": "2026-05-27T02:12:41.956Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -283,9 +283,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 37988,
-      "startedAt": "2026-05-27T01:36:55.705Z",
-      "completedAt": "2026-05-27T01:37:33.693Z",
+      "durationMs": 40628,
+      "startedAt": "2026-05-27T02:12:41.957Z",
+      "completedAt": "2026-05-27T02:13:22.585Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -311,9 +311,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 7826,
-      "startedAt": "2026-05-27T01:37:33.694Z",
-      "completedAt": "2026-05-27T01:37:41.520Z",
+      "durationMs": 7614,
+      "startedAt": "2026-05-27T02:13:22.586Z",
+      "completedAt": "2026-05-27T02:13:30.200Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -334,9 +334,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 950,
-      "startedAt": "2026-05-27T01:37:41.521Z",
-      "completedAt": "2026-05-27T01:37:42.471Z",
+      "durationMs": 958,
+      "startedAt": "2026-05-27T02:13:30.201Z",
+      "completedAt": "2026-05-27T02:13:31.159Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -565,22 +565,14 @@
     }
   ],
   "unresolvedBlockers": [],
-  "warnOnlyFindings": [
-    {
-      "severity": "WARN_ONLY",
-      "subsystem": "Infrastructure Readiness",
-      "gateId": "runtimeAudit",
-      "gateLabel": "Level 2 runtime/system audit",
-      "reason": "Runtime audit passed with non-fatal warnings. Known warning-only classes include malformed PDF syntax warnings and LiberationSans font substitution warnings when operational flows still pass."
-    }
-  ],
+  "warnOnlyFindings": [],
   "exactCommandsRun": [
     {
       "gateId": "staticAudit",
       "command": "pnpm run audit:static",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 99074,
+      "durationMs": 98011,
       "envKeys": []
     },
     {
@@ -588,7 +580,7 @@
       "command": "pnpm run build",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 21020,
+      "durationMs": 21718,
       "envKeys": []
     },
     {
@@ -596,7 +588,7 @@
       "command": "pnpm run check:migrations",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1069,
+      "durationMs": 1187,
       "envKeys": []
     },
     {
@@ -604,7 +596,7 @@
       "command": "pnpm run check:staging-gate",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1665,
+      "durationMs": 2072,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -616,7 +608,7 @@
       "command": "pnpm run audit:runtime --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 13047,
+      "durationMs": 11310,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -628,7 +620,7 @@
       "command": "pnpm run storage:durability-contract --no-write-evidence --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 2916,
+      "durationMs": 2707,
       "envKeys": []
     },
     {
@@ -636,7 +628,7 @@
       "command": "pnpm audit:e2e --require-admin",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 91088,
+      "durationMs": 78927,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -648,7 +640,7 @@
       "command": "pnpm run audit:resilience",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 114274,
+      "durationMs": 108482,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -660,7 +652,7 @@
       "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 4266,
+      "durationMs": 4339,
       "envKeys": []
     },
     {
@@ -668,7 +660,7 @@
       "command": "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 37988,
+      "durationMs": 40628,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -680,7 +672,7 @@
       "command": "pnpm run deploy:rollback-simulation --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 7826,
+      "durationMs": 7614,
       "envKeys": []
     },
     {
@@ -688,7 +680,7 @@
       "command": "pnpm run production-deployment-parity:evidence --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 950,
+      "durationMs": 958,
       "envKeys": []
     }
   ],
@@ -712,5 +704,5 @@
     "summary": "All mandatory platform certification gates passed.",
     "reasons": []
   },
-  "operationalStabilitySummary": "Operational stability is certified with warning-only runtime findings that did not break mandatory workflows."
+  "operationalStabilitySummary": "Operational stability is certified by the mandatory static, runtime, E2E, resilience, admin, deployment, rollback, storage, and parity gates."
 }
