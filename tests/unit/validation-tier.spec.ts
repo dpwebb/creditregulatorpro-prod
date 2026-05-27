@@ -8,6 +8,7 @@ import {
   classifyChangedFiles,
   COMMANDS,
 } from "../../scripts/validation-tier.mjs";
+import { buildLocalBootstrapEnv } from "../e2e/global-setup";
 
 const packageJson = () => JSON.parse(readFileSync("package.json", "utf8"));
 const commands = (plan: ReturnType<typeof buildValidationPlan>) => plan.commands.map((entry) => entry.command ?? entry.note);
@@ -134,5 +135,21 @@ describe("tiered validation workflow", () => {
       E2E_ADMIN_PASSWORD: "password",
     })).toBe(true);
     expect(adminClickThroughAvailable({})).toBe(true);
+  });
+
+  it("maps isolated release validation database env into localhost admin bootstrap only for loopback databases", () => {
+    const releaseUrl = "postgresql://postgres:postgres@127.0.0.1:5432/creditregulatorpro_release_validation";
+
+    expect(buildLocalBootstrapEnv({ RELEASE_VALIDATION_DATABASE_URL: releaseUrl })).toEqual(expect.objectContaining({
+      CRP_LOCAL_DEV: "true",
+      DATABASE_URL: releaseUrl,
+      FLOOT_DATABASE_URL: releaseUrl,
+    }));
+
+    expect(buildLocalBootstrapEnv({
+      RELEASE_VALIDATION_DATABASE_URL: "postgresql://postgres:postgres@prod-db.example.test:5432/creditregulatorpro",
+    })).not.toEqual(expect.objectContaining({
+      CRP_LOCAL_DEV: "true",
+    }));
   });
 });
