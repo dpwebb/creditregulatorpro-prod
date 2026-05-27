@@ -81,6 +81,7 @@ describe("tiered validation workflow", () => {
       "pnpm run migrations:gate",
       "pnpm run smoke:auth-workflow",
       "pnpm run smoke:auth-workflow:packet",
+      "pnpm run environment:parity -- --json",
       "pnpm run production-scale:promotion-guard",
     ]));
     expect(commandList.length).toBe(new Set(commandList).size);

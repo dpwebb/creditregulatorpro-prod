@@ -154,10 +154,10 @@ export const PLATFORM_CERTIFICATION_GATES = [
     id: "productionParity",
     label: "Production parity evidence",
     subsystem: "Production Parity",
-    command: "pnpm run production-deployment-parity:evidence --json",
+    command: "pnpm run environment:parity -- --json && pnpm run production-deployment-parity:evidence --json",
     weight: 4,
     timeoutMs: 3 * 60 * 1000,
-    certifies: ["deployment workflow parity", "safe production probe parity", "privacy probe evidence"],
+    certifies: ["staging/production environment parity", "deployment workflow parity", "safe production probe parity", "privacy probe evidence"],
   },
 ];
 

@@ -22,6 +22,8 @@ describe("staging deploy workflow health gate", () => {
     const workflow = workflowSource();
 
     expect(workflow).toContain("Tiered staging validation");
+    expect(workflow).toContain("Install Playwright Chromium for parity certification");
+    expect(workflow).toContain("pnpm exec playwright install --with-deps chromium");
     expect(workflow).toContain('run: pnpm run validate:staging -- --head "$VALIDATION_HEAD_SHA"');
     expect(workflow).toContain("docker compose up -d --build --force-recreate creditregulatorpro-staging");
     expect(workflow).not.toContain("pnpm run build");
@@ -112,6 +114,19 @@ describe("staging deploy workflow health gate", () => {
     expect(source).toContain("Staging health check failed ${label} response auth smokes after 30 attempts.");
     expect(source).toContain("wait_for_staging_health \"before\"");
     expect(source).toContain("wait_for_staging_health \"after\"");
+    expect(source).toContain("wait_for_staging_status() {");
+    expect(source).toContain("run_staging_production_parity_health_checks() {");
+    expect(source).toContain('wait_for_staging_status "${phase} root route" "HEAD" "/"');
+    expect(source).toContain('wait_for_staging_status "${phase} login route" "GET" "/login"');
+    expect(source).toContain('wait_for_staging_status "${phase} auth session denial" "GET" "/_api/auth/session"');
+    expect(source).toContain('wait_for_staging_status "${phase} report artifact list denial" "GET" "/_api/report-artifact/list?limit=1"');
+    expect(source).toContain('wait_for_staging_status "${phase} packet list denial" "GET" "/_api/packet/list?limit=1"');
+    expect(source).toContain('wait_for_staging_status "${phase} support ticket list denial" "GET" "/_api/support-ticket/list?limit=1"');
+    expect(source).toContain('wait_for_staging_status "${phase} invalid session auth denial" "GET" "/_api/auth/session"');
+    expect(source).toContain("creditregulatorpro-staging-deploy-health/1.0");
+    expect(source).toContain('run_staging_production_parity_health_checks "before"');
+    expect(source).toContain('run_staging_production_parity_health_checks "after"');
+    expect(source).toContain('run_staging_production_parity_health_checks "rollback"');
 
     expect(source).toContain("grep -Eq '^[23][0-9][0-9]$'");
     expect(source).toContain("return 1");

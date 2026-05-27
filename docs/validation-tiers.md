@@ -9,7 +9,7 @@ This repo uses tiered validation to keep ordinary development fast without remov
 | Fast | `pnpm run validate:fast` | Local commit and ordinary development. Runs typecheck plus changed/related Vitest files when detectable. Does not run full baseline, full click-through, full E2E, or full regression. |
 | Changed | `pnpm run validate:changed` | Pull requests and local subsystem work. Runs typecheck plus changed-area tests and related subsystem checks. Adds golden path only when changed files touch protected critical subsystems. |
 | Staging | `pnpm run validate:staging` | Pushes to staging. Runs lint-status, typecheck, build, and targeted tests. Runs full regression only for core ingestion, parser, violation scanning, packet generation, auth/roles, database migration, or admin routing changes. |
-| Release | `pnpm run validate:release` | Production promotion. Always runs the full baseline, runtime smokes, migration/promotion gates, storage/rollback/soak evidence, and production promotion guard. |
+| Release | `pnpm run validate:release` | Production promotion. Always runs the full baseline, runtime smokes, migration/promotion gates, storage/rollback/soak evidence, environment parity checks, and production promotion guard. |
 | Admin Certification | `pnpm run certify:admin` | Required when admin routes, permissions, navigation, page rendering, or production-critical admin flows change. Runs admin route/role tests and Playwright admin click-through. |
 
 `pnpm run check` is retained as a compatibility alias for `pnpm run validate:release`.

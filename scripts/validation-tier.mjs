@@ -99,6 +99,11 @@ export const COMMANDS = {
     label: "Deploy rollback simulation",
     command: "pnpm run deploy:rollback-simulation",
   },
+  environmentParity: {
+    id: "environmentParity",
+    label: "Staging/production environment parity",
+    command: "pnpm run environment:parity -- --json",
+  },
   productionScaleEvidence: {
     id: "productionScaleEvidence",
     label: "Production-scale evidence",
@@ -146,6 +151,7 @@ const RELEASE_SAFETY_COMMAND_IDS = [
   "responseSoak",
   "storageDurability",
   "deployRollback",
+  "environmentParity",
   "productionScaleEvidence",
   "productionPromotionPack",
   "productionPromotionGuard",
