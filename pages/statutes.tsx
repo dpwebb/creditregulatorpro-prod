@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
@@ -209,13 +209,13 @@ export default function StatutesPage() {
     persistWatchState(new Set(watchedVersionIds), nextSeen);
   };
 
-  const hasWatchUpdate = (statute: StatuteData) => {
+  const hasWatchUpdate = useCallback((statute: StatuteData) => {
     if (!watchedVersionIds.has(statute.versionId)) return false;
     if (!statute.lastReviewedAt) return false;
     const seen = seenReviewedAtByVersion[String(statute.versionId)];
     if (!seen) return true;
     return new Date(statute.lastReviewedAt).getTime() > new Date(seen).getTime();
-  };
+  }, [watchedVersionIds, seenReviewedAtByVersion]);
 
   const filteredAndSortedStatutes = useMemo(() => {
     const statutes = Array.isArray(data?.statutes) ? data.statutes : [];
@@ -252,7 +252,23 @@ export default function StatutesPage() {
 
   const watchedUpdates = useMemo(() => {
     return filteredAndSortedStatutes.filter((statute) => hasWatchUpdate(statute));
-  }, [filteredAndSortedStatutes, watchedVersionIds, seenReviewedAtByVersion]);
+  }, [filteredAndSortedStatutes, hasWatchUpdate]);
+
+  const relatedLawsByVersionId = useMemo(() => {
+    const map = new Map<number, StatuteData[]>();
+    for (const statute of filteredAndSortedStatutes) {
+      const related = filteredAndSortedStatutes
+        .filter(
+          (candidate) =>
+            candidate.versionId !== statute.versionId &&
+            candidate.jurisdiction === statute.jurisdiction &&
+            candidate.code !== statute.code
+        )
+        .slice(0, 3);
+      map.set(statute.versionId, related);
+    }
+    return map;
+  }, [filteredAndSortedStatutes]);
 
   const jurisdictionOptions = Array.isArray(filterOptions?.jurisdictions)
     ? filterOptions.jurisdictions
@@ -498,22 +514,6 @@ export default function StatutesPage() {
       iframe.onload = () => setTimeout(printFromFrame, 100);
     }
   };
-
-  const relatedLawsByVersionId = useMemo(() => {
-    const map = new Map<number, StatuteData[]>();
-    for (const statute of filteredAndSortedStatutes) {
-      const related = filteredAndSortedStatutes
-        .filter(
-          (candidate) =>
-            candidate.versionId !== statute.versionId &&
-            candidate.jurisdiction === statute.jurisdiction &&
-            candidate.code !== statute.code
-        )
-        .slice(0, 3);
-      map.set(statute.versionId, related);
-    }
-    return map;
-  }, [filteredAndSortedStatutes]);
 
   const openHistory = (statute: StatuteData) => {
     setHistoryVersionId(statute.versionId);

@@ -156,11 +156,10 @@ const IdentificationRequiredGate: React.FC<{
  * Routes are named based on the User Persona they represent, while the internal 
  * implementation checks against the User Role.
  */
-const MakeProtectedRoute: (roles: Array<User["role"] | "support">) => React.FC<{
+const MakeProtectedRoute = (roles: Array<User["role"] | "support">): React.FC<{
   children: React.ReactNode;
-}> =
-  (roles) =>
-  ({ children }) => {
+}> => {
+  const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { authState } = useAuth();
 
     // Show loading state while checking authentication
@@ -228,6 +227,9 @@ const MakeProtectedRoute: (roles: Array<User["role"] | "support">) => React.FC<{
       </IdentificationRequiredGate>
     );
   };
+
+  return ProtectedRoute;
+};
 
 /**
  * AdminRoute: Restricts access to Admin Users only.
