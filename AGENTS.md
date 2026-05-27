@@ -189,6 +189,43 @@ Produce an implementation plan and risk analysis instead of modifying code direc
 - Preserve existing behavior unless explicitly changing it.
 - Do not touch production, secrets, environment files, or deployment config unless explicitly instructed.
 
+## AI Task Risk Routing
+Codex must classify every task before coding. Use the deterministic guide in `docs/ai-task-risk-routing.md` and the helper command:
+
+```powershell
+pnpm run ai:classify -- "<task description>"
+```
+
+Before editing files, print:
+
+```text
+AI TASK RISK ROUTING
+Tier:
+Reason:
+Recommended Codex setting:
+Required validation:
+Approval gate:
+Files likely affected:
+```
+
+Risk tiers:
+- Tier 1 - Low risk: copy changes, minor UI text, comments, documentation, unused lint disable cleanup, isolated styling. Recommended setting: Medium/Fast. Validation: documentation review or lint/typecheck if code touched. Commit allowed after validation.
+- Tier 2 - Medium risk: normal UI component edits, low-risk API endpoint additions, isolated helper changes, new tests, bounded admin page improvements. Recommended setting: High. Validation: lint/typecheck plus relevant touched-area tests. Summarize behavior impact before commit.
+- Tier 3 - High risk: parser, ingestion, violation detection, evidence links, packet generation, readiness gating, database writes, authentication, user deletion/reset, payment/billing, production deployment. Recommended setting: Extra High. Add or update regression tests, run full relevant validation, and require human review before production push.
+- Tier 4 - Critical / architecture: schema redesign, compliance rule engine redesign, parser architecture replacement, auth architecture, deployment architecture, destructive migrations, or large cross-cutting refactors. ChatGPT architecture review and an approved plan are required before Codex codes.
+
+If Tier 3 or Tier 4:
+- Do not broaden scope.
+- Preserve existing behavior unless explicitly scoped.
+- Do not convert a focused fix into a broad refactor.
+
+If Tier 4:
+- Do not code immediately.
+- Produce an implementation plan first.
+- Split the work into staged prompts.
+- Do not perform autonomous rewrites.
+- Do not push production changes without explicit approval.
+
 ## Git workflow
 - Treat this local directory as the working copy for Codex chat changes
 - GitHub remains the source of truth for deployment after commits are pushed
