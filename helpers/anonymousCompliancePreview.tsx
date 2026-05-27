@@ -1,8 +1,9 @@
 import { calculateRetentionExpiry, AccountType } from "./provincialRetentionCalculator";
 import type { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import type { CanadianProvince } from "./schema";
-import { isAfter, isBefore, differenceInMonths, isValid, parseISO } from "./dateUtils";
+import { isAfter, isBefore, differenceInMonths, differenceInDays, isValid, parseISO } from "./dateUtils";
 import { formatCurrency } from "./formatters";
+import { PROVINCE_CODE_MAP } from "./canadianJurisdictions";
 
 export type PreviewProblemUrgency = "expired" | "approaching" | "violation" | "warning" | "info";
 
@@ -49,6 +50,31 @@ function includesAny(value: string, keywords: string[]): boolean {
 
 function formatEvidenceDate(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function provinceName(province: CanadianProvince): string {
+  return PROVINCE_CODE_MAP[province] ?? province;
+}
+
+function possessiveProvinceName(province: CanadianProvince): string {
+  const name = provinceName(province);
+  return name.endsWith("s") ? `${name}'` : `${name}'s`;
+}
+
+function formatDurationFromDays(days: number): string {
+  if (!Number.isFinite(days) || days <= 0) return "0 days";
+  if (days === 1) return "1 day";
+  if (days < 31) return `${days} days`;
+
+  const months = Math.max(1, Math.ceil(days / 30));
+  if (months < 12) return months === 1 ? "1 month" : `${months} months`;
+
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  const yearText = years === 1 ? "1 year" : `${years} years`;
+  if (remainingMonths === 0) return yearText;
+  const monthText = remainingMonths === 1 ? "1 month" : `${remainingMonths} months`;
+  return `${yearText}, ${monthText}`;
 }
 
 function sortProblemsBySeverity(problems: PreviewProblem[]): PreviewProblem[] {
@@ -129,20 +155,21 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         if (isExpiredAsOfReport) {
           tradelineVerifiedProblems.push({
             type: "sol_expired",
-            title: `${creditorName} - Possible Expired Reporting Item`,
-            detail: `${creditorName} appears past the reporting-limit window for ${province}. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
-            solution: `The dates suggest this item may be unsupported under ${province} law (${expiryResult.statuteReference}). We can draft a review letter asking for verification, correction, or removal if the reporting cannot be supported.`,
+            title: `${creditorName} - Reported Beyond Allowed Period`,
+            detail: `${creditorName} is reported beyond ${possessiveProvinceName(province)} allowed reporting period. Evidence: reference date ${formatEvidenceDate(referenceDate)} and reporting limit date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
+            solution: `This account is reported beyond ${possessiveProvinceName(province)} allowed reporting period. We can prepare a dispute package asking for this item to be removed. Reference: ${expiryResult.statuteReference}.`,
             urgency: "expired",
             severity: 100
           });
         } else {
           const monthsRemaining = differenceInMonths(expiryResult.expiryDate, asOfDate);
           if (monthsRemaining >= 0 && monthsRemaining <= 6) {
+            const daysRemainingFromToday = differenceInDays(expiryResult.expiryDate, new Date());
             tradelineSupportingProblems.push({
               type: "sol_approaching",
-              title: `${creditorName} — Expiring Soon`,
-              detail: `${creditorName} is close to the reporting-limit window. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
-              solution: `This appears to reach the reporting-limit window in ${monthsRemaining} months. We can track the date and prepare review paperwork when action is appropriate.`,
+              title: `${creditorName} - Reporting Limit Date Set`,
+              detail: `This account reaches ${possessiveProvinceName(province)} reporting limit on ${formatEvidenceDate(expiryResult.expiryDate)}. Time remaining from today: ${formatDurationFromDays(daysRemainingFromToday)}. Evidence: reference date ${formatEvidenceDate(referenceDate)}.`,
+              solution: `We can track the reporting limit date and prepare a dispute package if this item is still reported after that date. Reference: ${expiryResult.statuteReference}.`,
               urgency: "approaching",
               severity: 90
             });

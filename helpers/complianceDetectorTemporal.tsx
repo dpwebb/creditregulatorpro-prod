@@ -4,8 +4,8 @@ import type { Tradeline, ReportArtifact, CanadianProvince } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
 import { detectChanges, StandardizedCreditData } from "./changeDetector";
 import { resolveTradelineProvince } from "./resolveTradelineProvince";
-import { regulationRegistry } from "./regulationRegistry";
 import { calculateRetentionExpiry, AccountType } from "./provincialRetentionCalculator";
+import { PROVINCE_CODE_MAP } from "./canadianJurisdictions";
 
 /**
  * Safely parses a date input which might be a Date object, an ISO string, or null/undefined.
@@ -27,6 +27,35 @@ function safeParseDate(dateInput: Date | string | null | undefined): Date | null
 
 function laterDate(left: Date, right: Date): Date {
   return isAfter(left, right) ? left : right;
+}
+
+function provinceName(province: CanadianProvince): string {
+  return PROVINCE_CODE_MAP[province] ?? province;
+}
+
+function possessiveProvinceName(province: CanadianProvince): string {
+  const name = provinceName(province);
+  return name.endsWith("s") ? `${name}'` : `${name}'s`;
+}
+
+function formatEvidenceDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDurationFromDays(days: number): string {
+  if (!Number.isFinite(days) || days <= 0) return "0 days";
+  if (days === 1) return "1 day";
+  if (days < 31) return `${days} days`;
+
+  const months = Math.max(1, Math.ceil(days / 30));
+  if (months < 12) return months === 1 ? "1 month" : `${months} months`;
+
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  const yearText = years === 1 ? "1 year" : `${years} years`;
+  if (remainingMonths === 0) return yearText;
+  const monthText = remainingMonths === 1 ? "1 month" : `${remainingMonths} months`;
+  return `${yearText}, ${monthText}`;
 }
 
 /**
@@ -195,7 +224,7 @@ pastDue === 0
       violationCategory: "STATUTE_OF_LIMITATIONS",
       severity: "ERROR",
       confidenceScore: 90,
-      userExplanation: `This debt is past the ${retentionYears}-year reporting limit for your credit report. It should be reviewed for correction if the reporting is unsupported.`,
+      userExplanation: `This account is reported beyond ${possessiveProvinceName(province)} allowed reporting period. Reporting limit date: ${formatEvidenceDate(expiryDate)}.`,
       technicalDetails: {
         referenceDate: referenceDate.toISOString(),
         reportingLimitDate: expiryDate.toISOString(),
@@ -208,7 +237,7 @@ pastDue === 0
           statutoryReference: statuteReference,
           regulationIds: ["PIPEDA_4_5", `${province}_CRA_REPORTING_LIMIT`],
         },
-        recommendedAction: `Ask the credit bureau to review whether this account remains reportable because it is past the ${retentionYears}-year reporting limit.`,
+        recommendedAction: `Ask the credit bureau to remove this item because it is past the ${retentionYears}-year reporting limit. Reference: ${statuteReference}.`,
       tradelineId: tradeline.id,
       responsibleEntity: "BUREAU",
     });
@@ -219,7 +248,7 @@ pastDue === 0
         violationCategory: "STATUTE_APPROACHING",
         severity: "WARNING",
         confidenceScore: 90,
-        userExplanation: `This account is approaching the ${retentionYears}-year reporting limit for your report in ${monthsRemaining} months. After that date, the credit bureau should review whether it remains reportable.`,
+        userExplanation: `This account reaches ${possessiveProvinceName(province)} reporting limit on ${formatEvidenceDate(expiryDate)}. Time remaining from today: ${formatDurationFromDays(daysRemaining)}.`,
         technicalDetails: {
           referenceDate: referenceDate.toISOString(),
           reportingLimitDate: expiryDate.toISOString(),
@@ -234,7 +263,7 @@ pastDue === 0
           statutoryReference: statuteReference,
           regulationIds: ["PIPEDA_4_5", `${province}_CRA_REPORTING_LIMIT`],
         },
-        recommendedAction: `Monitor this account. In ${monthsRemaining} months, ask the credit bureau to review whether it remains reportable under the mapped reporting-limit authority.`,
+        recommendedAction: `Track this account until ${formatEvidenceDate(expiryDate)}. If it is still reported after that date, ask the credit bureau to remove it. Reference: ${statuteReference}.`,
         tradelineId: tradeline.id,
         responsibleEntity: "BUREAU",
       });

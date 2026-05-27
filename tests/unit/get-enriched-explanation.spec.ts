@@ -46,4 +46,40 @@ describe("enriched violation explanation copy", () => {
       "Send a letter asking the collection agency to prove the debt and fix any missing or wrong information.",
     );
   });
+
+  it("uses direct wording for deterministic expired reporting findings", () => {
+    const explanation = getEnrichedExplanation({
+      violationCategory: "STATUTE_OF_LIMITATIONS",
+      technicalDetails: {
+        province: "NS",
+        referenceDate: "2019-01-01T00:00:00.000Z",
+        reportingLimitDate: "2025-01-01T00:00:00.000Z",
+        isPastLimit: true,
+      },
+    });
+
+    expect(explanation).toBe(
+      "This account is reported beyond Nova Scotia's allowed reporting period. Reporting limit date: 2025-01-01. Date used for the check: 2019-01-01.",
+    );
+    expect(explanation).not.toMatch(/\b(may|might|appears to|could|suggest)\b/i);
+    expect(explanation).not.toContain("NS");
+  });
+
+  it("uses current-date framing for upcoming reporting limits", () => {
+    const explanation = getEnrichedExplanation({
+      violationCategory: "STATUTE_APPROACHING",
+      technicalDetails: {
+        province: "BC",
+        reportingLimitDate: "2026-08-27T00:00:00.000Z",
+        daysRemaining: 92,
+        monthsRemaining: 3,
+        isPastLimit: false,
+      },
+    });
+
+    expect(explanation).toBe(
+      "This account reaches British Columbia's reporting limit on 2026-08-27. Time remaining from today: 4 months.",
+    );
+    expect(explanation).not.toMatch(/\b(Expiring soon|is expected to|may|might|appears to|could|suggest)\b/i);
+  });
 });

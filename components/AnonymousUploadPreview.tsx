@@ -202,13 +202,13 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
                             <Badge variant="success">⏰ Expired — removal eligible</Badge>
                           )}
                           {p.urgency === "approaching" && (
-                            <Badge variant="warning">⏳ Expiring soon</Badge>
+                            <Badge variant="warning">Limit date set</Badge>
                           )}
                           {p.urgency === "violation" && (
                             <Badge variant="error">Priority finding</Badge>
                           )}
                           {p.urgency === "warning" && (
-                            <Badge variant="default">⚡ Potential issue</Badge>
+                            <Badge variant="default">Needs review</Badge>
                           )}
                         </div>
                       )}

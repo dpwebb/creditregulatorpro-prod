@@ -1,3 +1,6 @@
+import { PROVINCE_CODE_MAP } from "./canadianJurisdictions";
+import type { CanadianProvince } from "./schema";
+
 const FIELD_LABELS: Record<string, string> = {
   accountType: "account type",
   chargeOffDate: "date the account was written off",
@@ -33,6 +36,44 @@ const stripInternalDetails = (text: string): string => {
     .replace(/\s*reference ids?[:\s][^.;]+[.;]?/gi, "")
     .replace(/\s*rule names?[:\s][^.;]+[.;]?/gi, "")
     .replace(/\s*regulatory basis[:\s][^.;]+[.;]?/gi, "");
+};
+
+const provinceName = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const code = trimmed.toUpperCase() as CanadianProvince;
+  return PROVINCE_CODE_MAP[code] ?? trimmed;
+};
+
+const possessiveProvinceName = (value: unknown): string => {
+  const name = provinceName(value) ?? "your province";
+  return name.endsWith("s") ? `${name}'` : `${name}'s`;
+};
+
+const formatUserDate = (value: unknown): string | null => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-CA", { timeZone: "UTC" });
+};
+
+const formatDurationFromDays = (value: unknown): string | null => {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const days = Math.max(0, Math.ceil(value));
+  if (days === 0) return "0 days";
+  if (days === 1) return "1 day";
+  if (days < 31) return `${days} days`;
+
+  const months = Math.max(1, Math.ceil(days / 30));
+  if (months < 12) return months === 1 ? "1 month" : `${months} months`;
+
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  const yearText = years === 1 ? "1 year" : `${years} years`;
+  if (remainingMonths === 0) return yearText;
+  const monthText = remainingMonths === 1 ? "1 month" : `${remainingMonths} months`;
+  return `${yearText}, ${monthText}`;
 };
 
 export const simplifyForUser = (text: string | null | undefined): string => {
@@ -205,16 +246,30 @@ export const getEnrichedExplanation = (violation: {
   }
 
   if (violationCategory === "STATUTE_OF_LIMITATIONS") {
-    const limitDate = technicalDetails?.reportingLimitDate
-      ? new Date(technicalDetails.reportingLimitDate).toLocaleDateString("en-CA")
-      : null;
-    const referenceDate = technicalDetails?.referenceDate
-      ? new Date(technicalDetails.referenceDate).toLocaleDateString("en-CA")
-      : null;
+    const limitDate = formatUserDate(technicalDetails?.reportingLimitDate);
+    const referenceDate = formatUserDate(technicalDetails?.referenceDate);
+    const provinceLabel = possessiveProvinceName(technicalDetails?.province);
     if (limitDate && referenceDate) {
-      return `This account appears past the reporting time limit. The report date used for the age check is ${referenceDate}, and the expected reporting-limit date is ${limitDate}.`;
+      return `This account is reported beyond ${provinceLabel} allowed reporting period. Reporting limit date: ${limitDate}. Date used for the check: ${referenceDate}.`;
     }
-    return "This account appears too old to remain on the credit report and should be reviewed for removal or correction.";
+    return "This account is reported beyond the allowed reporting period and should be removed or corrected.";
+  }
+
+  if (violationCategory === "STATUTE_APPROACHING") {
+    const limitDate = formatUserDate(technicalDetails?.reportingLimitDate);
+    const duration =
+      formatDurationFromDays(technicalDetails?.daysRemaining) ??
+      (typeof technicalDetails?.monthsRemaining === "number"
+        ? `${Math.max(0, technicalDetails.monthsRemaining)} months`
+        : null);
+    const provinceLabel = possessiveProvinceName(technicalDetails?.province);
+    if (limitDate && duration) {
+      return `This account reaches ${provinceLabel} reporting limit on ${limitDate}. Time remaining from today: ${duration}.`;
+    }
+    if (limitDate) {
+      return `This account reaches ${provinceLabel} reporting limit on ${limitDate}.`;
+    }
+    return "This account is close to the allowed reporting period limit.";
   }
 
   if (violationCategory === "BUREAU_INVESTIGATION_FAILURE") {
@@ -255,6 +310,15 @@ export const getEnrichedRecommendedAction = (violation: {
   technicalDetails?: any;
 }): string => {
   const responsibleEntity = violation.responsibleEntity || violation.technicalDetails?.responsibleEntity;
+  const reportingLimitDate = formatUserDate(violation.technicalDetails?.reportingLimitDate);
+
+  if (violation.technicalDetails?.isPastLimit === true) {
+    return "Ask the credit bureau to remove this item because it is past the reporting limit.";
+  }
+
+  if (violation.technicalDetails?.isPastLimit === false && reportingLimitDate) {
+    return `Track this account until ${reportingLimitDate}. If it is still reported after that date, ask the credit bureau to remove it.`;
+  }
   
   if (responsibleEntity === "BUREAU") {
     return "Ask the credit bureau to check this and fix or remove anything that is wrong.";
