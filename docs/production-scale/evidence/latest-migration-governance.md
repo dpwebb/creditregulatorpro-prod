@@ -1,10 +1,10 @@
 # Migration Governance Drift Evidence
 
 Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.
-Generated at: 2026-05-26T22:10:22.475Z
+Generated at: 2026-05-27T01:33:08.042Z
 CERTIFYING:false
 Current branch: staging
-Current commit hash: f58ffdb3831754399b6f48bb664a7d57c99237ea
+Current commit hash: 1a4f583bf683386aa4cd4c52f5f7c2c1d5a7de54
 Scan roots: helpers, scripts, endpoints/migration
 Ledger directory: migrations
 Checker mode: production-promotion-gate-inventory
