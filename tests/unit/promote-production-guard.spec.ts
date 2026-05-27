@@ -522,6 +522,25 @@ describe("production promotion guard", () => {
     expect(certifiedCommitAcceptedByGoLiveEvidencePolicy(root, appCommit, evidenceCommit)).toBe(true);
   });
 
+  it("allows environment parity evidence-only descendants of a certified app-source commit", () => {
+    const root = tempRoot();
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "test@example.invalid"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "app.ts"), "export const app = true;\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "app"], { cwd: root, stdio: "ignore" });
+    const appCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    writeFileSync(join(root, "docs", "environment-parity.md"), "# Environment Parity\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-m", "parity evidence"], { cwd: root, stdio: "ignore" });
+    const evidenceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    expect(certifiedCommitAcceptedByGoLiveEvidencePolicy(root, appCommit, evidenceCommit)).toBe(true);
+  });
+
   it("blocks descendants that changed source after certification", () => {
     const root = tempRoot();
     execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });

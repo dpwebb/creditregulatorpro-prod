@@ -135,6 +135,7 @@ function evidencePolicyFileOnly(filePath) {
 function controlledGoLiveEvidenceFileOnly(filePath) {
   const normalized = String(filePath ?? "").replace(/\\/g, "/");
   return (
+    normalized === "docs/environment-parity.md" ||
     normalized.startsWith("docs/platform-certification/") ||
     normalized.startsWith("docs/production-scale/evidence/")
   );
