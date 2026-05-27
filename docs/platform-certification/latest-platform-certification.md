@@ -1,21 +1,21 @@
 # CreditRegulatorPro Level 5 Platform Certification
 
-Generated: 2026-05-27T03:37:27.932Z
+Generated: 2026-05-27T20:40:55.701Z
 Target: https://staging.creditregulatorpro.com
 Branch: `staging`
-Commit: `3cf63cfe166c6fc13f275a27d82d40fd74556541`
-Formal certification: **PASS**
-CERTIFYING:true
-BLOCKED_BY_INPUTS:false
-Deployment readiness score: **100/100**
+Commit: `bc8b00360c6681d08bd0939f801441fe57f1bb47`
+Formal certification: **INCOMPLETE**
+CERTIFYING:false
+BLOCKED_BY_INPUTS:true
+Deployment readiness score: **76/100**
 
 ## Summary
 
-- Commands: 12 passed, 0 warning-only, 0 incomplete, 0 failed, 12 total
-- Infrastructure readiness: PASS
-- Storage lifecycle: PASS
+- Commands: 10 passed, 0 warning-only, 2 incomplete, 0 failed, 12 total
+- Infrastructure readiness: INCOMPLETE
+- Storage lifecycle: INCOMPLETE
 - Packet lifecycle: PASS
-- Admin certification: PASS
+- Admin certification: INCOMPLETE
 - Parser confidence certification: PASS
 - Rollback readiness: PASS
 - Reproducibility: PASS
@@ -25,15 +25,15 @@ Deployment readiness score: **100/100**
 | Subsystem | Status | Gates |
 | --- | --- | --- |
 | Static Audit | PASS | staticAudit |
-| Runtime Validation | PASS | stagingRoutingGate, runtimeAudit |
-| Database Validation | PASS | runtimeAudit, migrationConsistency |
-| Storage Validation | PASS | runtimeAudit, storageDurability |
-| OCR/PDF Validation | PASS | runtimeAudit, e2eOperationalAudit |
+| Runtime Validation | INCOMPLETE | stagingRoutingGate, runtimeAudit |
+| Database Validation | INCOMPLETE | runtimeAudit, migrationConsistency |
+| Storage Validation | INCOMPLETE | runtimeAudit, storageDurability |
+| OCR/PDF Validation | INCOMPLETE | runtimeAudit, e2eOperationalAudit |
 | E2E Ingestion Workflow | PASS | e2eOperationalAudit |
 | Packet Lifecycle Workflow | PASS | e2eOperationalAudit, resilienceAudit |
-| Admin Certification | PASS | adminStaticCertification, adminClickThrough, e2eOperationalAudit |
+| Admin Certification | INCOMPLETE | adminStaticCertification, adminClickThrough, e2eOperationalAudit |
 | Resilience Testing | PASS | resilienceAudit |
-| Deployment Verification | PASS | buildReproducibility, migrationConsistency, runtimeAudit, productionParity |
+| Deployment Verification | INCOMPLETE | buildReproducibility, migrationConsistency, runtimeAudit, productionParity |
 | Rollback Readiness | PASS | rollbackSimulation |
 | Cleanup/Reset Validation | PASS | e2eOperationalAudit, resilienceAudit |
 | Reproducibility Verification | PASS | buildReproducibility, migrationConsistency, storageDurability, rollbackSimulation, productionParity |
@@ -42,22 +42,23 @@ Deployment readiness score: **100/100**
 
 | Gate | Subsystem | Status | Duration | Command |
 | --- | --- | --- | ---: | --- |
-| Level 1 static code audit | Static Audit | PASS | 117s | `pnpm run audit:static` |
-| Build reproducibility | Deployment Verification | PASS | 24s | `pnpm run build` |
+| Level 1 static code audit | Static Audit | PASS | 90s | `pnpm run audit:static` |
+| Build reproducibility | Deployment Verification | PASS | 19s | `pnpm run build` |
 | Migration consistency | Database Validation | PASS | 1s | `pnpm run check:migrations` |
 | Staging routing and API availability gate | Runtime Validation | PASS | 2s | `pnpm run check:staging-gate` |
-| Level 2 runtime/system audit | Infrastructure Readiness | PASS | 12s | `pnpm run audit:runtime --json` |
+| Level 2 runtime/system audit | Infrastructure Readiness | INCOMPLETE | 2s | `pnpm run audit:runtime --json` |
 | Storage lifecycle and durability contract | Storage Validation | PASS | 3s | `pnpm run storage:durability-contract --no-write-evidence --json` |
-| Level 3 E2E operational audit | Operational Workflow | PASS | 78s | `pnpm audit:e2e --require-admin` |
+| Level 3 E2E operational audit | Operational Workflow | PASS | 90s | `pnpm audit:e2e --require-admin` |
 | Level 4 adversarial/resilience audit | Resilience | PASS | 113s | `pnpm run audit:resilience` |
-| Admin static route and permission certification | Admin Certification | PASS | 5s | `pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts` |
-| Admin click-through certification | Admin Certification | PASS | 39s | `pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts` |
-| Rollback simulation | Rollback Readiness | PASS | 8s | `pnpm run deploy:rollback-simulation --json` |
+| Admin static route and permission certification | Admin Certification | PASS | 4s | `pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts` |
+| Admin click-through certification | Admin Certification | INCOMPLETE | 18s | `pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts` |
+| Rollback simulation | Rollback Readiness | PASS | 7s | `pnpm run deploy:rollback-simulation --json` |
 | Production parity evidence | Production Parity | PASS | 2s | `pnpm run environment:parity -- --json && pnpm run production-deployment-parity:evidence --json` |
 
 ## Unresolved Blockers
 
-- None.
+- [BLOCKED_BY_INPUTS] Infrastructure Readiness: Runtime audit diagnostics are unavailable, so Docker, Traefik, env, DB, storage, OCR/PDF, log, and volume state are not certified. Run with SSH credentials or directly on the staging VPS with --local-vps.
+- [BLOCKED_BY_INPUTS] Admin Certification: Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login.
 
 ## Warning-Only Findings
 
@@ -65,9 +66,9 @@ Deployment readiness score: **100/100**
 
 ## Production Risk Assessment
 
-Risk level: **LOW**
+Risk level: **UNKNOWN**
 
-All mandatory platform certification gates passed.
+Production deployment is not certified because required credential/access inputs were unavailable; no platform failure is asserted by these incomplete gates.
 
 ## Safety
 
@@ -83,12 +84,12 @@ All mandatory platform certification gates passed.
 - buildReproducibility: `pnpm run build` -> passed (0)
 - migrationConsistency: `pnpm run check:migrations` -> passed (0)
 - stagingRoutingGate: `pnpm run check:staging-gate` -> passed (0)
-- runtimeAudit: `pnpm run audit:runtime --json` -> passed (0)
+- runtimeAudit: `pnpm run audit:runtime --json` -> incomplete (1)
 - storageDurability: `pnpm run storage:durability-contract --no-write-evidence --json` -> passed (0)
 - e2eOperationalAudit: `pnpm audit:e2e --require-admin` -> passed (0)
 - resilienceAudit: `pnpm run audit:resilience` -> passed (0)
 - adminStaticCertification: `pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts` -> passed (0)
-- adminClickThrough: `pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts` -> passed (0)
+- adminClickThrough: `pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts` -> incomplete (1)
 - rollbackSimulation: `pnpm run deploy:rollback-simulation --json` -> passed (0)
 - productionParity: `pnpm run environment:parity -- --json && pnpm run production-deployment-parity:evidence --json` -> passed (0)
 

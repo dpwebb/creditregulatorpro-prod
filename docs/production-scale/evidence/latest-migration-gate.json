@@ -1,9 +1,9 @@
 {
   "reportName": "migration-governance-release-gate",
   "evidenceType": "MIGRATION_GATE_EVIDENCE",
-  "generatedAt": "2026-05-27T00:44:07.511Z",
+  "generatedAt": "2026-05-27T19:45:27.173Z",
   "branch": "staging",
-  "commit": "90d17b50005a2586121d7eb22350d4136e51eb19",
+  "commit": "bc8b00360c6681d08bd0939f801441fe57f1bb47",
   "policyPath": "docs/production-scale/migration-governance-policy.json",
   "policyName": "production-scale-migration-governance-policy",
   "policyMode": "release-blocking",
