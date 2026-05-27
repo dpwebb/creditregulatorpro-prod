@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
+import { findProvinceNameInText, ProvinceAnalysisNote } from "./ProvinceAnalysisNote";
 import { Link } from "react-router-dom";
 import styles from "./AnonymousUploadPreview.module.css";
 
@@ -31,6 +32,7 @@ interface AnonymousUploadPreviewProps {
 }
 
 const PREVIEW_FINDING_LIMIT = 3;
+const PROVINCE_REPORTING_PROBLEM_TYPES = new Set(["sol_expired", "sol_approaching"]);
 
 const getProblemDetails = (problem: string | SampleProblem) => {
   if (typeof problem === "string") {
@@ -142,6 +144,15 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
           previewShown === 1 ? "finding" : "findings"
         } from your report preview.`
       : "No sample findings are shown in this preview.";
+  const provinceReportingProblems = previewProblems.filter(
+    (problem): problem is SampleProblem =>
+      typeof problem === "object" && PROVINCE_REPORTING_PROBLEM_TYPES.has(problem.type),
+  );
+  const provinceForReportingAnalysis = findProvinceNameInText(
+    provinceReportingProblems
+      .map((problem) => `${problem.title} ${problem.detail} ${problem.solution ?? ""}`)
+      .join(" "),
+  );
 
   return (
     <div className={styles.container}>
@@ -176,6 +187,12 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
               <span>Findings detected: {totalFindings}</span>
               <span>Preview shown: {previewShown}</span>
             </div>
+          )}
+          {provinceReportingProblems.length > 0 && (
+            <ProvinceAnalysisNote
+              province={provinceForReportingAnalysis}
+              className={styles.provinceAnalysisNote}
+            />
           )}
         </div>
       </div>

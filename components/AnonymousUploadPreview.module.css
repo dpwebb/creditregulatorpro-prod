@@ -80,6 +80,14 @@
     color: var(--muted-foreground);
   }
 
+  .provinceAnalysisNote {
+    margin: var(--spacing-1) 0 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+    max-width: 34rem;
+  }
+
   .problemList {
     list-style: none;
     padding: 0;

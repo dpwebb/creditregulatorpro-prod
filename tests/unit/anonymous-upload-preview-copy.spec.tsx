@@ -83,4 +83,30 @@ describe("anonymous upload preview copy", () => {
     expect(within(summary).queryByText(/Findings detected:/)).not.toBeInTheDocument();
     expect(within(summary).queryByText(/Preview shown:/)).not.toBeInTheDocument();
   });
+
+  it("renders province reporting-limit explanation inline when preview findings use provincial rules", () => {
+    renderPreview({
+      problemCount: 1,
+      sampleProblems: [
+        {
+          type: "sol_expired",
+          title: "Halifax Telecom - Reported Beyond Allowed Period",
+          detail:
+            "Halifax Telecom is reported beyond Nova Scotia's allowed reporting period.",
+          solution:
+            "This account is reported beyond Nova Scotia's allowed reporting period.",
+          urgency: "expired",
+        },
+      ],
+    });
+
+    const summary = screen.getByRole("note", {
+      name: "Preview findings summary",
+    });
+
+    expect(summary).toHaveTextContent(
+      "Credit reporting rules in Canada vary by province. This report was analyzed using Nova Scotia reporting limits based on the address listed in the uploaded report.",
+    );
+    expect(summary).not.toHaveTextContent("NS reporting limits");
+  });
 });

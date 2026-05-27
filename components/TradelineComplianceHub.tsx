@@ -17,6 +17,7 @@ import { Button } from "./Button";
 import { ComplianceViolationCard } from "./ComplianceViolationCard";
 import { ComplianceRescanButton } from "./ComplianceRescanButton";
 import { ProfileCompletionDialog } from "./ProfileCompletionDialog";
+import { ProvinceAnalysisNote } from "./ProvinceAnalysisNote";
 import { SourceReportViewer } from "./SourceReportViewer";
 import { Badge } from "./Badge";
 
@@ -43,6 +44,10 @@ const getEntityBadgeLabel = (entity?: string | null) => {
   if (entity === "COLLECTOR") return "Collection Agency Issue";
   return null;
 };
+
+const isProvinceReportingIssue = (issue: { violationCategory?: string | null }) =>
+  issue.violationCategory === "STATUTE_OF_LIMITATIONS" ||
+  issue.violationCategory === "STATUTE_APPROACHING";
 
 interface TradelineComplianceHubProps {
   tradelineId: number;
@@ -240,6 +245,13 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const topViolationExplanation = topViolation ? getEnrichedExplanation(topViolation) : "";
   const topViolationLinked = topViolation?.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const topViolationDisputeStatus = topViolationLinked ? "linked" : isTopViolationDisputed ? "sent" : packetForTopViolation ? "created" : "none";
+  const provinceReportingIssue =
+    (isAdmin ? displayViolations : nonAdminDisplayViolations).find(isProvinceReportingIssue) ??
+    (approachingViolation && isProvinceReportingIssue(approachingViolation) ? approachingViolation : null);
+  const provinceForReportingAnalysis =
+    typeof provinceReportingIssue?.technicalDetails?.province === "string"
+      ? provinceReportingIssue.technicalDetails.province
+      : null;
 
   // Never treat missing findings data as "no issues found".
   // Compliance findings are the source of truth for this panel's primary content.
@@ -367,6 +379,14 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {provinceReportingIssue && (
+        <ProvinceAnalysisNote
+          province={provinceForReportingAnalysis}
+          mode="likely"
+          className={styles.provinceAnalysisNote}
+        />
       )}
 
       {/* Problems Found Section */}
