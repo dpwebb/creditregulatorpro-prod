@@ -176,6 +176,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright Chromium for admin certification
+        run: DEBIAN_FRONTEND=noninteractive pnpm exec playwright install --with-deps chromium
+
       - name: Bootstrap isolated release validation database
         env:
           CRP_LOCAL_DEV: "true"

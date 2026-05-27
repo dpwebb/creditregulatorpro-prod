@@ -26,6 +26,8 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("Tiered production release validation");
     expect(source).toContain('run: pnpm run validate:release -- --head "$VALIDATION_HEAD_SHA"');
     expect(source).toContain("Bootstrap isolated release validation database");
+    expect(source).toContain("Install Playwright Chromium for admin certification");
+    expect(source).toContain("pnpm exec playwright install --with-deps chromium");
     expect(source).toContain("postgres:16");
     expect(source).toContain("creditregulatorpro_release_validation");
     expect(source).toContain("pnpm run bootstrap:local-auth-schema");
