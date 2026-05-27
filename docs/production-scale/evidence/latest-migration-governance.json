@@ -1,10 +1,10 @@
 {
   "reportName": "migration-governance-drift-evidence",
   "CERTIFYING": false,
-  "generatedAt": "2026-05-27T02:09:13.678Z",
-  "evidenceTimestamp": "2026-05-27T02:09:13.678Z",
+  "generatedAt": "2026-05-27T03:13:35.231Z",
+  "evidenceTimestamp": "2026-05-27T03:13:35.231Z",
   "branch": "staging",
-  "commit": "c2b77da0791fe276b358338e885b3b150fd21f24",
+  "commit": "7894448fa8c9354f7f486e10e63a9e224997be48",
   "safety": {
     "nonMutating": true,
     "requiresDatabase": false,
