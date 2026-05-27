@@ -2,6 +2,7 @@ import "./loadEnv.js";
 import { Hono } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { serve } from '@hono/node-server';
+import { ensureRequiredDocumentStorageDirectories } from "./helpers/documentStoragePreflight";
 
 const app = new Hono();
 const LOCAL_DEV_FRONTEND_URL = "http://localhost:5175";
@@ -4098,6 +4099,20 @@ app.get("*", async (c, next) => {
   }
   return serveStatic({ path: "./dist/index.html" })(c, next);
 });
+
+try {
+  const storagePreflight = await ensureRequiredDocumentStorageDirectories();
+  console.log(
+    `[storage-preflight] ensured ${storagePreflight.directories.length} document storage director${storagePreflight.directories.length === 1 ? "y" : "ies"} under ${storagePreflight.storageRoot}`,
+  );
+} catch (error) {
+  console.error(
+    "[storage-preflight] failed to ensure required document storage directories:",
+    error instanceof Error ? error.message : String(error),
+  );
+  process.exit(1);
+}
+
 const port = Number(process.env.PORT || 3333);
 serve({ fetch: app.fetch, port });
 console.log(`Running at http://localhost:${port}`)

@@ -740,9 +740,56 @@ async function storageProbe() {
   const id = randomUUID();
   const reportPath = path.join(root, "runtime-audit", id + ".txt");
   const packetPath = path.join(root, "packet-pdfs", "runtime-audit", id + ".pdf");
-  const result = { root, reportPath, packetPath, reportArtifact: null, packetPdf: null, rootWritable: false };
+  const requiredDirectoryIds = [
+    "",
+    "report-artifacts",
+    "packet-pdfs",
+    "evidence",
+    "evidence/bureau-communications",
+    "identification",
+    "packets",
+  ];
+  const result = {
+    root,
+    reportPath,
+    packetPath,
+    requiredDirectories: [],
+    reportArtifact: null,
+    packetPdf: null,
+    rootWritable: false,
+  };
+  for (const directoryId of requiredDirectoryIds) {
+    const directoryPath = directoryId ? path.join(root, directoryId) : root;
+    try {
+      const entry = await stat(directoryPath);
+      let writable = true;
+      let accessError = null;
+      try {
+        await access(directoryPath, constants.W_OK);
+      } catch (error) {
+        writable = false;
+        accessError = String(error && error.message ? error.message : error).slice(0, 300);
+      }
+      result.requiredDirectories.push({
+        id: directoryId || "root",
+        path: directoryPath,
+        exists: true,
+        isDirectory: entry.isDirectory(),
+        writable,
+        error: accessError,
+      });
+    } catch (error) {
+      result.requiredDirectories.push({
+        id: directoryId || "root",
+        path: directoryPath,
+        exists: false,
+        isDirectory: false,
+        writable: false,
+        error: String(error && error.message ? error.message : error).slice(0, 300),
+      });
+    }
+  }
   try {
-    await mkdir(root, { recursive: true });
     await access(root, constants.W_OK);
     result.rootWritable = true;
   } catch (error) {
@@ -755,6 +802,7 @@ async function storageProbe() {
     result.reportArtifact = { ok: false, error: String(error && error.message ? error.message : error).slice(0, 300) };
   }
   try {
+    await access(path.join(root, "packet-pdfs"), constants.W_OK);
     result.packetPdf = await canWriteReadDelete(packetPath, "%PDF-1.4\n% crp-runtime-audit\n");
   } catch (error) {
     result.packetPdf = { ok: false, error: String(error && error.message ? error.message : error).slice(0, 300) };
@@ -921,6 +969,29 @@ function storageIoOk(entry) {
 }
 
 function evaluateStorageProbe(storage) {
+  const requiredDirectories = Array.isArray(storage?.requiredDirectories) ? storage.requiredDirectories : [];
+  for (const directory of requiredDirectories) {
+    const ok = directory.exists === true && directory.isDirectory === true && directory.writable === true;
+    const name = `Required storage directory ${directory.id}`;
+    if (ok) {
+      passCheck("Storage Connectivity", name, "Required storage directory exists and is writable.", {
+        path: directory.path,
+      });
+    } else {
+      failCheck(
+        "Storage Connectivity",
+        name,
+        directory.error ?? "Required storage directory is missing, not a directory, or not writable.",
+        {
+          path: directory.path,
+          exists: directory.exists,
+          isDirectory: directory.isDirectory,
+          writable: directory.writable,
+        },
+      );
+    }
+  }
+
   if (storage?.rootWritable) {
     passCheck("Storage Connectivity", "Storage root writable", "Storage root is writable.", { path: storage.root });
   } else {
@@ -1006,7 +1077,7 @@ function evaluateQueueProbe(queues) {
 
 async function runHostDiskAndLogChecks(options, executor) {
   try {
-    const paths = ["/", "/tmp", options.remoteAppDir, `${options.remoteAppDir}/document-storage`];
+    const paths = ["/", "/tmp", options.remoteAppDir, `${options.remoteAppDir}/document-storage`, `${options.remoteAppDir}/document-storage/packet-pdfs`];
     const output = executor.run(`df -P -k ${paths.map(shellQuote).join(" ")} 2>/dev/null || true`);
     const rows = parseDf(output);
     if (rows.length === 0) {

@@ -34,7 +34,7 @@ pnpm audit:runtime --local-vps
 The local VPS mode runs Docker checks directly on the host. It verifies the
 staging app container, expected worker container, Traefik labels, host and
 container disk usage, app and worker logs, DB connectivity, storage
-write/read/delete, packet PDF storage path write/read/delete, `/tmp`
+required directory presence/writability, storage write/read/delete, packet PDF storage path write/read/delete, `/tmp`
 write/read/delete, `tesseract`, `pdftoppm`, deterministic OCR configuration,
 queue table visibility, and recent `storage_read_failed:not_found` log entries.
 

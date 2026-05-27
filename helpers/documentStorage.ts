@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { recordStorageFailureMetric } from "./productionObservabilityMetrics";
+import { resolveDocumentStorageRoot } from "./documentStoragePreflight";
 
 const LOCAL_STORAGE_PREFIX = "local:";
 
@@ -10,15 +11,6 @@ async function recordStorageFailureMetricBestEffort(input: Parameters<typeof rec
     return;
   }
   await recordStorageFailureMetric(input).catch(() => undefined);
-}
-
-function getStorageRoot(): string {
-  const configuredPath =
-    process.env.LOCAL_DOCUMENT_STORAGE_PATH ||
-    process.env.DOCUMENT_STORAGE_PATH ||
-    "document-storage";
-
-  return path.resolve(process.cwd(), configuredPath);
 }
 
 function getSafeObjectPath(objectName: string): string {
@@ -33,7 +25,7 @@ function getSafeObjectPath(objectName: string): string {
     throw new Error("Invalid document storage path");
   }
 
-  const storageRoot = getStorageRoot();
+  const storageRoot = resolveDocumentStorageRoot();
   const fullPath = path.resolve(storageRoot, relativePath);
 
   if (fullPath !== storageRoot && !fullPath.startsWith(`${storageRoot}${path.sep}`)) {

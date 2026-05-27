@@ -44,6 +44,22 @@ Legacy evidence attachment rows that already contain inline base64 remain readab
 
 Evidence attachment list responses continue to omit `storageUrl`, so list payloads do not expose raw file bytes, inline base64, storage object names, signed URLs, or storage secrets.
 
+## Startup Directory Preflight
+
+App startup runs an idempotent document-storage preflight before the HTTP server starts. The preflight creates missing required directories with recursive `mkdir` only; it never deletes or rewrites existing files.
+
+Required local-storage directories:
+
+- `document-storage`
+- `document-storage/report-artifacts`
+- `document-storage/packet-pdfs`
+- `document-storage/evidence`
+- `document-storage/evidence/bureau-communications`
+- `document-storage/identification`
+- `document-storage/packets`
+
+In staging and production these resolve under the mounted container path `/app/document-storage`.
+
 ## Raw Report Inventory
 
 Run:
