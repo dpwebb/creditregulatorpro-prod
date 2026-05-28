@@ -1,9 +1,9 @@
 # Production Deployment Parity Evidence
 
-Generated at: 2026-05-27T23:22:33.547Z
+Generated at: 2026-05-27T23:55:10.594Z
 Evidence type: PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE
-Branch: `staging`
-Commit: `c40ebc61696bf98feda27a305a3a2e85ad9aef97`
+Branch: `unknown`
+Commit: `39aa91800ee6cb746800cb2c1729e0fd179e2fda`
 Status: accepted-production-deployment-parity
 Production proof: no
 

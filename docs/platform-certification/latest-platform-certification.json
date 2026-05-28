@@ -1,10 +1,10 @@
 {
   "reportName": "creditregulatorpro-level-5-platform-certification",
-  "generatedAt": "2026-05-27T23:22:34.005Z",
-  "runStartedAt": "2026-05-27T23:13:54.501Z",
-  "runCompletedAt": "2026-05-27T23:22:34.005Z",
-  "currentBranch": "staging",
-  "currentCommit": "c40ebc61696bf98feda27a305a3a2e85ad9aef97",
+  "generatedAt": "2026-05-27T23:55:10.631Z",
+  "runStartedAt": "2026-05-27T23:49:44.324Z",
+  "runCompletedAt": "2026-05-27T23:55:10.631Z",
+  "currentBranch": "unknown",
+  "currentCommit": "39aa91800ee6cb746800cb2c1729e0fd179e2fda",
   "targetEnvironment": "staging",
   "targetBaseUrl": "https://staging.creditregulatorpro.com",
   "certificationMode": "NON_PUBLIC_PRODUCTION_TEST",
@@ -12,7 +12,7 @@
   "CERTIFYING": false,
   "BLOCKED_BY_INPUTS": true,
   "liveProductionCertified": false,
-  "nonPublicDeploymentAcceptable": false,
+  "nonPublicDeploymentAcceptable": true,
   "deferredLiveProductionBlockers": [
     {
       "severity": "DEFERRED_LIVE_PRODUCTION_BLOCKER",
@@ -20,48 +20,22 @@
       "gateId": "e2eOperationalAudit",
       "gateLabel": "Level 3 E2E operational audit",
       "command": "pnpm run audit:e2e",
-      "reason": "E2E operational admin packet workflow could not authenticate with the configured admin credentials; this is an admin credential/configuration blocker, not a packet workflow failure.",
+      "reason": "E2E operational workflow completed without a platform failure, but the admin packet workflow probe was skipped because admin credentials were not supplied.",
       "requiredBeforeProduction": false,
       "deferrableForNonPublicDeployment": true,
       "deferredUntilCertificationMode": "LIVE_PRODUCTION",
       "weight": 16,
       "requiredBeforeLiveProduction": true
-    },
-    {
-      "severity": "DEFERRED_LIVE_PRODUCTION_BLOCKER",
-      "subsystem": "Admin Certification",
-      "gateId": "adminClickThrough",
-      "gateLabel": "Admin click-through certification",
-      "command": "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
-      "reason": "Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login.",
-      "requiredBeforeProduction": false,
-      "deferrableForNonPublicDeployment": true,
-      "deferredUntilCertificationMode": "LIVE_PRODUCTION",
-      "weight": 8,
-      "requiredBeforeLiveProduction": true
     }
   ],
-  "hardUnresolvedBlockers": [
-    {
-      "severity": "BLOCKED_BY_INPUTS",
-      "subsystem": "Infrastructure Readiness",
-      "gateId": "runtimeAudit",
-      "gateLabel": "Level 2 runtime/system audit",
-      "command": "pnpm run audit:runtime --json",
-      "reason": "Runtime audit diagnostics are unavailable, so Docker, Traefik, env, DB, storage, OCR/PDF, log, and volume state are not certified. Run with SSH credentials or directly on the staging VPS with --local-vps.",
-      "requiredBeforeProduction": true,
-      "deferrableForNonPublicDeployment": false,
-      "deferredUntilCertificationMode": null,
-      "weight": 16
-    }
-  ],
+  "hardUnresolvedBlockers": [],
   "strictMode": false,
-  "deploymentReadinessScore": 60,
+  "deploymentReadinessScore": 84,
   "commandCounts": {
     "total": 12,
-    "passed": 9,
+    "passed": 11,
     "failed": 0,
-    "incomplete": 3,
+    "incomplete": 1,
     "warned": 0
   },
   "gateStatus": {
@@ -69,12 +43,12 @@
     "buildReproducibility": "passed",
     "migrationConsistency": "passed",
     "stagingRoutingGate": "passed",
-    "runtimeAudit": "incomplete",
+    "runtimeAudit": "passed",
     "storageDurability": "passed",
     "e2eOperationalAudit": "incomplete",
     "resilienceAudit": "passed",
     "adminStaticCertification": "passed",
-    "adminClickThrough": "incomplete",
+    "adminClickThrough": "passed",
     "rollbackSimulation": "passed",
     "productionParity": "passed"
   },
@@ -87,9 +61,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 204035,
-      "startedAt": "2026-05-27T23:13:54.714Z",
-      "completedAt": "2026-05-27T23:17:18.749Z",
+      "durationMs": 97398,
+      "startedAt": "2026-05-27T23:49:44.334Z",
+      "completedAt": "2026-05-27T23:51:21.732Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -112,9 +86,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 37097,
-      "startedAt": "2026-05-27T23:17:18.754Z",
-      "completedAt": "2026-05-27T23:17:55.851Z",
+      "durationMs": 17199,
+      "startedAt": "2026-05-27T23:51:21.733Z",
+      "completedAt": "2026-05-27T23:51:38.932Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -135,9 +109,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 1987,
-      "startedAt": "2026-05-27T23:17:55.853Z",
-      "completedAt": "2026-05-27T23:17:57.840Z",
+      "durationMs": 505,
+      "startedAt": "2026-05-27T23:51:38.932Z",
+      "completedAt": "2026-05-27T23:51:39.437Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -157,9 +131,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 2529,
-      "startedAt": "2026-05-27T23:17:57.842Z",
-      "completedAt": "2026-05-27T23:18:00.371Z",
+      "durationMs": 593,
+      "startedAt": "2026-05-27T23:51:39.437Z",
+      "completedAt": "2026-05-27T23:51:40.030Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -182,12 +156,12 @@
       "label": "Level 2 runtime/system audit",
       "subsystem": "Infrastructure Readiness",
       "command": "pnpm run audit:runtime --json",
-      "status": "incomplete",
-      "exitCode": 1,
+      "status": "passed",
+      "exitCode": 0,
       "timedOut": false,
-      "durationMs": 2460,
-      "startedAt": "2026-05-27T23:18:00.372Z",
-      "completedAt": "2026-05-27T23:18:02.832Z",
+      "durationMs": 1401,
+      "startedAt": "2026-05-27T23:51:40.030Z",
+      "completedAt": "2026-05-27T23:51:41.431Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -205,34 +179,9 @@
         "runtime logs"
       ],
       "failureReason": null,
-      "incompleteReason": "Runtime audit diagnostics are unavailable, so Docker, Traefik, env, DB, storage, OCR/PDF, log, and volume state are not certified. Run with SSH credentials or directly on the staging VPS with --local-vps.",
+      "incompleteReason": null,
       "warningReason": null,
-      "diagnostic": {
-        "missingInputs": [
-          "STAGING_USER or --ssh-user",
-          "STAGING_OBSERVABILITY_SSH_KEY, STAGING_RUNTIME_SSH_KEY, --ssh-key, or STAGING_SSH_PRIVATE_KEY"
-        ],
-        "commandExamples": [
-          "STAGING_USER=\"<user>\" STAGING_OBSERVABILITY_SSH_KEY=\"<path>\" pnpm audit:runtime --ssh",
-          "STAGING_USER=\"<user>\" STAGING_RUNTIME_SSH_KEY=\"<path>\" pnpm audit:runtime --ssh",
-          "pnpm audit:runtime --ssh --ssh-user <user> --ssh-key <path>",
-          "cd /opt/creditregulatorpro-staging/app && pnpm audit:runtime --local-vps"
-        ],
-        "blockedSubsystems": [
-          "Docker Containers",
-          "Traefik Routing",
-          "Environment Variables",
-          "Database Connectivity",
-          "Storage Connectivity",
-          "Mounted Volumes",
-          "Runtime Tooling",
-          "Filesystem Permissions",
-          "Logging/Error Reporting",
-          "Disk Space",
-          "Queue/Job Systems"
-        ],
-        "rawOutputStored": false
-      }
+      "diagnostic": null
     },
     {
       "id": "storageDurability",
@@ -242,9 +191,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 4805,
-      "startedAt": "2026-05-27T23:18:02.834Z",
-      "completedAt": "2026-05-27T23:18:07.639Z",
+      "durationMs": 1665,
+      "startedAt": "2026-05-27T23:51:41.432Z",
+      "completedAt": "2026-05-27T23:51:43.097Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -264,11 +213,11 @@
       "subsystem": "Operational Workflow",
       "command": "pnpm run audit:e2e",
       "status": "incomplete",
-      "exitCode": 3,
+      "exitCode": 2,
       "timedOut": false,
-      "durationMs": 80323,
-      "startedAt": "2026-05-27T23:18:07.640Z",
-      "completedAt": "2026-05-27T23:19:27.963Z",
+      "durationMs": 87333,
+      "startedAt": "2026-05-27T23:51:43.099Z",
+      "completedAt": "2026-05-27T23:53:10.432Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -288,15 +237,10 @@
         "cleanup lifecycle"
       ],
       "failureReason": null,
-      "incompleteReason": "E2E operational admin packet workflow could not authenticate with the configured admin credentials; this is an admin credential/configuration blocker, not a packet workflow failure.",
+      "incompleteReason": "E2E operational workflow completed without a platform failure, but the admin packet workflow probe was skipped because admin credentials were not supplied.",
       "warningReason": null,
       "diagnostic": {
-        "observedFailure": "FAIL_AUTH",
-        "blockedStage": "admin_packet_workflow",
-        "commandExamples": [
-          "STAGING_ADMIN_EMAIL=\"<email>\" STAGING_ADMIN_PASSWORD=\"<password>\" pnpm audit:admin-auth",
-          "STAGING_ADMIN_SESSION_COOKIE=\"<cookie>\" pnpm audit:admin-auth"
-        ],
+        "observedFailure": "E2E operational workflow completed without a platform failure, but the admin packet workflow probe was skipped because admin credentials were not supplied.",
         "rawOutputStored": false
       }
     },
@@ -308,9 +252,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 114099,
-      "startedAt": "2026-05-27T23:19:27.964Z",
-      "completedAt": "2026-05-27T23:21:22.063Z",
+      "durationMs": 113388,
+      "startedAt": "2026-05-27T23:53:10.433Z",
+      "completedAt": "2026-05-27T23:55:03.821Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -338,9 +282,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 9506,
-      "startedAt": "2026-05-27T23:21:22.065Z",
-      "completedAt": "2026-05-27T23:21:31.571Z",
+      "durationMs": 4163,
+      "startedAt": "2026-05-27T23:55:03.822Z",
+      "completedAt": "2026-05-27T23:55:07.985Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -358,12 +302,12 @@
       "label": "Admin click-through certification",
       "subsystem": "Admin Certification",
       "command": "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
-      "status": "incomplete",
-      "exitCode": 1,
+      "status": "passed",
+      "exitCode": 0,
       "timedOut": false,
-      "durationMs": 39988,
-      "startedAt": "2026-05-27T23:21:31.572Z",
-      "completedAt": "2026-05-27T23:22:11.560Z",
+      "durationMs": 1310,
+      "startedAt": "2026-05-27T23:55:07.986Z",
+      "completedAt": "2026-05-27T23:55:09.296Z",
       "rawOutputStored": false,
       "envKeys": [
         "E2E_BASE_URL",
@@ -377,19 +321,9 @@
         "admin permission enforcement"
       ],
       "failureReason": null,
-      "incompleteReason": "Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login.",
+      "incompleteReason": null,
       "warningReason": null,
-      "diagnostic": {
-        "targetBaseUrl": "https://staging.creditregulatorpro.com",
-        "observedFailure": "FAIL_AUTH",
-        "commandExamples": [
-          "E2E_ADMIN_EMAIL=\"<email>\" E2E_ADMIN_PASSWORD=\"<password>\" pnpm certify:platform",
-          "STAGING_ADMIN_EMAIL=\"<email>\" STAGING_ADMIN_PASSWORD=\"<password>\" pnpm certify:platform",
-          "STAGING_ADMIN_EMAIL=\"<email>\" STAGING_ADMIN_PASSWORD=\"<password>\" pnpm audit:admin-auth",
-          "STAGING_ADMIN_SESSION_COOKIE=\"<cookie>\" pnpm audit:admin-auth"
-        ],
-        "rawOutputStored": false
-      }
+      "diagnostic": null
     },
     {
       "id": "rollbackSimulation",
@@ -399,9 +333,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 18975,
-      "startedAt": "2026-05-27T23:22:11.562Z",
-      "completedAt": "2026-05-27T23:22:30.537Z",
+      "durationMs": 526,
+      "startedAt": "2026-05-27T23:55:09.296Z",
+      "completedAt": "2026-05-27T23:55:09.822Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -422,9 +356,9 @@
       "status": "passed",
       "exitCode": 0,
       "timedOut": false,
-      "durationMs": 3466,
-      "startedAt": "2026-05-27T23:22:30.539Z",
-      "completedAt": "2026-05-27T23:22:34.005Z",
+      "durationMs": 808,
+      "startedAt": "2026-05-27T23:55:09.822Z",
+      "completedAt": "2026-05-27T23:55:10.630Z",
       "rawOutputStored": false,
       "envKeys": [],
       "certifies": [
@@ -452,109 +386,118 @@
       ],
       "failedGateIds": [],
       "incompleteGateIds": [],
-      "missingGateIds": []
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "Runtime Validation",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "stagingRoutingGate",
         "runtimeAudit"
       ],
       "passedGateIds": [
-        "stagingRoutingGate"
-      ],
-      "failedGateIds": [],
-      "incompleteGateIds": [
+        "stagingRoutingGate",
         "runtimeAudit"
       ],
-      "missingGateIds": []
+      "failedGateIds": [],
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "Database Validation",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "runtimeAudit",
         "migrationConsistency"
       ],
       "passedGateIds": [
+        "runtimeAudit",
         "migrationConsistency"
       ],
       "failedGateIds": [],
-      "incompleteGateIds": [
-        "runtimeAudit"
-      ],
-      "missingGateIds": []
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "Storage Validation",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "runtimeAudit",
         "storageDurability"
       ],
       "passedGateIds": [
+        "runtimeAudit",
         "storageDurability"
       ],
       "failedGateIds": [],
-      "incompleteGateIds": [
-        "runtimeAudit"
-      ],
-      "missingGateIds": []
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "OCR/PDF Validation",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "runtimeAudit",
         "e2eOperationalAudit"
       ],
-      "passedGateIds": [],
-      "failedGateIds": [],
-      "incompleteGateIds": [
+      "passedGateIds": [
         "runtimeAudit",
         "e2eOperationalAudit"
       ],
-      "missingGateIds": []
+      "failedGateIds": [],
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": [
+        "e2eOperationalAudit"
+      ]
     },
     {
       "subsystem": "E2E Ingestion Workflow",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "e2eOperationalAudit"
       ],
-      "passedGateIds": [],
-      "failedGateIds": [],
-      "incompleteGateIds": [
+      "passedGateIds": [
         "e2eOperationalAudit"
       ],
-      "missingGateIds": []
+      "failedGateIds": [],
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": [
+        "e2eOperationalAudit"
+      ]
     },
     {
       "subsystem": "Packet Lifecycle Workflow",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "e2eOperationalAudit",
         "resilienceAudit"
       ],
       "passedGateIds": [
+        "e2eOperationalAudit",
         "resilienceAudit"
       ],
       "failedGateIds": [],
-      "incompleteGateIds": [
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": [
         "e2eOperationalAudit"
-      ],
-      "missingGateIds": []
+      ]
     },
     {
       "subsystem": "Admin Certification",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "adminStaticCertification",
@@ -562,14 +505,16 @@
         "e2eOperationalAudit"
       ],
       "passedGateIds": [
-        "adminStaticCertification"
-      ],
-      "failedGateIds": [],
-      "incompleteGateIds": [
+        "adminStaticCertification",
         "adminClickThrough",
         "e2eOperationalAudit"
       ],
-      "missingGateIds": []
+      "failedGateIds": [],
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": [
+        "e2eOperationalAudit"
+      ]
     },
     {
       "subsystem": "Resilience Testing",
@@ -583,11 +528,12 @@
       ],
       "failedGateIds": [],
       "incompleteGateIds": [],
-      "missingGateIds": []
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "Deployment Verification",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "buildReproducibility",
@@ -598,13 +544,13 @@
       "passedGateIds": [
         "buildReproducibility",
         "migrationConsistency",
+        "runtimeAudit",
         "productionParity"
       ],
       "failedGateIds": [],
-      "incompleteGateIds": [
-        "runtimeAudit"
-      ],
-      "missingGateIds": []
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "Rollback Readiness",
@@ -618,24 +564,27 @@
       ],
       "failedGateIds": [],
       "incompleteGateIds": [],
-      "missingGateIds": []
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     },
     {
       "subsystem": "Cleanup/Reset Validation",
-      "status": "INCOMPLETE",
+      "status": "PASS",
       "requiredForPass": true,
       "gateIds": [
         "e2eOperationalAudit",
         "resilienceAudit"
       ],
       "passedGateIds": [
+        "e2eOperationalAudit",
         "resilienceAudit"
       ],
       "failedGateIds": [],
-      "incompleteGateIds": [
+      "incompleteGateIds": [],
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": [
         "e2eOperationalAudit"
-      ],
-      "missingGateIds": []
+      ]
     },
     {
       "subsystem": "Reproducibility Verification",
@@ -657,45 +606,22 @@
       ],
       "failedGateIds": [],
       "incompleteGateIds": [],
-      "missingGateIds": []
+      "missingGateIds": [],
+      "deferredLiveProductionGateIds": []
     }
   ],
   "unresolvedBlockers": [
-    {
-      "severity": "BLOCKED_BY_INPUTS",
-      "subsystem": "Infrastructure Readiness",
-      "gateId": "runtimeAudit",
-      "gateLabel": "Level 2 runtime/system audit",
-      "command": "pnpm run audit:runtime --json",
-      "reason": "Runtime audit diagnostics are unavailable, so Docker, Traefik, env, DB, storage, OCR/PDF, log, and volume state are not certified. Run with SSH credentials or directly on the staging VPS with --local-vps.",
-      "requiredBeforeProduction": true,
-      "deferrableForNonPublicDeployment": false,
-      "deferredUntilCertificationMode": null,
-      "weight": 16
-    },
     {
       "severity": "BLOCKED_BY_INPUTS",
       "subsystem": "Operational Workflow",
       "gateId": "e2eOperationalAudit",
       "gateLabel": "Level 3 E2E operational audit",
       "command": "pnpm run audit:e2e",
-      "reason": "E2E operational admin packet workflow could not authenticate with the configured admin credentials; this is an admin credential/configuration blocker, not a packet workflow failure.",
+      "reason": "E2E operational workflow completed without a platform failure, but the admin packet workflow probe was skipped because admin credentials were not supplied.",
       "requiredBeforeProduction": true,
       "deferrableForNonPublicDeployment": true,
       "deferredUntilCertificationMode": "LIVE_PRODUCTION",
       "weight": 16
-    },
-    {
-      "severity": "BLOCKED_BY_INPUTS",
-      "subsystem": "Admin Certification",
-      "gateId": "adminClickThrough",
-      "gateLabel": "Admin click-through certification",
-      "command": "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
-      "reason": "Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login.",
-      "requiredBeforeProduction": true,
-      "deferrableForNonPublicDeployment": true,
-      "deferredUntilCertificationMode": "LIVE_PRODUCTION",
-      "weight": 8
     }
   ],
   "warnOnlyFindings": [],
@@ -705,7 +631,7 @@
       "command": "pnpm run audit:static",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 204035,
+      "durationMs": 97398,
       "envKeys": []
     },
     {
@@ -713,7 +639,7 @@
       "command": "pnpm run build",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 37097,
+      "durationMs": 17199,
       "envKeys": []
     },
     {
@@ -721,7 +647,7 @@
       "command": "pnpm run check:migrations",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 1987,
+      "durationMs": 505,
       "envKeys": []
     },
     {
@@ -729,7 +655,7 @@
       "command": "pnpm run check:staging-gate",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 2529,
+      "durationMs": 593,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -739,9 +665,9 @@
     {
       "gateId": "runtimeAudit",
       "command": "pnpm run audit:runtime --json",
-      "status": "incomplete",
-      "exitCode": 1,
-      "durationMs": 2460,
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1401,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -753,15 +679,15 @@
       "command": "pnpm run storage:durability-contract --no-write-evidence --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 4805,
+      "durationMs": 1665,
       "envKeys": []
     },
     {
       "gateId": "e2eOperationalAudit",
       "command": "pnpm run audit:e2e",
       "status": "incomplete",
-      "exitCode": 3,
-      "durationMs": 80323,
+      "exitCode": 2,
+      "durationMs": 87333,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -773,7 +699,7 @@
       "command": "pnpm run audit:resilience",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 114099,
+      "durationMs": 113388,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -785,15 +711,15 @@
       "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 9506,
+      "durationMs": 4163,
       "envKeys": []
     },
     {
       "gateId": "adminClickThrough",
       "command": "pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts",
-      "status": "incomplete",
-      "exitCode": 1,
-      "durationMs": 39988,
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1310,
       "envKeys": [
         "E2E_BASE_URL",
         "STAGING_APP_URL",
@@ -805,7 +731,7 @@
       "command": "pnpm run deploy:rollback-simulation --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 18975,
+      "durationMs": 526,
       "envKeys": []
     },
     {
@@ -813,16 +739,16 @@
       "command": "pnpm run environment:parity -- --json && pnpm run production-deployment-parity:evidence --json",
       "status": "passed",
       "exitCode": 0,
-      "durationMs": 3466,
+      "durationMs": 808,
       "envKeys": []
     }
   ],
   "rollbackReadinessStatus": "PASS",
-  "infrastructureReadinessStatus": "INCOMPLETE",
-  "parserConfidenceCertification": "INCOMPLETE",
-  "storageLifecycleStatus": "INCOMPLETE",
-  "adminCertificationStatus": "INCOMPLETE",
-  "packetLifecycleStatus": "INCOMPLETE",
+  "infrastructureReadinessStatus": "PASS",
+  "parserConfidenceCertification": "PASS",
+  "storageLifecycleStatus": "PASS",
+  "adminCertificationStatus": "PASS",
+  "packetLifecycleStatus": "PASS",
   "reproducibilityStatus": "PASS",
   "safety": {
     "productionDataMutated": false,
@@ -833,13 +759,11 @@
     "secretsPrinted": false
   },
   "productionRiskAssessment": {
-    "level": "UNKNOWN",
-    "summary": "Production deployment is not certified because required credential/access inputs were unavailable; no platform failure is asserted by these incomplete gates.",
+    "level": "MEDIUM",
+    "summary": "Non-public/offline deployment is acceptable because core platform gates passed and only admin credential/click-through proof is deferred. LIVE Production remains uncertified.",
     "reasons": [
-      "Infrastructure Readiness: Runtime audit diagnostics are unavailable, so Docker, Traefik, env, DB, storage, OCR/PDF, log, and volume state are not certified. Run with SSH credentials or directly on the staging VPS with --local-vps.",
-      "Operational Workflow: E2E operational admin packet workflow could not authenticate with the configured admin credentials; this is an admin credential/configuration blocker, not a packet workflow failure.",
-      "Admin Certification: Admin click-through certification reached staging, but the configured E2E/STAGING admin credentials failed login."
+      "Operational Workflow: E2E operational workflow completed without a platform failure, but the admin packet workflow probe was skipped because admin credentials were not supplied."
     ]
   },
-  "operationalStabilitySummary": "Operational stability is not certified because one or more mandatory gates were blocked by missing credentials or unavailable diagnostics."
+  "operationalStabilitySummary": "Non-public/offline deployment acceptance is available, but LIVE Production certification remains blocked until admin credential/click-through proof is verified."
 }
