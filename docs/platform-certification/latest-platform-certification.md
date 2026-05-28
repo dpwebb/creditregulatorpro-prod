@@ -1,9 +1,9 @@
 # CreditRegulatorPro Level 5 Platform Certification
 
-Generated: 2026-05-27T23:55:10.631Z
+Generated: 2026-05-28T00:46:28.887Z
 Target: https://staging.creditregulatorpro.com
 Branch: `unknown`
-Commit: `39aa91800ee6cb746800cb2c1729e0fd179e2fda`
+Commit: `475d848d6b7b154d042589eae4f645a8b0f0232f`
 Certification mode: **NON_PUBLIC_PRODUCTION_TEST**
 Formal certification: **INCOMPLETE**
 CERTIFYING:false
@@ -45,17 +45,17 @@ Deployment readiness score: **84/100**
 
 | Gate | Subsystem | Status | Duration | Command |
 | --- | --- | --- | ---: | --- |
-| Level 1 static code audit | Static Audit | PASS | 97s | `pnpm run audit:static` |
-| Build reproducibility | Deployment Verification | PASS | 17s | `pnpm run build` |
-| Migration consistency | Database Validation | PASS | 1s | `pnpm run check:migrations` |
+| Level 1 static code audit | Static Audit | PASS | 101s | `pnpm run audit:static` |
+| Build reproducibility | Deployment Verification | PASS | 18s | `pnpm run build` |
+| Migration consistency | Database Validation | PASS | 0s | `pnpm run check:migrations` |
 | Staging routing and API availability gate | Runtime Validation | PASS | 1s | `pnpm run check:staging-gate` |
-| Level 2 runtime/system audit | Infrastructure Readiness | PASS | 1s | `pnpm run audit:runtime --json` |
-| Storage lifecycle and durability contract | Storage Validation | PASS | 2s | `pnpm run storage:durability-contract --no-write-evidence --json` |
-| Level 3 E2E operational audit | Operational Workflow | INCOMPLETE | 87s | `pnpm run audit:e2e` |
-| Level 4 adversarial/resilience audit | Resilience | PASS | 113s | `pnpm run audit:resilience` |
+| Level 2 runtime/system audit | Infrastructure Readiness | PASS | 2s | `pnpm run audit:runtime --json` |
+| Storage lifecycle and durability contract | Storage Validation | PASS | 1s | `pnpm run storage:durability-contract --no-write-evidence --json` |
+| Level 3 E2E operational audit | Operational Workflow | INCOMPLETE | 78s | `pnpm run audit:e2e` |
+| Level 4 adversarial/resilience audit | Resilience | PASS | 115s | `pnpm run audit:resilience` |
 | Admin static route and permission certification | Admin Certification | PASS | 4s | `pnpm exec vitest run --config vitest.config.ts tests/unit/admin-sidebar-routes.spec.ts tests/contracts/route-auth-classification.spec.ts tests/api/support-role-privacy-matrix.spec.ts` |
 | Admin click-through certification | Admin Certification | PASS | 1s | `pnpm exec playwright test tests/e2e/admin-sidebar-routes.spec.ts tests/e2e/admin-security-functions.spec.ts` |
-| Rollback simulation | Rollback Readiness | PASS | 1s | `pnpm run deploy:rollback-simulation --json` |
+| Rollback simulation | Rollback Readiness | PASS | 0s | `pnpm run deploy:rollback-simulation --json` |
 | Production parity evidence | Production Parity | PASS | 1s | `pnpm run environment:parity -- --json && pnpm run production-deployment-parity:evidence --json` |
 
 ## Unresolved Blockers
