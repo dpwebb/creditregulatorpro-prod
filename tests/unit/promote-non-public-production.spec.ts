@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   NON_PUBLIC_PROMOTION_CONFIRM_COMMAND,
+  buildNonPublicPromotionValidation,
   isAdminCredentialOrClickThroughDeferral,
   parseNonPublicPromotionArgs,
   validateNonPublicCertificationEvidence,
@@ -10,6 +11,7 @@ import {
 
 const HEAD = "1234567890abcdef1234567890abcdef12345678";
 const OTHER_HEAD = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+const STALE_PARENT = "fedcbafedcbafedcbafedcbafedcbafedcba9876";
 
 function cleanSafety(overrides: Record<string, unknown> = {}) {
   return {
@@ -69,14 +71,63 @@ describe("non-public production promotion evidence", () => {
 
     expect(result.allowed).toBe(true);
     expect(result.certificationMode).toBe("NON_PUBLIC_PRODUCTION_TEST");
+    expect(result.targetAcceptance).toBe("same-commit");
     expect(result.nonPublicDeploymentAcceptable).toBe(true);
     expect(result.liveProductionCertified).toBe(false);
     expect(result.reasons).toEqual([]);
   });
 
+  it("accepts an evidence-only child commit whose parent is the certified commit", () => {
+    const result = validateNonPublicCertificationEvidence(validEvidence(), {
+      currentHead: OTHER_HEAD,
+      parentHead: HEAD,
+      headChangedFiles: [
+        "docs/environment-parity.md",
+        "docs/platform-certification/latest-platform-certification.json",
+        "docs/platform-certification/latest-platform-certification.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.json",
+        "docs/production-scale/evidence/latest-production-deployment-parity.md",
+      ],
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.targetAcceptance).toBe("evidence-only-child");
+    expect(result.certifiedCommit).toBe(HEAD);
+    expect(result.currentHead).toBe(OTHER_HEAD);
+  });
+
+  it("rejects an evidence child commit when it includes non-evidence file changes", () => {
+    const result = validateNonPublicCertificationEvidence(validEvidence(), {
+      currentHead: OTHER_HEAD,
+      parentHead: HEAD,
+      headChangedFiles: [
+        "docs/platform-certification/latest-platform-certification.json",
+        "scripts/promote-non-public-production.mjs",
+      ],
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toEqual(
+      expect.arrayContaining(["evidence-child-contains-non-evidence-changes", "stale-platform-certification"]),
+    );
+  });
+
   it("rejects stale evidence", () => {
     const result = validateNonPublicCertificationEvidence(validEvidence({ currentCommit: OTHER_HEAD }), {
       currentHead: HEAD,
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toContain("stale-platform-certification");
+  });
+
+  it("rejects stale evidence when neither HEAD nor parent is the certified commit", () => {
+    const result = validateNonPublicCertificationEvidence(validEvidence(), {
+      currentHead: OTHER_HEAD,
+      parentHead: STALE_PARENT,
+      headChangedFiles: ["docs/platform-certification/latest-platform-certification.json"],
     });
 
     expect(result.allowed).toBe(false);
@@ -98,6 +149,26 @@ describe("non-public production promotion evidence", () => {
 
     expect(result.allowed).toBe(false);
     expect(result.reasons.map((reason) => reason.code)).toContain("hard-unresolved-blockers");
+  });
+
+  it("rejects missing host key in the aggregate non-public promotion validation", () => {
+    const result = buildNonPublicPromotionValidation({
+      report: validEvidence(),
+      currentHead: HEAD,
+      hostKeyPinning: {
+        allowed: false,
+        reasons: [
+          {
+            code: "host-key-input-missing",
+            message: "PRODUCTION_SSH_HOST_KEY_SHA256 is missing.",
+          },
+        ],
+      },
+      workerPolicy: { allowed: true, reasons: [] },
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toContain("host-key-input-missing");
   });
 
   it("rejects dirty safety flags", () => {
@@ -154,6 +225,8 @@ describe("non-public production promotion evidence", () => {
       [
         " M docs/platform-certification/latest-platform-certification.json",
         " M docs/platform-certification/latest-platform-certification.md",
+        " M docs/production-scale/evidence/latest-migration-governance.json",
+        " M docs/production-scale/evidence/latest-production-deployment-parity.md",
       ].join("\n"),
     );
     const dirtySource = validateWorkingTreeAllowsNonPublicPromotion(" M scripts/platform-certification.mjs");

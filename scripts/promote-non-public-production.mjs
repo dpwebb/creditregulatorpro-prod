@@ -21,9 +21,14 @@ const DEFAULT_PRODUCTION_BRANCH = "main";
 
 export const NON_PUBLIC_PROMOTION_CONFIRM_FLAG = "--confirm";
 export const NON_PUBLIC_PROMOTION_CONFIRM_COMMAND = "pnpm run promote:non-public-production -- --confirm";
-export const ALLOWED_NON_PUBLIC_EVIDENCE_DIRTY_PATHS = new Set([
+export const ALLOWED_NON_PUBLIC_EVIDENCE_PATHS = new Set([
+  "docs/environment-parity.md",
   PLATFORM_CERTIFICATION_JSON_PATH,
   "docs/platform-certification/latest-platform-certification.md",
+  "docs/production-scale/evidence/latest-migration-governance.json",
+  "docs/production-scale/evidence/latest-migration-governance.md",
+  "docs/production-scale/evidence/latest-production-deployment-parity.json",
+  "docs/production-scale/evidence/latest-production-deployment-parity.md",
 ]);
 
 const STRICT_SHA_RE = /^[a-f0-9]{40}$/i;
@@ -62,6 +67,12 @@ function addReason(reasons, code, message, details = {}) {
 
 function normalizeRepoPath(filePath) {
   return String(filePath ?? "").replace(/\\/g, "/").replace(/^\.?\//, "");
+}
+
+function normalizeRepoPaths(filePaths) {
+  return (Array.isArray(filePaths) ? filePaths : [])
+    .map(normalizeRepoPath)
+    .filter(Boolean);
 }
 
 function run(command, commandArgs, options = {}) {
@@ -155,7 +166,49 @@ function everyUnresolvedBlockerIsDeferredAdminCredential(report, deferredLivePro
   });
 }
 
-export function validateNonPublicCertificationEvidence(report, { currentHead = null } = {}) {
+function evidenceTargetAcceptance({ certifiedCommit, currentHead, parentHead = null, headChangedFiles = [] }) {
+  const current = strictSha(currentHead) ? currentHead : null;
+  const parent = strictSha(parentHead) ? parentHead : null;
+  const changedFiles = normalizeRepoPaths(headChangedFiles);
+  const nonEvidenceChangedFiles = changedFiles.filter((filePath) => !ALLOWED_NON_PUBLIC_EVIDENCE_PATHS.has(filePath));
+
+  if (current && certifiedCommit === current) {
+    return {
+      accepted: true,
+      mode: "same-commit",
+      currentHead: current,
+      parentHead: parent,
+      headChangedFiles: changedFiles,
+      nonEvidenceChangedFiles,
+    };
+  }
+
+  if (current && parent && certifiedCommit === parent && changedFiles.length > 0 && nonEvidenceChangedFiles.length === 0) {
+    return {
+      accepted: true,
+      mode: "evidence-only-child",
+      currentHead: current,
+      parentHead: parent,
+      headChangedFiles: changedFiles,
+      nonEvidenceChangedFiles,
+    };
+  }
+
+  return {
+    accepted: false,
+    mode: "rejected",
+    currentHead: current,
+    parentHead: parent,
+    headChangedFiles: changedFiles,
+    nonEvidenceChangedFiles,
+    evidenceOnlyChildCandidate: Boolean(current && parent && certifiedCommit === parent),
+  };
+}
+
+export function validateNonPublicCertificationEvidence(
+  report,
+  { currentHead = null, parentHead = null, headChangedFiles = [] } = {},
+) {
   const reasons = [];
   const current = strictSha(currentHead) ? currentHead : null;
 
@@ -181,6 +234,12 @@ export function validateNonPublicCertificationEvidence(report, { currentHead = n
     : report.hardUnresolvedBlockers == null
       ? []
       : null;
+  const targetAcceptance = evidenceTargetAcceptance({
+    certifiedCommit,
+    currentHead: current,
+    parentHead,
+    headChangedFiles,
+  });
 
   if (!isNonPublicDeploymentCertificationMode(certificationMode)) {
     addReason(
@@ -209,12 +268,26 @@ export function validateNonPublicCertificationEvidence(report, { currentHead = n
   }
   if (!current) {
     addReason(reasons, "current-head-unresolved", "Current git HEAD could not be resolved.");
-  } else if (certifiedCommit !== current) {
+  } else if (!targetAcceptance.accepted) {
+    if (targetAcceptance.evidenceOnlyChildCandidate && targetAcceptance.nonEvidenceChangedFiles.length > 0) {
+      addReason(
+        reasons,
+        "evidence-child-contains-non-evidence-changes",
+        "Current HEAD is an evidence-child commit, but it changes files outside the approved generated evidence set.",
+        { nonEvidenceChangedFiles: targetAcceptance.nonEvidenceChangedFiles },
+      );
+    } else if (targetAcceptance.evidenceOnlyChildCandidate) {
+      addReason(
+        reasons,
+        "evidence-child-missing-changed-files",
+        "Current HEAD parent is certified, but the HEAD changed-file evidence was unavailable or empty.",
+      );
+    }
     addReason(
       reasons,
       "stale-platform-certification",
-      "Platform certification currentCommit does not match current git HEAD.",
-      { certifiedCommit, currentHead: current },
+      "Platform certification currentCommit must match current git HEAD or the parent of an approved evidence-only HEAD commit.",
+      { certifiedCommit, currentHead: current, parentHead: targetAcceptance.parentHead },
     );
   }
 
@@ -280,10 +353,59 @@ export function validateNonPublicCertificationEvidence(report, { currentHead = n
     currentHead: current,
     certifiedCommit,
     certificationMode,
+    targetAcceptance: targetAcceptance.mode,
+    parentHead: targetAcceptance.parentHead,
+    headChangedFiles: targetAcceptance.headChangedFiles,
+    nonEvidenceChangedFiles: targetAcceptance.nonEvidenceChangedFiles,
     liveProductionCertified: report.liveProductionCertified === true,
     nonPublicDeploymentAcceptable: report.nonPublicDeploymentAcceptable === true,
     deferredLiveProductionBlockers,
     hardUnresolvedBlockers: Array.isArray(hardUnresolvedBlockers) ? hardUnresolvedBlockers : [],
+    reasons,
+  };
+}
+
+export function buildNonPublicPromotionValidation({
+  report,
+  currentHead = null,
+  parentHead = null,
+  headChangedFiles = [],
+  certificationFileExists = true,
+  certificationFileError = null,
+  hostKeyPinning = { reasons: [] },
+  workerPolicy = { reasons: [] },
+} = {}) {
+  const certification = validateNonPublicCertificationEvidence(report, {
+    currentHead,
+    parentHead,
+    headChangedFiles,
+  });
+  const reasons = [
+    ...(!certificationFileExists
+      ? [{
+          code: "platform-certification-missing",
+          message: "Required non-public platform certification evidence is missing.",
+          details: { path: PLATFORM_CERTIFICATION_JSON_PATH },
+        }]
+      : []),
+    ...(certificationFileError
+      ? [{
+          code: "platform-certification-unreadable",
+          message: "Required non-public platform certification evidence is unreadable.",
+          details: { path: PLATFORM_CERTIFICATION_JSON_PATH },
+        }]
+      : []),
+    ...certification.reasons,
+    ...(Array.isArray(hostKeyPinning?.reasons) ? hostKeyPinning.reasons : []),
+    ...(Array.isArray(workerPolicy?.reasons) ? workerPolicy.reasons : []),
+  ];
+
+  return {
+    allowed: reasons.length === 0,
+    currentHead: certification.currentHead,
+    certification,
+    hostKeyPinning,
+    workerPolicy,
     reasons,
   };
 }
@@ -300,7 +422,7 @@ export function validateWorkingTreeAllowsNonPublicPromotion(statusText) {
     .split(/\r?\n/)
     .map(parsePorcelainStatusLine)
     .filter(Boolean);
-  const blockingPaths = changedPaths.filter((filePath) => !ALLOWED_NON_PUBLIC_EVIDENCE_DIRTY_PATHS.has(filePath));
+  const blockingPaths = changedPaths.filter((filePath) => !ALLOWED_NON_PUBLIC_EVIDENCE_PATHS.has(filePath));
 
   return {
     allowed: blockingPaths.length === 0,
@@ -360,6 +482,7 @@ export function renderNonPublicPromotionSummary(result) {
   lines.push(`Current HEAD: ${sanitizePromotionGuardText(result.currentHead ?? "unknown")}`);
   lines.push(`Certified commit: ${sanitizePromotionGuardText(result.certification?.certifiedCommit ?? "unknown")}`);
   lines.push(`Certification mode: ${sanitizePromotionGuardText(result.certification?.certificationMode ?? "unknown")}`);
+  lines.push(`Evidence target acceptance: ${sanitizePromotionGuardText(result.certification?.targetAcceptance ?? "unknown")}`);
   lines.push(`Non-public deployment acceptable: ${result.certification?.nonPublicDeploymentAcceptable ? "true" : "false"}`);
   lines.push(`LIVE production certified: ${result.certification?.liveProductionCertified ? "true" : "false"}`);
   lines.push(`Deferred LIVE blockers: ${sanitizePromotionGuardText(result.certification?.deferredLiveProductionBlockers?.length ?? 0)}`);
@@ -464,42 +587,35 @@ async function main() {
   if (localHead !== upstreamHead) {
     fail(`local HEAD ${localHead} does not match ${upstream} ${upstreamHead}`);
   }
+  let parentHead = null;
+  try {
+    parentHead = runGit(["rev-parse", "HEAD^"], { cwd: rootDir });
+  } catch {
+    parentHead = null;
+  }
+  const headChangedFiles = parentHead
+    ? runGit(["diff", "--name-only", `${parentHead}..${localHead}`], { cwd: rootDir })
+      .split(/\r?\n/)
+      .filter(Boolean)
+    : [];
 
   const certificationFile = readJsonFile(rootDir, PLATFORM_CERTIFICATION_JSON_PATH);
-  const certification = validateNonPublicCertificationEvidence(certificationFile.value, { currentHead: localHead });
   const hostKeyPinning = validateProductionHostKeyPinning({
     rootDir,
     env: process.env,
     productionRepo: DEFAULT_PRODUCTION_REPO_SLUG,
   });
   const workerPolicy = validateProductionNoWorkerPolicy({ rootDir });
-  const reasons = [
-    ...(!certificationFile.exists
-      ? [{
-          code: "platform-certification-missing",
-          message: "Required non-public platform certification evidence is missing.",
-          details: { path: PLATFORM_CERTIFICATION_JSON_PATH },
-        }]
-      : []),
-    ...(certificationFile.error
-      ? [{
-          code: "platform-certification-unreadable",
-          message: "Required non-public platform certification evidence is unreadable.",
-          details: { path: PLATFORM_CERTIFICATION_JSON_PATH },
-        }]
-      : []),
-    ...certification.reasons,
-    ...hostKeyPinning.reasons,
-    ...workerPolicy.reasons,
-  ];
-  const result = {
-    allowed: reasons.length === 0,
+  const result = buildNonPublicPromotionValidation({
+    report: certificationFile.value,
     currentHead: localHead,
-    certification,
+    parentHead,
+    headChangedFiles,
+    certificationFileExists: certificationFile.exists,
+    certificationFileError: certificationFile.error,
     hostKeyPinning,
     workerPolicy,
-    reasons,
-  };
+  });
 
   const summary = renderNonPublicPromotionSummary(result);
   if (!result.allowed) {

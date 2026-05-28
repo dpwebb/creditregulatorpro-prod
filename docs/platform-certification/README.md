@@ -151,8 +151,11 @@ pnpm run promote:non-public-production -- --confirm
 This command is only for private/offline deployment targets before LIVE
 Production. It prints `NON-PUBLIC PRODUCTION TEST DEPLOYMENT` and
 `NOT LIVE PRODUCTION CERTIFIED`, requires `--confirm`, and refuses to run
-without same-commit `nonPublicDeploymentAcceptable:true` evidence in
-`docs/platform-certification/latest-platform-certification.json`.
+without `nonPublicDeploymentAcceptable:true` evidence in
+`docs/platform-certification/latest-platform-certification.json`. The evidence
+may either certify the current commit directly, or certify the parent of the
+current commit when the current commit changes only generated certification,
+parity, and migration-governance evidence files.
 
 The non-public lane does not run `validate:release`, `response:soak-check`, or
 the full Vitest suite when valid same-commit evidence already exists. It still
