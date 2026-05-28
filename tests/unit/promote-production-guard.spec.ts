@@ -376,6 +376,7 @@ describe("production promotion guard", () => {
     const productionWorkflow = readFileSync(".github/workflows/deploy-production.yml", "utf8");
 
     expect(packageJson.scripts["production-scale:promotion-guard"]).toBe("node scripts/production-promotion-guard.mjs");
+    expect(packageJson.scripts["promote:non-public-production"]).toBe("node scripts/promote-non-public-production.mjs");
     expect(validationTierScript).toContain("pnpm run production-scale:promotion-guard");
     expect(promoteProductionScript).toContain("pnpm run validate:release");
     expect(productionWorkflow).toContain("pnpm run validate:release");

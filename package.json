@@ -127,6 +127,7 @@
     "production-scale:certify": "node scripts/production-scale-certification.mjs",
     "production-scale:promotion-pack": "node scripts/production-promotion-pack.mjs",
     "production-scale:promotion-guard": "node scripts/production-promotion-guard.mjs",
+    "promote:non-public-production": "node scripts/promote-non-public-production.mjs",
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",
     "storage:raw-report-machine-inventory": "node scripts/storage-raw-report-machine-inventory.mjs",
     "storage:raw-report-remediation-plan": "node scripts/storage-raw-report-remediation-plan.mjs",

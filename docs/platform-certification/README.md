@@ -138,3 +138,34 @@ For first go-live, the production ingest worker is intentionally no-worker by
 default. Normal production deploys start only `creditregulatorpro`; any
 production ingest worker dry-run or bounded apply requires explicit
 `workflow_dispatch` inputs.
+
+## Non-Public Production-Test Promotion
+
+Before the operator explicitly declares LIVE Production, private/offline
+production-target pushes must use the explicit non-public lane:
+
+```bash
+pnpm run promote:non-public-production -- --confirm
+```
+
+This command is only for private/offline deployment targets before LIVE
+Production. It prints `NON-PUBLIC PRODUCTION TEST DEPLOYMENT` and
+`NOT LIVE PRODUCTION CERTIFIED`, requires `--confirm`, and refuses to run
+without same-commit `nonPublicDeploymentAcceptable:true` evidence in
+`docs/platform-certification/latest-platform-certification.json`.
+
+The non-public lane does not run `validate:release`, `response:soak-check`, or
+the full Vitest suite when valid same-commit evidence already exists. It still
+fails closed on stale evidence, hard blockers, dirty safety flags, source/script
+or config working-tree changes, failed commands, non-PASS core statuses,
+missing production host-key pinning, or production worker policy regressions.
+Only explicit admin credential/session or click-through proof gaps may remain
+under `deferredLiveProductionBlockers`, and each deferred blocker must be marked
+for `LIVE_PRODUCTION`.
+
+This is not LIVE Production approval. Before LIVE Production, run strict
+certification with verified admin credentials/session and use:
+
+```bash
+pnpm run promote:production
+```
