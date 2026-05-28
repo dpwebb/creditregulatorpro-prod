@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   DEPLOYMENT_CERTIFICATION_MODES,
@@ -17,6 +17,43 @@ import {
 const RUN_STARTED_AT = "2026-05-25T12:00:00.000Z";
 const RUN_COMPLETED_AT = "2026-05-25T12:05:00.000Z";
 const COMMIT = "a".repeat(40);
+const DEPLOYMENT_CERTIFICATION_MODE_ENV = "CRP_DEPLOYMENT_CERTIFICATION_MODE";
+let previousDeploymentCertificationMode: string | undefined;
+
+beforeEach(() => {
+  previousDeploymentCertificationMode = process.env[DEPLOYMENT_CERTIFICATION_MODE_ENV];
+  delete process.env[DEPLOYMENT_CERTIFICATION_MODE_ENV];
+});
+
+afterEach(() => {
+  if (previousDeploymentCertificationMode === undefined) {
+    delete process.env[DEPLOYMENT_CERTIFICATION_MODE_ENV];
+  } else {
+    process.env[DEPLOYMENT_CERTIFICATION_MODE_ENV] = previousDeploymentCertificationMode;
+  }
+  previousDeploymentCertificationMode = undefined;
+});
+
+function liveProductionEnv(overrides: Record<string, string> = {}) {
+  return {
+    CRP_DEPLOYMENT_CERTIFICATION_MODE: DEPLOYMENT_CERTIFICATION_MODES.LIVE_PRODUCTION,
+    ...overrides,
+  };
+}
+
+function nonPublicProductionTestEnv(overrides: Record<string, string> = {}) {
+  return {
+    CRP_DEPLOYMENT_CERTIFICATION_MODE: DEPLOYMENT_CERTIFICATION_MODES.NON_PUBLIC_PRODUCTION_TEST,
+    ...overrides,
+  };
+}
+
+function offlineDeploymentEnv(overrides: Record<string, string> = {}) {
+  return {
+    CRP_DEPLOYMENT_CERTIFICATION_MODE: DEPLOYMENT_CERTIFICATION_MODES.OFFLINE_DEPLOYMENT,
+    ...overrides,
+  };
+}
 
 function gate(id: string, overrides = {}) {
   return {
@@ -101,6 +138,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: runCommandWithFailures(),
       currentCommit: COMMIT,
       currentBranch: "staging",
@@ -131,10 +169,10 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      env: {
+      env: liveProductionEnv({
         STAGING_ADMIN_EMAIL: "admin@example.test",
         STAGING_ADMIN_PASSWORD: "secret-password",
-      },
+      }),
       runCommand: async (command: string, options: { gate: { id: string } }) => {
         commands.push(command);
         return runCommandWithFailures()(command, options);
@@ -161,7 +199,7 @@ describe("platform certification command", () => {
     await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      env: {},
+      env: liveProductionEnv(),
       runCommand: async (command: string, options: { gate: { id: string } }) => {
         commands.push(command);
         return runCommandWithFailures()(command, options);
@@ -180,6 +218,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: runCommandWithFailures(["adminClickThrough"], {
         adminClickThrough:
           "Admin click-through certification is required but E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD are unavailable.",
@@ -213,9 +252,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      env: {
-        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
-      },
+      env: nonPublicProductionTestEnv(),
       runCommand: runCommandWithFailures(["adminClickThrough"], {
         adminClickThrough:
           "Admin click-through certification is required but E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD are unavailable.",
@@ -250,9 +287,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      env: {
-        CRP_DEPLOYMENT_CERTIFICATION_MODE: "OFFLINE_DEPLOYMENT",
-      },
+      env: offlineDeploymentEnv(),
       runCommand: runCommandWithFailures(["e2eOperationalAudit"], {
         e2eOperationalAudit:
           '{"status":"INCOMPLETE","certification":"Operational INCOMPLETE: non-admin staging workflow passed, but the admin packet workflow probe was skipped because admin credentials were missing.","metrics":{"adminProbeSkipCode":"ADMIN_PROBE_SKIPPED_CREDENTIALS_MISSING"}}',
@@ -295,9 +330,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      env: {
-        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
-      },
+      env: nonPublicProductionTestEnv(),
       runCommand: runCommandWithFailures(["e2eOperationalAudit"], {
         e2eOperationalAudit:
           '{"status":"FAIL_AUTH","certification":"Operational FAIL_AUTH: configured admin credentials failed authentication, so the admin packet workflow probe could not run.","metrics":{"adminProbeAuthFailureCode":"ADMIN_PROBE_AUTH_FAILED"}}',
@@ -324,9 +357,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
-      env: {
-        CRP_DEPLOYMENT_CERTIFICATION_MODE: "NON_PUBLIC_PRODUCTION_TEST",
-      },
+      env: nonPublicProductionTestEnv(),
       runCommand: runCommandWithFailures(["runtimeAudit", "adminClickThrough"], {
         runtimeAudit: '{"completion":"AUDIT_ACCESS_FAILURE","status":"FAIL"}',
         adminClickThrough:
@@ -384,6 +415,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: async () => ({
         exitCode: 0,
         timedOut: false,
@@ -462,6 +494,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: runCommandWithFailures(["runtimeAudit"], {
         runtimeAudit: '{"completion":"AUDIT_ACCESS_FAILURE","status":"FAIL","checks":[{"subsystem":"SSH Diagnostics","status":"FAIL"}]}',
       }),
@@ -484,6 +517,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: runCommandWithFailures(["adminClickThrough"], {
         adminClickThrough: "Login failed for admin@example.test. Verify the E2E credentials and E2E_BASE_URL target.",
       }),
@@ -511,6 +545,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: runCommandWithFailures(["adminClickThrough"], {
         adminClickThrough:
           'Test timeout of 60000ms exceeded. Error: page.goto: Test timeout of 60000ms exceeded. navigating to "https://staging.creditregulatorpro.com/admin-security", waiting until "domcontentloaded"',
@@ -536,6 +571,7 @@ describe("platform certification command", () => {
     const report = await buildPlatformCertificationReport({
       repoRoot: process.cwd(),
       gates,
+      env: liveProductionEnv(),
       runCommand: runCommandWithFailures(["adminClickThrough"], {
         adminClickThrough:
           'expect(locator).toContainText(expected) failed. Expected substring: "DELETE". Received string: "No audit logs found matching your criteria."',
