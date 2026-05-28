@@ -21,6 +21,7 @@
 - Explain changed files after each task
 - Give exact test steps after each task
 - If uncertain, inspect first and summarize before editing
+- Before any CreditRegulatorPro work while LIVE Production has not been declared, read `docs/internal/CODEX_GLOBAL_FIXES.md` for durable standing directives and non-public deployment rules.
 
 ## Codex task checkpoint
 - Before Codex edits any file, run:
